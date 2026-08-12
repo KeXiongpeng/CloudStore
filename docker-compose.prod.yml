@@ -1,0 +1,88 @@
+# 云存储文件分享平台 - 生产环境部署
+# 与 portfolio 项目共用 nginx-proxy，通过域名分流
+
+services:
+  # ── PostgreSQL ──
+  postgres:
+    image: docker.1ms.run/library/postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cloud_storage}
+      POSTGRES_USER: ${POSTGRES_USER:-csp_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请在.env中设置POSTGRES_PASSWORD}
+    volumes:
+      - csp_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-csp_user} -d ${POSTGRES_DB:-cloud_storage}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-net
+
+  # ── Redis ──
+  redis:
+    image: docker.1ms.run/library/redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - csp_redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-net
+
+  # ── NestJS 后端 API ──
+  nestjs:
+    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v4
+    restart: unless-stopped
+    expose:
+      - '3000'
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - VIRTUAL_HOST=api.kxpwty.cn
+      - LETSENCRYPT_HOST=api.kxpwty.cn
+      - VIRTUAL_PORT=3000
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-csp_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cloud_storage}?schema=public
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    networks:
+      - app-net
+      - shared-proxy
+
+  # ── Next.js 前端 ──
+  nextjs:
+    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/client:v2
+    restart: unless-stopped
+    expose:
+      - '3001'
+    environment:
+      - VIRTUAL_HOST=kxpwty.cn
+      - LETSENCRYPT_HOST=kxpwty.cn
+      - VIRTUAL_PORT=3001
+      - NEXT_PUBLIC_API_URL=http://nestjs:3000
+    depends_on:
+      - nestjs
+    networks:
+      - app-net
+      - shared-proxy
+
+volumes:
+  csp_pgdata:
+  csp_redisdata:
+
+networks:
+  app-net:
+    driver: bridge
+  shared-proxy:
+    external: true
+    name: portfolio_app-net

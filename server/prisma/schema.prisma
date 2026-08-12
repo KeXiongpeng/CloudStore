@@ -1,0 +1,119 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  user
+  admin
+}
+
+enum Tier {
+  free
+  vip
+}
+
+enum OAuthProvider {
+  github
+  google
+}
+
+enum AccessAction {
+  view
+  download
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String?        @map("password_hash")
+  nickname      String?
+  avatarUrl     String?        @map("avatar_url")
+  role          Role           @default(user)
+  tier          Tier           @default(free)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  oauthAccounts OAuthAccount[]
+  files         File[]
+  quota         UserQuota?
+  apiKeys       ApiKey[]
+
+  @@map("users")
+}
+
+model OAuthAccount {
+  id         String        @id @default(uuid())
+  userId     String        @map("user_id")
+  provider   OAuthProvider
+  providerId String        @map("provider_id")
+  createdAt  DateTime      @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@map("oauth_accounts")
+}
+
+model File {
+  id            String       @id @default(uuid())
+  userId        String       @map("user_id")
+  originalName  String       @map("original_name")
+  storageKey    String       @unique @map("storage_key")
+  urlKey        String       @unique @map("url_key")
+  fileSize      BigInt       @map("file_size")
+  mimeType      String       @map("mime_type")
+  isPrivate     Boolean      @default(false) @map("is_private")
+  viewCount     Int          @default(0) @map("view_count")
+  downloadCount Int          @default(0) @map("download_count")
+  uploadIp      String?      @map("upload_ip")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  deletedAt     DateTime?    @map("deleted_at")
+
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessLogs AccessLog[]
+
+  @@map("files")
+}
+
+model UserQuota {
+  id           String   @id @default(uuid())
+  userId       String   @unique @map("user_id")
+  storageLimit BigInt   @map("storage_limit")
+  storageUsed  BigInt   @default(0) @map("storage_used")
+  tier         Tier     @default(free)
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_quotas")
+}
+
+model ApiKey {
+  id       String    @id @default(uuid())
+  userId   String    @map("user_id")
+  name     String
+  keyHash  String    @map("key_hash")
+  lastUsed DateTime? @map("last_used")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
+model AccessLog {
+  id         String       @id @default(uuid())
+  fileId     String       @map("file_id")
+  ip         String
+  action     AccessAction
+  accessedAt DateTime     @default(now()) @map("accessed_at")
+
+  file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@map("access_logs")
+}

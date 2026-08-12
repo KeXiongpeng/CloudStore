@@ -1,0 +1,79 @@
+[root@iZwz919oxcicpsge96t5ubZ cloud-storage]# docker compose -f docker-compose.prod.yml logs --tail=30 nestjs | grep -i error
+[root@iZwz919oxcicpsge96t5ubZ cloud-storage]# curl -v https://api.kxpwty.cn/api/public/files/%E6%9C%80%E7%BB%88%E4%BA%A7%E5%87%BA.txt/content
+*   Trying 120.77.222.102:443...
+* Connected to api.kxpwty.cn (120.77.222.102) port 443 (#0)
+* ALPN, offering h2
+* ALPN, offering http/1.1
+*  CAfile: /etc/pki/tls/certs/ca-bundle.crt
+* TLSv1.0 (OUT), TLS header, Certificate Status (22):
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+* TLSv1.2 (IN), TLS header, Certificate Status (22):
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+* TLSv1.2 (IN), TLS header, Finished (20):
+* TLSv1.3 (IN), TLS change cipher, Change cipher spec (1):
+* TLSv1.2 (IN), TLS header, Unknown (23):
+* TLSv1.3 (IN), TLS handshake, Encrypted Extensions (8):
+* TLSv1.2 (IN), TLS header, Unknown (23):
+* TLSv1.3 (IN), TLS handshake, Certificate (11):
+* TLSv1.2 (IN), TLS header, Unknown (23):
+* TLSv1.3 (IN), TLS handshake, CERT verify (15):
+* TLSv1.2 (IN), TLS header, Unknown (23):
+* TLSv1.3 (IN), TLS handshake, Finished (20):
+* TLSv1.2 (OUT), TLS header, Finished (20):
+* TLSv1.3 (OUT), TLS change cipher, Change cipher spec (1):
+* TLSv1.2 (OUT), TLS header, Unknown (23):
+* TLSv1.3 (OUT), TLS handshake, Finished (20):
+* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384
+* ALPN, server accepted to use h2
+* Server certificate:
+*  subject: CN=api.kxpwty.cn
+*  start date: Aug 12 08:59:34 2026 GMT
+*  expire date: Nov 10 08:59:33 2026 GMT
+*  subjectAltName: host "api.kxpwty.cn" matched cert's "api.kxpwty.cn"
+*  issuer: C=US; O=Let's Encrypt; CN=YR2
+*  SSL certificate verify ok.
+* Using HTTP2, server supports multi-use
+* Connection state changed (HTTP/2 confirmed)
+* Copying HTTP/2 data in stream buffer to connection buffer after upgrade: len=0
+* TLSv1.2 (OUT), TLS header, Unknown (23):
+* TLSv1.2 (OUT), TLS header, Unknown (23):
+* TLSv1.2 (OUT), TLS header, Unknown (23):
+* Using Stream ID: 1 (easy handle 0x55fd39bbdf00)
+* TLSv1.2 (OUT), TLS header, Unknown (23):
+> GET /api/public/files/%E6%9C%80%E7%BB%88%E4%BA%A7%E5%87%BA.txt/content HTTP/2
+> Host: api.kxpwty.cn
+> user-agent: curl/7.76.1
+> accept: */*
+>
+* TLSv1.2 (IN), TLS header, Unknown (23):
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+* TLSv1.2 (IN), TLS header, Unknown (23):
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+* old SSL session ID is stale, removing
+* TLSv1.2 (IN), TLS header, Unknown (23):
+* Connection state changed (MAX_CONCURRENT_STREAMS == 128)!
+* TLSv1.2 (OUT), TLS header, Unknown (23):
+* TLSv1.2 (IN), TLS header, Unknown (23):
+< HTTP/2 404
+< server: nginx/1.31.3
+< date: Wed, 12 Aug 2026 11:39:29 GMT
+< content-type: application/json; charset=utf-8
+< content-length: 78
+< x-powered-by: Express
+< vary: Origin
+< access-control-allow-credentials: true
+< etag: W/"4e-dm0M4tWOH9SYsiTk6J6rbjJ341w"
+< strict-transport-security: max-age=31536000
+<
+* Connection #0 to host api.kxpwty.cn left intact
+{"message":"文件不存在或已删除","error":"Not Found","statusCode":404}[root@iZwz919oxcicpsge96t5ubZ cloud-storage]# docker compose -f docker-compose.prod.yml logs --tadocker compose -f docker-compose.prod.yml logs --tail=10 nestjs
+nestjs-1  |
+nestjs-1  | To continue receiving updates to AWS services, bug fixes,
+nestjs-1  | and security updates please upgrade to node >=22.
+nestjs-1  |
+nestjs-1  | More information can be found at: https://a.co/c895JFp
+nestjs-1  | (Use `node --trace-warnings ...` to show where the warning was created)
+nestjs-1  | Redis connected
+nestjs-1  | Prisma connected to database
+nestjs-1  | [Nest] 18  - 08/12/2026, 11:34:29 AM     LOG [NestApplication] Nest application successfully started +219ms
+nestjs-1  | NestJS application running on port 3000
