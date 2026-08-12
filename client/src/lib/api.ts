@@ -3,7 +3,7 @@ import { getAccessToken, getRefreshToken, setTokens, clearTokens } from './auth'
 
 const API_BASE = typeof window === 'undefined'
   ? (process.env.BACKEND_URL || 'http://localhost:3000')
-  : 'https://api.kxpwty.cn';
+  : '';
 
 const api = axios.create({
   baseURL: `${API_BASE}/api`,

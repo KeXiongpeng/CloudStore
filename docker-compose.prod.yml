@@ -37,7 +37,7 @@ services:
 
   # ── NestJS 后端 API ──
   nestjs:
-    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v4
+    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v5
     restart: unless-stopped
     expose:
       - '3000'
@@ -61,7 +61,7 @@ services:
 
   # ── Next.js 前端 ──
   nextjs:
-    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/client:v2
+    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/client:v3
     restart: unless-stopped
     expose:
       - '3001'
@@ -69,6 +69,7 @@ services:
       - VIRTUAL_HOST=kxpwty.cn
       - LETSENCRYPT_HOST=kxpwty.cn
       - VIRTUAL_PORT=3001
+      - BACKEND_URL=http://nestjs:3000
       - NEXT_PUBLIC_API_URL=http://nestjs:3000
     depends_on:
       - nestjs

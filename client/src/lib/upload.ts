@@ -3,7 +3,38 @@ import api from './api';
 const SMALL_FILE_THRESHOLD = 5 * 1024 * 1024;
 const PART_SIZE = 2 * 1024 * 1024;
 
-export async function uploadSmallFile(file: File): Promise<any> {
+function uploadWithProgress(
+  url: string,
+  file: File,
+  onProgress?: (progress: number) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', url);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+      } else {
+        reject(new Error(`上传失败: ${xhr.status}`));
+      }
+    };
+
+    xhr.onerror = () => reject(new Error('网络错误'));
+    xhr.send(file);
+  });
+}
+
+export async function uploadSmallFile(
+  file: File,
+  onProgress?: (progress: number) => void,
+): Promise<any> {
   const presignResponse = await api.post('/files/presign', {
     filename: file.name,
     contentType: file.type,
@@ -12,13 +43,13 @@ export async function uploadSmallFile(file: File): Promise<any> {
 
   const { uploadUrl, storageKey } = presignResponse.data;
 
-  await fetch(uploadUrl, {
-    method: 'PUT',
-    body: file,
-    headers: {
-      'Content-Type': file.type,
-    },
+  if (onProgress) onProgress(10);
+
+  await uploadWithProgress(uploadUrl, file, (p) => {
+    if (onProgress) onProgress(10 + Math.round(p * 0.85));
   });
+
+  if (onProgress) onProgress(95);
 
   const callbackResponse = await api.post('/files/callback', {
     filename: file.name,
@@ -27,6 +58,7 @@ export async function uploadSmallFile(file: File): Promise<any> {
     storageKey,
   });
 
+  if (onProgress) onProgress(100);
   return callbackResponse.data;
 }
 
@@ -69,10 +101,12 @@ export async function uploadLargeFile(
     });
 
     if (onProgress) {
-      const progress = Math.round(((i + 1) / totalParts) * 100);
+      const progress = Math.round(((i + 1) / totalParts) * 95);
       onProgress(progress);
     }
   }
+
+  if (onProgress) onProgress(98);
 
   const completeResponse = await api.post('/files/upload-complete', {
     uploadId,
@@ -82,6 +116,7 @@ export async function uploadLargeFile(
     parts,
   });
 
+  if (onProgress) onProgress(100);
   return completeResponse.data;
 }
 
@@ -90,10 +125,7 @@ export async function uploadFile(
   onProgress?: (progress: number) => void,
 ): Promise<any> {
   if (file.size <= SMALL_FILE_THRESHOLD) {
-    if (onProgress) onProgress(30);
-    const result = await uploadSmallFile(file);
-    if (onProgress) onProgress(100);
-    return result;
+    return uploadSmallFile(file, onProgress);
   } else {
     return uploadLargeFile(file, onProgress);
   }

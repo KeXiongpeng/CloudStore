@@ -33,11 +33,26 @@ export class FilesService {
     return `${userId}/${year}/${month}/${baseName}-${uuid}${ext}`;
   }
 
+  private generateRandomName(): string {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < 32; i++) {
+      result += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return result;
+  }
+
   private async generateUrlKey(filename: string): Promise<string> {
-    let urlKey = filename;
+    const ext = filename.includes('.') ? `.${filename.split('.').pop()}` : '';
+    let urlKey: string;
     let counter = 1;
 
     while (true) {
+      urlKey = counter === 1
+        ? `${this.generateRandomName()}${ext}`
+        : `${this.generateRandomName()}${ext}`;
+      counter++;
+
       const exists = await this.prisma.file.findUnique({
         where: { urlKey },
         select: { id: true },
@@ -46,11 +61,6 @@ export class FilesService {
       if (!exists) {
         return urlKey;
       }
-
-      const ext = filename.includes('.') ? `.${filename.split('.').pop()}` : '';
-      const baseName = filename.replace(/\.[^.]+$/, '');
-      urlKey = counter === 1 ? `${baseName}-1${ext}` : `${baseName}-${counter}${ext}`;
-      counter++;
     }
   }
 

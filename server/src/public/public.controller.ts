@@ -26,8 +26,9 @@ export class PublicController {
   }
 
   @Get('files/:urlKey/download')
-  async download(@Param('urlKey') urlKey: string, @Req() req: Request) {
+  async download(@Param('urlKey') urlKey: string, @Req() req: Request, @Res() res: Response) {
     const ip = req.ip || req.headers['x-forwarded-for'] as string || 'unknown';
-    return this.publicService.getDownloadUrl(urlKey, ip);
+    const { downloadUrl } = await this.publicService.getDownloadUrl(urlKey, ip);
+    res.redirect(downloadUrl);
   }
 }

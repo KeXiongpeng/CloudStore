@@ -12,8 +12,23 @@ export interface UploadItem {
   error?: string;
 }
 
+export interface UploadNotification {
+  id: string;
+  message: string;
+  type: 'success' | 'error';
+}
+
 export function useUpload() {
   const [uploads, setUploads] = useState<UploadItem[]>([]);
+  const [notifications, setNotifications] = useState<UploadNotification[]>([]);
+
+  const addNotification = (message: string, type: 'success' | 'error') => {
+    const id = `${Date.now()}`;
+    setNotifications((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    }, 3000);
+  };
 
   const uploadFiles = useCallback(async (files: File[]) => {
     const newItems: UploadItem[] = files.map((file) => ({
@@ -46,6 +61,8 @@ export function useUpload() {
             u.id === item.id ? { ...u, status: 'success', result, progress: 100 } : u,
           ),
         );
+
+        addNotification(`${item.file.name} 上传成功`, 'success');
       } catch (error: any) {
         const message = error.response?.data?.message || error.message || '上传失败';
         setUploads((prev) =>
@@ -53,6 +70,8 @@ export function useUpload() {
             u.id === item.id ? { ...u, status: 'error', error: message } : u,
           ),
         );
+
+        addNotification(`${item.file.name} 上传失败`, 'error');
       }
     }
   }, []);
@@ -73,5 +92,6 @@ export function useUpload() {
     removeUpload,
     clearCompleted,
     isUploading,
+    notifications,
   };
 }

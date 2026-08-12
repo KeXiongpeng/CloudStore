@@ -19,7 +19,6 @@ import { UploadCallbackDto } from './dto/upload-callback.dto';
 import { InitMultipartDto } from './dto/init-multipart.dto';
 import { CompleteMultipartDto } from './dto/complete-multipart.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
-import { ApiKeyGuard } from '../common/guards/api-key.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Request } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -31,15 +30,6 @@ export class FilesController {
 
   @Post('presign')
   presignUpload(
-    @CurrentUser('id') userId: string,
-    @Body() dto: PresignUploadDto,
-  ) {
-    return this.filesService.presignUpload(userId, dto);
-  }
-
-  @Post('presign/api-key')
-  @UseGuards(ApiKeyGuard)
-  presignUploadApiKey(
     @CurrentUser('id') userId: string,
     @Body() dto: PresignUploadDto,
   ) {

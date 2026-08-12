@@ -5,7 +5,7 @@ import UploadProgress from '@/components/UploadProgress';
 import { useUpload } from '@/hooks/useUpload';
 
 export default function UploadPage() {
-  const { uploads, uploadFiles, removeUpload, clearCompleted, isUploading } = useUpload();
+  const { uploads, uploadFiles, removeUpload, clearCompleted, isUploading, notifications } = useUpload();
 
   return (
     <div>
@@ -32,6 +32,23 @@ export default function UploadPage() {
           </h2>
           {uploads.map((item) => (
             <UploadProgress key={item.id} item={item} onRemove={removeUpload} />
+          ))}
+        </div>
+      )}
+
+      {notifications.length > 0 && (
+        <div className="fixed top-4 right-4 z-50 space-y-2">
+          {notifications.map((n) => (
+            <div
+              key={n.id}
+              className={`rounded-lg px-4 py-3 text-sm font-medium shadow-lg transition-all animate-[slideIn_0.3s_ease-out] ${
+                n.type === 'success'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-red-500 text-white'
+              }`}
+            >
+              {n.message}
+            </div>
           ))}
         </div>
       )}

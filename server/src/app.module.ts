@@ -9,7 +9,6 @@ import { UsersModule } from './users/users.module';
 import { S3Module } from './s3/s3.module';
 import { FilesModule } from './files/files.module';
 import { PublicModule } from './public/public.module';
-import { ApiKeysModule } from './api-keys/api-keys.module';
 import { AdminModule } from './admin/admin.module';
 
 @Module({
@@ -27,7 +26,6 @@ import { AdminModule } from './admin/admin.module';
     S3Module,
     FilesModule,
     PublicModule,
-    ApiKeysModule,
     AdminModule,
   ],
 })

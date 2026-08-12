@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import type { UploadItem } from '@/hooks/useUpload';
 
 interface UploadProgressProps {
@@ -8,6 +9,8 @@ interface UploadProgressProps {
 }
 
 export default function UploadProgress({ item, onRemove }: UploadProgressProps) {
+  const [copied, setCopied] = useState(false);
+
   const formatSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -27,6 +30,17 @@ export default function UploadProgress({ item, onRemove }: UploadProgressProps) 
     uploading: '上传中',
     success: '已完成',
     error: '失败',
+  };
+
+  const fileUrl = item.result
+    ? `${window.location.origin}/f/${item.result.urlKey}`
+    : '';
+
+  const handleCopy = async () => {
+    if (!fileUrl) return;
+    await navigator.clipboard.writeText(fileUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -62,9 +76,17 @@ export default function UploadProgress({ item, onRemove }: UploadProgressProps) 
         )}
 
         {item.status === 'success' && item.result && (
-          <p className="mt-1 truncate text-xs text-gray-500 dark:text-gray-400">
-            链接：{window.location.origin}/f/{item.result.urlKey}
-          </p>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="min-w-0 flex-1 truncate text-xs text-gray-500 dark:text-gray-400">
+              {fileUrl}
+            </span>
+            <button
+              onClick={handleCopy}
+              className="shrink-0 rounded px-2 py-0.5 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
+            >
+              {copied ? '已复制' : '复制链接'}
+            </button>
+          </div>
         )}
 
         {item.status === 'error' && (

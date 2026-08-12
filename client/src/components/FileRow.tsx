@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+
 interface FileItem {
   id: string;
   originalName: string;
@@ -15,6 +17,7 @@ interface FileItem {
 interface FileRowProps {
   file: FileItem;
   onDelete: (id: string) => void;
+  onPreview: (file: FileItem) => void;
 }
 
 function formatSize(bytes: number): string {
@@ -43,11 +46,14 @@ function getFileIcon(mimeType: string): string {
   return '📎';
 }
 
-export default function FileRow({ file, onDelete }: FileRowProps) {
+export default function FileRow({ file, onDelete, onPreview }: FileRowProps) {
+  const [copied, setCopied] = useState(false);
   const fileUrl = `${window.location.origin}/f/${file.urlKey}`;
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(fileUrl);
+  const handleCopyLink = async () => {
+    await navigator.clipboard.writeText(fileUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleDelete = () => {
@@ -82,18 +88,17 @@ export default function FileRow({ file, onDelete }: FileRowProps) {
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
-          <a
-            href={`/f/${file.urlKey}`}
-            target="_blank"
+          <button
+            onClick={() => onPreview(file)}
             className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
           >
             预览
-          </a>
+          </button>
           <button
             onClick={handleCopyLink}
             className="rounded px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
           >
-            复制链接
+            {copied ? '已复制' : '复制链接'}
           </button>
           <button
             onClick={handleDelete}

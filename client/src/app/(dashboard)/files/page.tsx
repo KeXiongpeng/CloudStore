@@ -21,6 +21,7 @@ export default function FilesPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
   const limit = 20;
 
   const fetchFiles = useCallback(async () => {
@@ -99,7 +100,7 @@ export default function FilesPage() {
               </thead>
               <tbody>
                 {files.map((file) => (
-                  <FileRow key={file.id} file={file} onDelete={handleDelete} />
+                  <FileRow key={file.id} file={file} onDelete={handleDelete} onPreview={setPreviewFile} />
                 ))}
               </tbody>
             </table>
@@ -127,6 +128,87 @@ export default function FilesPage() {
             </div>
           )}
         </>
+      )}
+
+      {previewFile && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setPreviewFile(null)}
+        >
+          <div
+            className="relative max-h-[90vh] max-w-[90vw] overflow-auto rounded-lg bg-white dark:bg-gray-900"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2 dark:border-gray-700 dark:bg-gray-900">
+              <span className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                {previewFile.originalName}
+              </span>
+              <div className="flex items-center gap-2 ml-4 shrink-0">
+                <a
+                  href={`/f/${previewFile.urlKey}`}
+                  target="_blank"
+                  className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                >
+                  新窗口打开
+                </a>
+                <a
+                  href={`/api/public/files/${previewFile.urlKey}/download`}
+                  className="rounded px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+                >
+                  下载
+                </a>
+                <button
+                  onClick={() => setPreviewFile(null)}
+                  className="text-lg leading-none text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  &times;
+                </button>
+              </div>
+            </div>
+            <div className="p-4">
+              {previewFile.mimeType.startsWith('image/') ? (
+                <img
+                  src={`/api/public/files/${previewFile.urlKey}/content`}
+                  alt={previewFile.originalName}
+                  className="max-h-[80vh] max-w-full object-contain"
+                />
+              ) : previewFile.mimeType.startsWith('video/') ? (
+                <video
+                  src={`/api/public/files/${previewFile.urlKey}/content`}
+                  controls
+                  className="max-h-[80vh] max-w-full"
+                >
+                  <track kind="captions" />
+                  您的浏览器不支持视频播放
+                </video>
+              ) : previewFile.mimeType.startsWith('audio/') ? (
+                <audio
+                  src={`/api/public/files/${previewFile.urlKey}/content`}
+                  controls
+                  className="w-full"
+                >
+                  您的浏览器不支持音频播放
+                </audio>
+              ) : previewFile.mimeType === 'application/pdf' ? (
+                <iframe
+                  src={`/api/public/files/${previewFile.urlKey}/content`}
+                  className="h-[80vh] w-full border-0"
+                  title={previewFile.originalName}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
+                  <p className="text-sm">该文件类型不支持页内预览</p>
+                  <a
+                    href={`/api/public/files/${previewFile.urlKey}/download`}
+                    className="mt-2 text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400"
+                  >
+                    点击下载文件
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

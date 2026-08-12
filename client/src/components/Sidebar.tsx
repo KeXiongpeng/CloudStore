@@ -8,7 +8,6 @@ const navItems = [
   { href: '/dashboard', label: '控制面板', icon: '📊' },
   { href: '/upload', label: '上传文件', icon: '📤' },
   { href: '/files', label: '文件管理', icon: '📁' },
-  { href: '/api-keys', label: 'API 密钥', icon: '🔑' },
   { href: '/settings', label: '个人设置', icon: '⚙️' },
 ];
 
