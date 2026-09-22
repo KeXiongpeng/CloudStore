@@ -1,6 +1,6 @@
-﻿# UI / Docs / OAuth Upgrade Implementation Plan
+# UI / Docs / OAuth Upgrade Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Upgrade the cloud-storage project into an interview-ready product with polished responsive UI, complete docs, test accounts, and three OAuth providers.
 
@@ -34,12 +34,12 @@
 **Interfaces:**
 - Produces: public project entrypoint and operations docs referenced by README.
 
-- [ ] Write README with overview, feature list, architecture diagram reference, tech stack, local quickstart, environment variables, test accounts, OAuth setup, API summary, deployment summary, and project structure.
-- [ ] Write architecture and ER docs using Mermaid.
-- [ ] Write API docs for auth, users, files, public files, and admin endpoints.
-- [ ] Write Docker Compose local and production deployment docs.
-- [ ] Extend `.env.example` with `APP_URL`, `FRONTEND_URL`, GitHub, Google, WeChat, and demo account variables.
-- [ ] Verify required docs exist and contain no real production secrets.
+- [x] Write README with overview, feature list, architecture diagram reference, tech stack, local quickstart, environment variables, test accounts, OAuth setup, API summary, deployment summary, and project structure.
+- [x] Write architecture and ER docs using Mermaid.
+- [x] Write API docs for auth, users, files, public files, and admin endpoints.
+- [x] Write Docker Compose local and production deployment docs.
+- [x] Extend `.env.example` with `APP_URL`, `FRONTEND_URL`, GitHub, Google, WeChat, and demo account variables.
+- [x] Verify required docs exist and contain no real production secrets.
 
 ### Task 2: Public homepage and auth pages
 
@@ -54,11 +54,11 @@
 - Consumes: `GET /api/auth/providers` returning `{ providers: Array<'github'|'google'|'wechat'> }`.
 - Produces: reusable third-party login button UI for login and register pages.
 
-- [ ] Implement the approved Figma homepage structure with Tailwind responsive utilities.
-- [ ] Add feature, workflow, tech stack, and footer sections.
-- [ ] Rebuild login / register cards with shared visual language.
-- [ ] Fetch configured OAuth providers and render only configured buttons.
-- [ ] Check layout at 375px, 768px, and 1280px.
+- [x] Implement the approved Figma homepage structure with Tailwind responsive utilities.
+- [x] Add feature, workflow, tech stack, and footer sections.
+- [x] Rebuild login / register cards with shared visual language.
+- [x] Fetch configured OAuth providers and render only configured buttons.
+- [x] Check layout at 375px, 768px, and 1280px.
 
 ### Task 3: Dashboard responsive shell and files UI
 
@@ -74,11 +74,11 @@
 - Consumes: existing files API response shape.
 - Produces: reusable mobile file-card presentation.
 
-- [ ] Add mobile navbar menu toggle and collapsible sidebar.
-- [ ] Preserve desktop fixed sidebar.
-- [ ] Render table on `md:` and larger screens.
-- [ ] Render cards below `md:` using the same file data and actions.
-- [ ] Verify no horizontal scroll at 375px.
+- [x] Add mobile navbar menu toggle and collapsible sidebar.
+- [x] Preserve desktop fixed sidebar.
+- [x] Render table on `md:` and larger screens.
+- [x] Render cards below `md:` using the same file data and actions.
+- [x] Verify no horizontal scroll at 375px.
 
 ### Task 4: OAuth backend and WeChat provider
 
@@ -98,15 +98,15 @@
   - `GET /api/auth/wechat/callback`
   - `findOrCreateOAuthUser(provider, providerId, email, nickname?, avatarUrl?)`
 
-- [ ] Add `wechat` to `OAuthProvider` and create additive SQL migration.
-- [ ] Centralize public URL and OAuth redirect URL construction.
-- [ ] Add state creation and validation using an HttpOnly cookie.
-- [ ] Fix GitHub email fallback through `/user/emails`.
-- [ ] Preserve exact Google redirect URI during token exchange.
-- [ ] Implement WeChat website-app authorize, token, userinfo, and no-email internal identity handling.
-- [ ] Add provider configuration endpoint.
-- [ ] Seed admin and demo user with quotas.
-- [ ] Run Prisma validation and server build.
+- [x] Add `wechat` to `OAuthProvider` and create additive SQL migration.
+- [x] Centralize public URL and OAuth redirect URL construction.
+- [x] Add state creation and validation using an HttpOnly cookie.
+- [x] Fix GitHub email fallback through `/user/emails`.
+- [x] Preserve exact Google redirect URI during token exchange.
+- [x] Implement WeChat website-app authorize, token, userinfo, and no-email internal identity handling.
+- [x] Add provider configuration endpoint.
+- [x] Seed admin and demo user with quotas.
+- [x] Run Prisma validation and server build.
 
 ### Task 5: Frontend OAuth integration
 
@@ -120,20 +120,20 @@
 - Consumes: provider endpoint and OAuth callback token query parameters.
 - Produces: configured-provider buttons and error-aware callback handling.
 
-- [ ] Call provider endpoint from auth pages.
-- [ ] Hide unconfigured providers, including WeChat.
-- [ ] Display backend OAuth error query state.
-- [ ] Store access / refresh tokens and refresh user after callback.
-- [ ] Run client build.
+- [x] Call provider endpoint from auth pages.
+- [x] Hide unconfigured providers, including WeChat.
+- [x] Display backend OAuth error query state.
+- [x] Store access / refresh tokens and refresh user after callback.
+- [x] Run client build.
 
 ### Task 6: Final verification
 
 **Files:**
 - No product file changes unless a verification defect is found.
 
-- [ ] Run `npm run build` in `client`.
-- [ ] Run `npm run build` in `server`.
-- [ ] Run Prisma format / validate.
-- [ ] Search modified docs for real secrets.
-- [ ] Review responsive classes for 375px breakpoints.
-- [ ] Commit completed work.
+- [x] Run `npm run build` in `client`.
+- [x] Run `npm run build` in `server`.
+- [x] Run Prisma format / validate.
+- [x] Search modified docs for real secrets.
+- [x] Review responsive classes for 375px breakpoints.
+- [x] Commit completed work.
