@@ -96,6 +96,20 @@
 - [x] 注册 AuditModule。
 - [x] 提交：`feat(audit): add workspace audit trail and query api`
 
+### 任务 6.5：抽取 WorkspaceCoreModule
+
+为了避免 `WorkspacesModule` 和 `AuditModule` 循环依赖，把共享的工作区身份与权限能力下沉到独立核心模块：
+
+- [x] 创建 `WorkspaceCoreModule`。
+- [x] `WorkspaceCoreModule` 提供 `WorkspacesService`、`WorkspaceGuard`、`PermissionGuard`。
+- [x] `AuditModule` 只依赖 `WorkspaceCoreModule`，不依赖 `WorkspacesModule`。
+- [x] `WorkspacesModule` 导入 `WorkspaceCoreModule` 和 `AuditModule`。
+- [x] 增加核心模块组合测试。
+- [x] 服务端全部测试通过。
+- [x] 服务端类型检查通过。
+- [x] 服务端构建通过。
+- [x] 代码依赖图无违规。
+
 ### 任务 7：邀请与成员管理
 
 - [ ] 实现成员列表。
