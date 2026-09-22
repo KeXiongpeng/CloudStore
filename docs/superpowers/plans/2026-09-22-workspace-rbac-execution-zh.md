@@ -53,11 +53,11 @@
 
 ### 任务 2：权限矩阵单一来源
 
-- [ ] 创建 `WorkspaceRole`、`WorkspacePermission`、`WorkspaceActorContext` 类型。
-- [ ] 创建权限矩阵 `WORKSPACE_ROLE_PERMISSIONS`。
-- [ ] 实现并测试 `hasWorkspacePermission`。
-- [ ] 确认 `OWNER` 拥有全部权限，`ADMIN` 不能删除工作区，`VIEWER` 不能上传。
-- [ ] 提交：`feat(workspace): add role permission matrix`
+- [x] 创建 `WorkspaceRole`、`WorkspacePermission`、`WorkspaceActorContext` 类型。
+- [x] 创建权限矩阵 `WORKSPACE_ROLE_PERMISSIONS`。
+- [x] 实现并测试 `hasWorkspacePermission`。
+- [x] 确认 `OWNER` 拥有全部权限，`ADMIN` 不能删除工作区，`VIEWER` 不能上传。
+- [x] 提交：`feat(workspace): add role permission matrix`
 
 ### 任务 3：工作区 RBAC 数据模型
 
