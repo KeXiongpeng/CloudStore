@@ -1,4 +1,4 @@
-﻿# 架构说明
+# 架构说明
 
 ## 技术架构
 
@@ -130,3 +130,24 @@ sequenceDiagram
 3. 后端校验文件未删除且非私有，返回元信息和临时预览 URL。
 4. 前端根据 MIME 类型渲染预览器。
 5. 用户访问下载地址时，后端记录下载日志并重定向到预签名下载 URL。
+
+## 工作区权限链路
+
+```mermaid
+sequenceDiagram
+  participant B as Browser
+  participant J as JWT Auth Guard
+  participant W as WorkspaceGuard
+  participant P as PermissionGuard
+  participant S as Service
+
+  B->>J: 携带 Access Token 请求
+  J->>J: 验证用户身份
+  J->>W: 传入 user 与 workspaceId
+  W->>W: 查询 active WorkspaceMember
+  W->>P: 注入 WorkspaceActorContext
+  P->>P: 校验权限矩阵权限点
+  P->>S: 执行包含 workspaceId 的业务查询
+```
+
+`WorkspacesService`、`WorkspaceGuard` 和 `PermissionGuard` 由 `WorkspaceCoreModule` 统一提供。业务服务查询必须包含 `workspaceId`；前端权限控制只用于展示。

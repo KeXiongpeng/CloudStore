@@ -1,4 +1,4 @@
-﻿# 数据库模型
+# 数据库模型
 
 Prisma Schema：[`server/prisma/schema.prisma`](../server/prisma/schema.prisma)
 
@@ -117,3 +117,39 @@ erDiagram
 | ---- | -------- |
 | Free | 500 MB   |
 | VIP  | 10 GB    |
+
+## 工作区 RBAC 表
+
+```mermaid
+erDiagram
+  User ||--o{ Workspace : owns
+  User ||--o{ WorkspaceMember : joins
+  Workspace ||--o{ WorkspaceMember : has
+  Workspace ||--o{ WorkspaceInvitation : has
+  Workspace ||--o{ File : contains
+  Workspace ||--o{ AuditLog : records
+
+  Workspace {
+    string id PK
+    string name
+    string slug UK
+    string owner_id FK
+    string status
+  }
+
+  WorkspaceMember {
+    string id PK
+    string workspace_id FK
+    string user_id FK
+    string role
+    string status
+  }
+}
+```
+
+约束：
+
+- `workspace_members(workspace_id, user_id)` 唯一。
+- 每个旧用户迁移一个 Personal Workspace。
+- 旧文件已回填 `workspace_id` 和 `created_by`。
+- 公开访问仍支持旧 `url_key`，但要求所属工作区 `active`。

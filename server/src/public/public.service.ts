@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+﻿import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { S3Service } from '../s3/s3.service';
 import { RedisService } from '../redis/redis.service';
@@ -18,6 +18,7 @@ export class PublicService {
         urlKey,
         deletedAt: null,
         isPrivate: false,
+        workspace: { status: 'active' },
       },
       select: {
         id: true,
@@ -52,7 +53,7 @@ export class PublicService {
 
   async recordView(urlKey: string, ip: string) {
     const file = await this.prisma.file.findFirst({
-      where: { urlKey, deletedAt: null },
+      where: { urlKey, deletedAt: null, workspace: { status: 'active' } },
       select: { id: true },
     });
 
@@ -88,6 +89,7 @@ export class PublicService {
         urlKey,
         deletedAt: null,
         isPrivate: false,
+        workspace: { status: 'active' },
       },
       select: {
         id: true,
@@ -123,6 +125,7 @@ export class PublicService {
         urlKey,
         deletedAt: null,
         isPrivate: false,
+        workspace: { status: 'active' },
       },
     });
 
