@@ -1,4 +1,4 @@
-﻿import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { Workspace, WorkspaceInvitation, WorkspaceMember, WorkspaceRole } from './types';
 
@@ -14,6 +14,28 @@ interface WorkspaceMembershipResponse {
   workspace: Omit<Workspace, 'role'>;
 }
 
+export interface AuditLog {
+  id: string;
+  workspaceId?: string | null;
+  actorId?: string | null;
+  action: string;
+  resourceType: string;
+  resourceId: string;
+  ip?: string | null;
+  userAgent?: string | null;
+  requestId?: string | null;
+  before?: unknown;
+  after?: unknown;
+  createdAt: string;
+}
+
+export interface AuditLogPage {
+  items: AuditLog[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
 export function useWorkspaces() {
   return useQuery({
     queryKey: workspaceKeys.all,
@@ -27,6 +49,21 @@ export function useWorkspaces() {
   });
 }
 
+export function useAuditLogs(
+  workspaceId: string,
+  query: { page?: number; limit?: number; action?: string } = {},
+) {
+  return useQuery({
+    queryKey: [...workspaceKeys.all, workspaceId, 'audit-logs', query],
+    queryFn: async () => {
+      const response = await api.get<AuditLogPage>(`/workspaces/${workspaceId}/audit-logs`, {
+        params: query,
+      });
+      return response.data;
+    },
+    enabled: Boolean(workspaceId),
+  });
+}
 export function useCreateWorkspace() {
   const client = useQueryClient();
 

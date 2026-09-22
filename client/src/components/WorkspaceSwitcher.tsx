@@ -1,11 +1,12 @@
-﻿'use client';
+'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useWorkspaces } from '@/features/workspace/api';
 import { useWorkspaceStore } from '@/features/workspace/store';
 
 export default function WorkspaceSwitcher() {
+  const [copied, setCopied] = useState(false);
   const { data: workspaces, isLoading } = useWorkspaces();
   const currentWorkspace = useWorkspaceStore((state) => state.currentWorkspace);
   const setCurrentWorkspace = useWorkspaceStore((state) => state.setCurrentWorkspace);
@@ -40,6 +41,36 @@ export default function WorkspaceSwitcher() {
           </option>
         ))}
       </select>
+
+      {currentWorkspace && (
+        <>
+          <button
+            type="button"
+            title={currentWorkspace.id}
+            className="rounded-lg px-2 py-1.5 font-mono text-xs text-slate-500 transition hover:bg-slate-100 dark:hover:bg-slate-800"
+            onClick={async () => {
+              await navigator.clipboard.writeText(currentWorkspace.id);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1500);
+            }}
+          >
+            {copied ? 'ID已复制' : '复制ID'}
+          </button>
+          <Link
+            href={`/workspaces/${currentWorkspace.id}/members`}
+            className="rounded-lg px-3 py-1.5 text-sm text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+          >
+            成员
+          </Link>
+          <Link
+            href={`/workspaces/${currentWorkspace.id}/audit`}
+            className="rounded-lg px-3 py-1.5 text-sm text-slate-600 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+          >
+            审计
+          </Link>
+        </>
+      )}
+
       <Link
         href="/workspaces/new"
         className="rounded-lg px-3 py-1.5 text-sm text-blue-600 transition hover:bg-blue-50 dark:hover:bg-blue-950"

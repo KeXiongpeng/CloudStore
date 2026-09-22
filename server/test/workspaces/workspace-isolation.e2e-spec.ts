@@ -74,6 +74,17 @@ describe('Workspace data isolation (e2e)', () => {
     await app?.close();
   });
 
+  it('returns audit logs for the workspace owner', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/api/workspaces/${workspaceA}/audit-logs`)
+      .set('Authorization', `Bearer ${ownerAToken}`)
+      .query({ page: 1, limit: 20 });
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.items).toEqual(
+      expect.arrayContaining([expect.objectContaining({ action: 'workspace.created' })]),
+    );
+  });
   it('blocks a user who is not a member of workspace A', async () => {
     const response = await request(app.getHttpServer())
       .get(`/api/workspaces/${workspaceA}`)
