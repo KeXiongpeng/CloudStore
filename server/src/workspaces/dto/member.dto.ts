@@ -1,4 +1,4 @@
-﻿import { IsEmail, IsIn, IsUUID } from 'class-validator';
+import { IsEmail, IsIn, IsString, Length } from 'class-validator';
 import { WorkspaceRole } from '../types';
 
 export class InviteMemberDto {
@@ -15,7 +15,8 @@ export class UpdateMemberRoleDto {
 }
 
 export class AcceptInvitationDto {
-  @IsUUID()
+  @IsString()
+  @Length(64, 64)
   token!: string;
 }
 

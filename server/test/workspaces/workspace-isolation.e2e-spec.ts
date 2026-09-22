@@ -7,6 +7,8 @@ describe('Workspace data isolation (e2e)', () => {
   let app: INestApplication;
   let ownerAToken: string;
   let ownerBToken: string;
+  let ownerBEmail: string;
+  let nonMemberToken: string;
   let workspaceA: string;
 
   beforeAll(async () => {
@@ -41,18 +43,25 @@ describe('Workspace data isolation (e2e)', () => {
       if (!registered.ok) {
         throw new Error(`register failed: ${JSON.stringify(registered.body)}`);
       }
+
       const login = await request(app.getHttpServer()).post('/api/auth/login').send({
         email,
         password: 'Password123!',
       });
+
       if (!login.body?.data?.access_token) {
         throw new Error(`login failed: ${JSON.stringify(login.body)}`);
       }
+
+      if (prefix === 'workspace-b') ownerBEmail = email;
+      if (prefix === 'workspace-c') nonMemberToken = login.body.data.access_token as string;
+
       return login.body.data.access_token as string;
     };
 
     ownerAToken = await registerAndLogin('workspace-a');
     ownerBToken = await registerAndLogin('workspace-b');
+    nonMemberToken = await registerAndLogin('workspace-c');
 
     const created = await request(app.getHttpServer())
       .post('/api/workspaces')
@@ -68,7 +77,7 @@ describe('Workspace data isolation (e2e)', () => {
   it('blocks a user who is not a member of workspace A', async () => {
     const response = await request(app.getHttpServer())
       .get(`/api/workspaces/${workspaceA}`)
-      .set('Authorization', `Bearer ${ownerBToken}`);
+      .set('Authorization', `Bearer ${nonMemberToken}`);
 
     expect(response.status).toBe(404);
     expect(response.body.code).toBe('WORKSPACE_NOT_FOUND');
@@ -77,10 +86,34 @@ describe('Workspace data isolation (e2e)', () => {
   it('prevents a non-member from inviting members', async () => {
     const response = await request(app.getHttpServer())
       .post(`/api/workspaces/${workspaceA}/invitations`)
-      .set('Authorization', `Bearer ${ownerBToken}`)
+      .set('Authorization', `Bearer ${nonMemberToken}`)
       .send({ email: 'new-member@example.com', role: 'VIEWER' });
 
     expect(response.status).toBe(404);
     expect(response.body.code).toBe('WORKSPACE_NOT_FOUND');
+  });
+
+  it('invites and accepts a member', async () => {
+    const invited = await request(app.getHttpServer())
+      .post(`/api/workspaces/${workspaceA}/invitations`)
+      .set('Authorization', `Bearer ${ownerAToken}`)
+      .send({ email: ownerBEmail, role: 'EDITOR' });
+
+    expect(invited.status).toBe(201);
+    expect(invited.body.data.token).toHaveLength(64);
+
+    const accepted = await request(app.getHttpServer())
+      .post('/api/invitations/accept')
+      .set('Authorization', `Bearer ${ownerBToken}`)
+      .send({ token: invited.body.data.token });
+
+    expect(accepted.status).toBe(201);
+    expect(accepted.body.data.role).toBe('EDITOR');
+
+    const visible = await request(app.getHttpServer())
+      .get(`/api/workspaces/${workspaceA}`)
+      .set('Authorization', `Bearer ${ownerBToken}`);
+
+    expect(visible.status).toBe(200);
   });
 });

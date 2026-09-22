@@ -131,16 +131,16 @@
 
 ### 任务 9：前端工作区上下文与成员管理
 
-- [ ] 安装 TanStack Query、Zustand、React Hook Form、Zod。
-- [ ] 创建前端权限展示矩阵。
-- [ ] 创建工作区 API hooks。
-- [ ] 创建当前工作区 store。
-- [ ] 实现创建工作区页面。
-- [ ] 实现成员列表、邀请、角色修改、移除成员页面。
-- [ ] 根据角色禁用管理入口。
-- [ ] 适配暗色模式。
-- [ ] 验证构建和手动流程。
-- [ ] 提交：`feat(client): add workspace switching and member management`
+- [x] 安装 TanStack Query、Zustand、React Hook Form、Zod。
+- [x] 创建前端权限展示矩阵。
+- [x] 创建工作区 API hooks。
+- [x] 创建当前工作区 store。
+- [x] 实现创建工作区页面。
+- [x] 实现成员列表、邀请、角色修改、移除成员页面。
+- [x] 根据角色禁用管理入口。
+- [x] 适配暗色模式。
+- [x] 验证构建和手动流程。
+- [x] 提交：`feat(client): add workspace switching and member management`
 
 ### 任务 10：旧接口兼容与第 2 阶段回归
 
