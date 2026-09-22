@@ -10,6 +10,7 @@ import { S3Module } from './s3/s3.module';
 import { FilesModule } from './files/files.module';
 import { PublicModule } from './public/public.module';
 import { AdminModule } from './admin/admin.module';
+import { WorkspacesModule } from './workspaces/workspaces.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { AdminModule } from './admin/admin.module';
     FilesModule,
     PublicModule,
     AdminModule,
+    WorkspacesModule,
   ],
 })
 export class AppModule {}

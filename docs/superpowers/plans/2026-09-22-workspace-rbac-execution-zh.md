@@ -71,21 +71,21 @@
 
 ### 任务 4：工作区服务和成员上下文
 
-- [ ] 实现创建、列表、详情、更新、删除工作区。
-- [ ] 实现 `requireMembership`。
-- [ ] 禁用成员不能获得 actor 上下文。
-- [ ] 工作区不存在时统一返回 `WORKSPACE_NOT_FOUND`。
-- [ ] 注册 WorkspacesModule。
-- [ ] 提交：`feat(workspace): add workspace crud and membership context`
+- [x] 实现创建、列表、详情、更新、删除工作区。
+- [x] 实现 `requireMembership`。
+- [x] 禁用成员不能获得 actor 上下文。
+- [x] 工作区不存在时统一返回 `WORKSPACE_NOT_FOUND`。
+- [x] 注册 WorkspacesModule。
+- [x] 提交：`feat(workspace): add workspace crud and membership context`
 
 ### 任务 5：工作区 Guard 和权限 Guard
 
-- [ ] 创建 `RequirePermission` 和 `WorkspaceActor` 装饰器。
-- [ ] 实现 `WorkspaceGuard`。
-- [ ] 实现 `PermissionGuard`。
-- [ ] 校验无权限角色不能通过 Guard。
-- [ ] 导出两个 Guard 供文件、上传、审计模块复用。
-- [ ] 提交：`feat(workspace): enforce workspace rbac guards`
+- [x] 创建 `RequirePermission` 和 `WorkspaceActor` 装饰器。
+- [x] 实现 `WorkspaceGuard`。
+- [x] 实现 `PermissionGuard`。
+- [x] 校验无权限角色不能通过 Guard。
+- [x] 导出两个 Guard 供文件、上传、审计模块复用。
+- [x] 提交：`feat(workspace): enforce workspace rbac guards`
 
 ### 任务 6：审计日志服务与查询接口
 
