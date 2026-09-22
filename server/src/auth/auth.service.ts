@@ -1,4 +1,4 @@
-﻿import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
@@ -93,9 +93,17 @@ export class AuthService {
   }
 
   async refreshTokens(refreshToken: string) {
-    const decoded = this.jwtService.verify(refreshToken, {
-      secret: this.configService.get<string>('jwt.refreshSecret'),
-    });
+    let decoded: { sub: string };
+    try {
+      decoded = this.jwtService.verify(refreshToken, {
+        secret: this.configService.get<string>('jwt.refreshSecret'),
+      });
+    } catch (error) {
+      if ((error as { name?: string }).name === 'TokenExpiredError') {
+        throw new UnauthorizedException('登录已过期，请重新登录');
+      }
+      throw new UnauthorizedException('无效的 refresh token');
+    }
 
     const redisKey = `user:${decoded.sub}:refresh`;
     const storedToken = await this.redisService.get(redisKey);
