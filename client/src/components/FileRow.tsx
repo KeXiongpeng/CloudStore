@@ -1,7 +1,7 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
-import FileCard, { FileItem, formatFileDate, formatFileSize, getFileIcon } from '@/components/FileCard';
+import { FileItem, formatFileDate, formatFileSize, getFileIcon } from '@/components/FileCard';
 
 interface FileRowProps {
   file: FileItem;

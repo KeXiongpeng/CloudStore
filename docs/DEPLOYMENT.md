@@ -89,10 +89,10 @@ docker compose -f docker-compose.dev.yml up -d
 
 端口映射：
 
-| 服务 | 宿主机端口 | 容器端口 |
-| --- | --- | --- |
-| PostgreSQL | `5433` | `5432` |
-| Redis | `6380` | `6379` |
+| 服务       | 宿主机端口 | 容器端口 |
+| ---------- | ---------- | -------- |
+| PostgreSQL | `5433`     | `5432`   |
+| Redis      | `6380`     | `6379`   |
 
 ---
 
@@ -131,11 +131,11 @@ docker compose -f docker-compose.prod.yml logs -f nextjs
 
 ## OAuth 生产配置
 
-| Provider | Production Callback URL |
-| --- | --- |
-| GitHub | `https://kxpwty.cn/api/auth/github/callback` |
-| Google | `https://kxpwty.cn/api/auth/google/callback` |
-| WeChat | `https://kxpwty.cn/api/auth/wechat/callback` |
+| Provider | Production Callback URL                      |
+| -------- | -------------------------------------------- |
+| GitHub   | `https://kxpwty.cn/api/auth/github/callback` |
+| Google   | `https://kxpwty.cn/api/auth/google/callback` |
+| WeChat   | `https://kxpwty.cn/api/auth/wechat/callback` |
 
 注意事项：
 

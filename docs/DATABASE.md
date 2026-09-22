@@ -77,16 +77,16 @@ erDiagram
 
 ## 关键约束
 
-| 表 / 字段 | 说明 |
-| --- | --- |
-| `users.email` | 唯一；本地邮箱登录依赖此字段 |
-| `users.password_hash` | OAuth 创建的用户初始为空 |
+| 表 / 字段                               | 说明                                 |
+| --------------------------------------- | ------------------------------------ |
+| `users.email`                           | 唯一；本地邮箱登录依赖此字段         |
+| `users.password_hash`                   | OAuth 创建的用户初始为空             |
 | `oauth_accounts(provider, provider_id)` | 联合唯一，防止同一第三方身份重复绑定 |
-| `files.storage_key` | 对象存储 Key，唯一 |
-| `files.url_key` | 分享路径标识，唯一 |
-| `files.deleted_at` | 软删除标记 |
-| `user_quotas.user_id` | 唯一，一对一 |
-| `access_logs.file_id` | 删除用户时会级联删除访问日志 |
+| `files.storage_key`                     | 对象存储 Key，唯一                   |
+| `files.url_key`                         | 分享路径标识，唯一                   |
+| `files.deleted_at`                      | 软删除标记                           |
+| `user_quotas.user_id`                   | 唯一，一对一                         |
+| `access_logs.file_id`                   | 删除用户时会级联删除访问日志         |
 
 ## 枚举
 
@@ -114,6 +114,6 @@ erDiagram
 ## 默认配额
 
 | 套餐 | 存储上限 |
-| --- | --- |
-| Free | 500 MB |
-| VIP | 10 GB |
+| ---- | -------- |
+| Free | 500 MB   |
+| VIP  | 10 GB    |

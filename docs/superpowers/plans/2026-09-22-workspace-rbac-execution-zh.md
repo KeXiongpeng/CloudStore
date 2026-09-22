@@ -24,23 +24,23 @@
 - [x] 当前分支已从 `ui-docs-oauth-upgrade` 切换到 `feat/workspace-upload-pipeline`。
 - [x] 服务端构建通过：`npm --prefix server run build`。
 - [x] 客户端生产构建通过：`npm --prefix client run build`。
-- [x] 客户端缺少 ESLint 配置；由任务 0 处理。
+- [x] 客户端 ESLint 配置已在任务 0 补齐；存量类型和未用导入已修复。
 - [x] Windows 下使用 `C:\Program Files\npm.cmd` 调用 npm。
 
 ## 任务清单
 
 ### 任务 0：工程规范、代码依赖图、统一响应和 CI
 
-- [ ] 安装 Prettier、ESLint、dependency-cruiser、Husky、lint-staged。
-- [ ] 创建 `.prettierrc`、`.prettierignore`、`.dependency-cruiser.cjs`、`.lintstagedrc.json`。
-- [ ] 建立模块依赖方向规则：`workspaces` 不依赖 `upload/storage`，`audit` 不反向依赖业务模块，前端不导入后端源码。
-- [ ] 创建统一成功响应拦截器和异常过滤器。
-- [ ] 保持前端响应解包兼容，避免现有页面立刻破坏。
-- [ ] 配置 Swagger。
-- [ ] 创建 GitHub Actions 质量流水线。
-- [ ] 初始化 Husky 和 lint-staged。
-- [ ] 验证依赖图、格式化、服务端测试和构建。
-- [ ] 提交：`chore(engineering): add dependency graph and api envelope`
+- [x] 安装 Prettier、ESLint、dependency-cruiser、Husky、lint-staged。
+- [x] 创建 `.prettierrc`、`.prettierignore`、`.dependency-cruiser.cjs`、`.lintstagedrc.json`。
+- [x] 建立模块依赖方向规则：`workspaces` 不依赖 `upload/storage`，`audit` 不反向依赖业务模块，前端不导入后端源码。
+- [x] 创建统一成功响应拦截器和异常过滤器。
+- [x] 保持前端响应解包兼容，避免现有页面立刻破坏。
+- [x] 配置 Swagger。
+- [x] 创建 GitHub Actions 质量流水线。
+- [x] 初始化 Husky 和 lint-staged。
+- [x] 验证依赖图、格式化、服务端测试和构建。
+- [x] 提交：`chore(engineering): add dependency graph and api envelope`
 
 ### 任务 1：后端测试与严格类型基线
 

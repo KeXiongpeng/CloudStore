@@ -13,7 +13,8 @@ services:
     volumes:
       - csp_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-csp_user} -d ${POSTGRES_DB:-cloud_storage}']
+      test:
+        ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-csp_user} -d ${POSTGRES_DB:-cloud_storage}']
       interval: 10s
       timeout: 5s
       retries: 5

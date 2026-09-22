@@ -67,6 +67,7 @@ project-root/
 ### Task 1: 根目录配置 + Docker Compose
 
 **Files:**
+
 - Create: `package.json`
 - Create: `docker-compose.yml`
 - Create: `docker-compose.dev.yml`
@@ -75,6 +76,7 @@ project-root/
 - Create: `.npmrc`
 
 **Interfaces:**
+
 - Produces: Docker Compose 网络和服务定义，供 Task 2/3/4/5 的容器使用
 - Produces: `.env.example` 定义所有环境变量名称，供 Task 2/3 参考验证逻辑
 - Produces: `.npmrc` 统一 npm 配置，供 client/ 和 server/ 继承
@@ -105,8 +107,8 @@ services:
     image: nginx:1.25-alpine
     container_name: csp-nginx
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
@@ -166,9 +168,9 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - '5432:5432'
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -183,9 +185,9 @@ services:
     volumes:
       - redis-data:/data
     ports:
-      - "6379:6379"
+      - '6379:6379'
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -240,11 +242,11 @@ services:
 
   postgres:
     ports:
-      - "5432:5432"
+      - '5432:5432'
 
   redis:
     ports:
-      - "6379:6379"
+      - '6379:6379'
 ```
 
 - [ ] **Step 4: 创建 `.env.example`**
@@ -349,6 +351,7 @@ git commit -m "chore: add root config, docker-compose, and env template"
 ### Task 2: NestJS 项目脚手架 + 核心模块
 
 **Files:**
+
 - Create: `server/package.json`
 - Create: `server/tsconfig.json`
 - Create: `server/nest-cli.json`
@@ -359,6 +362,7 @@ git commit -m "chore: add root config, docker-compose, and env template"
 - Create: `server/src/common/config/configuration.ts`
 
 **Interfaces:**
+
 - Consumes: `.env.example` 中的环境变量名（Task 1）
 - Produces: `server/Dockerfile` 供 `docker-compose.yml` 构建 NestJS 镜像（Task 1）
 - Produces: NestJS 应用监听 3000 端口，全局前缀 `/api`，供 Nginx 代理（Task 4）
@@ -481,7 +485,7 @@ export const configuration = () => ({
   jwt: {
     secret: process.env.JWT_SECRET,
     refreshSecret: process.env.JWT_REFRESH_SECRET,
-    accessTokenTtl: 15 * 60,       // 15 minutes
+    accessTokenTtl: 15 * 60, // 15 minutes
     refreshTokenTtl: 7 * 24 * 60 * 60, // 7 days
   },
   qiniu: {
@@ -613,10 +617,12 @@ git commit -m "feat: scaffold NestJS project with config module and Dockerfile"
 ### Task 3: Prisma Schema + 数据库迁移种子
 
 **Files:**
+
 - Create: `server/prisma/schema.prisma`
 - Create: `server/prisma/seed.ts`
 
 **Interfaces:**
+
 - Consumes: `.env.example` 中 `DATABASE_URL` 变量名（Task 1）
 - Consumes: `AppModule`（Task 2），后续 Phase 需在 AppModule 中注册 `PrismaModule`
 - Produces: 完整数据库 Schema（6 张表 + 4 个枚举），数据库迁移后可被 NestJS 通过 `@prisma/client` 查询
@@ -815,9 +821,11 @@ git commit -m "feat: add Prisma schema with 6 tables and seed script"
 ### Task 4: Nginx 反向代理配置
 
 **Files:**
+
 - Create: `nginx/nginx.conf`
 
 **Interfaces:**
+
 - Consumes: `docker-compose.yml` 中 nginx 容器挂载此配置（Task 1）
 - Consumes: NestJS 端口 3000（Task 2）、Next.js 端口 3001（Task 5）
 - Produces: 外部通过 80/443 端口访问，`/api/*` 路由到 NestJS，`/*` 路由到 Next.js
@@ -937,6 +945,7 @@ git commit -m "feat: add Nginx reverse proxy config with gzip and upload limit"
 ### Task 5: Next.js 项目脚手架 + API 客户端
 
 **Files:**
+
 - Create: `client/package.json`
 - Create: `client/tsconfig.json`
 - Create: `client/next.config.ts`
@@ -949,6 +958,7 @@ git commit -m "feat: add Nginx reverse proxy config with gzip and upload limit"
 - Create: `client/src/lib/api.ts`
 
 **Interfaces:**
+
 - Consumes: `.env.example` 中的环境变量约定（Task 1）
 - Produces: `client/Dockerfile` 供 `docker-compose.yml` 构建前端镜像（Task 1）
 - Produces: Next.js 应用监听 3001 端口，供 Nginx 代理（Task 4）
@@ -1039,9 +1049,7 @@ export default nextConfig;
 import type { Config } from 'tailwindcss';
 
 const config: Config = {
-  content: [
-    './src/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
+  content: ['./src/**/*.{js,ts,jsx,tsx,mdx}'],
   theme: {
     extend: {},
   },
@@ -1099,11 +1107,7 @@ export const metadata: Metadata = {
   description: '上传文件，获取网络地址，他人打开链接即可在线预览和下载',
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN">
       <body className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased">
@@ -1226,22 +1230,26 @@ git commit -m "feat: scaffold Next.js project with TailwindCSS, API client, and 
 完成所有 Task 后，执行以下验证：
 
 1. **复制环境变量模板：**
+
    ```bash
    cp .env.example .env
    ```
 
 2. **构建并启动所有服务：**
+
    ```bash
    docker compose up --build
    ```
 
 3. **验证 PostgreSQL 连接和表创建：**
+
    ```bash
    docker exec -it csp-nestjs npx prisma migrate deploy
    docker exec -it csp-nestjs npx prisma db seed
    ```
 
 4. **验证 NestJS API 响应：**
+
    ```bash
    curl http://localhost/api  # 应返回 404（NestJS 默认无根路由）
    ```

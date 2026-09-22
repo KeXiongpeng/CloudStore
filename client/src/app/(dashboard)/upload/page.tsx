@@ -5,7 +5,8 @@ import UploadProgress from '@/components/UploadProgress';
 import { useUpload } from '@/hooks/useUpload';
 
 export default function UploadPage() {
-  const { uploads, uploadFiles, removeUpload, clearCompleted, isUploading, notifications } = useUpload();
+  const { uploads, uploadFiles, removeUpload, clearCompleted, isUploading, notifications } =
+    useUpload();
 
   return (
     <div>
@@ -42,9 +43,7 @@ export default function UploadPage() {
             <div
               key={n.id}
               className={`rounded-lg px-4 py-3 text-sm font-medium shadow-lg transition-all animate-[slideIn_0.3s_ease-out] ${
-                n.type === 'success'
-                  ? 'bg-green-500 text-white'
-                  : 'bg-red-500 text-white'
+                n.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
               }`}
             >
               {n.message}

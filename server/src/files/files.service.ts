@@ -48,9 +48,8 @@ export class FilesService {
     let counter = 1;
 
     while (true) {
-      urlKey = counter === 1
-        ? `${this.generateRandomName()}${ext}`
-        : `${this.generateRandomName()}${ext}`;
+      urlKey =
+        counter === 1 ? `${this.generateRandomName()}${ext}` : `${this.generateRandomName()}${ext}`;
       counter++;
 
       const exists = await this.prisma.file.findUnique({
@@ -82,10 +81,7 @@ export class FilesService {
     }
 
     const storageKey = await this.generateStorageKey(userId, dto.filename);
-    const presignedUrl = await this.s3Service.generatePresignedPutUrl(
-      storageKey,
-      dto.contentType,
-    );
+    const presignedUrl = await this.s3Service.generatePresignedPutUrl(storageKey, dto.contentType);
 
     return {
       uploadUrl: presignedUrl,
@@ -154,10 +150,7 @@ export class FilesService {
 
     const storageKey = await this.generateStorageKey(userId, dto.filename);
 
-    const result = await this.s3Service.createMultipartUpload(
-      storageKey,
-      dto.contentType,
-    );
+    const result = await this.s3Service.createMultipartUpload(storageKey, dto.contentType);
 
     const uploadId = result.UploadId;
 
@@ -188,22 +181,13 @@ export class FilesService {
 
     const state = JSON.parse(stateJson);
 
-    const result = await this.s3Service.uploadPart(
-      state.storageKey,
-      uploadId,
-      partNumber,
-      body,
-    );
+    const result = await this.s3Service.uploadPart(state.storageKey, uploadId, partNumber, body);
 
     state.parts.push({
       partNumber,
       etag: result.ETag,
     });
-    await this.redisService.set(
-      `multipart:${uploadId}`,
-      JSON.stringify(state),
-      86400,
-    );
+    await this.redisService.set(`multipart:${uploadId}`, JSON.stringify(state), 86400);
 
     return {
       partNumber,

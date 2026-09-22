@@ -30,10 +30,7 @@ assert.equal(isValidOAuthState('', 'same-value'), false);
 assert.equal(isValidOAuthState('same-value', ''), false);
 assert.equal(isValidOAuthState(undefined as any, 'same-value'), false);
 
-assert.equal(
-  buildWechatIdentityEmail('openid-value'),
-  'wechat_openid-value@wechat.local',
-);
+assert.equal(buildWechatIdentityEmail('openid-value'), 'wechat_openid-value@wechat.local');
 assert.equal(
   buildWechatIdentityEmail('openid-value', 'unionid-value'),
   'wechat_unionid-value@wechat.local',

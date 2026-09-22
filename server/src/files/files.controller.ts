@@ -29,10 +29,7 @@ export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
   @Post('presign')
-  presignUpload(
-    @CurrentUser('id') userId: string,
-    @Body() dto: PresignUploadDto,
-  ) {
+  presignUpload(@CurrentUser('id') userId: string, @Body() dto: PresignUploadDto) {
     return this.filesService.presignUpload(userId, dto);
   }
 
@@ -42,15 +39,12 @@ export class FilesController {
     @Body() dto: UploadCallbackDto,
     @Req() req: Request,
   ) {
-    const ip = req.ip || req.headers['x-forwarded-for'] as string || 'unknown';
+    const ip = req.ip || (req.headers['x-forwarded-for'] as string) || 'unknown';
     return this.filesService.handleUploadCallback(userId, dto, ip);
   }
 
   @Post('upload-init')
-  initMultipartUpload(
-    @CurrentUser('id') userId: string,
-    @Body() dto: InitMultipartDto,
-  ) {
+  initMultipartUpload(@CurrentUser('id') userId: string, @Body() dto: InitMultipartDto) {
     return this.filesService.initMultipartUpload(userId, dto);
   }
 
@@ -96,18 +90,12 @@ export class FilesController {
   }
 
   @Get(':id')
-  getFile(
-    @CurrentUser('id') userId: string,
-    @Param('id') fileId: string,
-  ) {
+  getFile(@CurrentUser('id') userId: string, @Param('id') fileId: string) {
     return this.filesService.getFile(userId, fileId);
   }
 
   @Delete(':id')
-  deleteFile(
-    @CurrentUser('id') userId: string,
-    @Param('id') fileId: string,
-  ) {
+  deleteFile(@CurrentUser('id') userId: string, @Param('id') fileId: string) {
     return this.filesService.deleteFile(userId, fileId);
   }
 }

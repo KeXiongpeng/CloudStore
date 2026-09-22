@@ -47,7 +47,12 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             aria-label="关闭导航菜单"
           >
             <svg className="size-5" viewBox="0 0 24 24" fill="none">
-              <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              <path
+                d="m6 6 12 12M18 6 6 18"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
             </svg>
           </button>
         </div>
@@ -61,9 +66,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                 href={item.href}
                 onClick={onClose}
                 className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${
-                  isActive
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-slate-700 hover:bg-slate-100'
+                  isActive ? 'bg-blue-50 text-blue-700' : 'text-slate-700 hover:bg-slate-100'
                 }`}
               >
                 <span>{item.icon}</span>

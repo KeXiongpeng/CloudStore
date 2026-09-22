@@ -96,8 +96,12 @@ export default function Home() {
           </Link>
 
           <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-            <a className="transition hover:text-blue-600" href="#features">产品功能</a>
-            <a className="transition hover:text-blue-600" href="#workflow">使用流程</a>
+            <a className="transition hover:text-blue-600" href="#features">
+              产品功能
+            </a>
+            <a className="transition hover:text-blue-600" href="#workflow">
+              使用流程
+            </a>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
@@ -122,7 +126,13 @@ export default function Home() {
           <span className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white px-4 py-2 text-xs font-medium text-blue-600 shadow-sm sm:text-sm">
             <svg className="size-4" viewBox="0 0 24 24" fill="none">
               <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
-              <path d="m9 12 2 2 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="m9 12 2 2 4-4"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
             安全稳定的文件存储与分享服务
           </span>
@@ -159,7 +169,10 @@ export default function Home() {
             ['多种', '在线预览'],
             ['实时', '访问统计'],
           ].map(([value, label]) => (
-            <div key={label} className="rounded-2xl border border-blue-50 bg-white/70 px-4 py-5 text-center shadow-sm">
+            <div
+              key={label}
+              className="rounded-2xl border border-blue-50 bg-white/70 px-4 py-5 text-center shadow-sm"
+            >
               <div className="text-2xl font-bold text-blue-600 sm:text-3xl">{value}</div>
               <div className="mt-1 text-xs text-slate-500 sm:text-sm">{label}</div>
             </div>
@@ -177,9 +190,7 @@ export default function Home() {
                   <div
                     key={item}
                     className={`rounded-xl px-4 py-3 text-sm ${
-                      index === 0
-                        ? 'bg-blue-50 font-medium text-blue-700'
-                        : 'text-slate-600'
+                      index === 0 ? 'bg-blue-50 font-medium text-blue-700' : 'text-slate-600'
                     }`}
                   >
                     {item}
@@ -202,7 +213,10 @@ export default function Home() {
                   <div className="hidden min-w-0 flex-1 items-center rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-400 md:flex">
                     搜索文件名 / MIME 类型
                   </div>
-                  <button type="button" className="ml-auto inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white">
+                  <button
+                    type="button"
+                    className="ml-auto inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white"
+                  >
                     上传
                   </button>
                 </div>
@@ -210,20 +224,31 @@ export default function Home() {
 
               <div className="mt-5 overflow-hidden rounded-2xl border border-slate-100">
                 <div className="hidden grid-cols-[1fr_90px_104px_112px_92px] gap-4 bg-slate-50 px-5 py-3 text-xs font-medium text-slate-500 md:grid">
-                  <span>文件名</span><span>大小</span><span>状态</span><span>浏览 / 下载</span><span>操作</span>
+                  <span>文件名</span>
+                  <span>大小</span>
+                  <span>状态</span>
+                  <span>浏览 / 下载</span>
+                  <span>操作</span>
                 </div>
                 {[
                   ['产品设计终稿.pdf', '18.2 MB', '已分享', '126 / 41'],
                   ['产品发布会.mp4', '486 MB', '分片上传', '18 / 6'],
                   ['UI 视觉规范.png', '7.4 MB', '已分享', '1 028 / 320'],
                 ].map(([name, size, status, count]) => (
-                  <div key={name} className="grid gap-2 border-t border-slate-100 px-5 py-4 md:grid-cols-[1fr_90px_104px_112px_92px] md:items-center md:gap-4">
+                  <div
+                    key={name}
+                    className="grid gap-2 border-t border-slate-100 px-5 py-4 md:grid-cols-[1fr_90px_104px_112px_92px] md:items-center md:gap-4"
+                  >
                     <div className="min-w-0 font-medium text-slate-800">{name}</div>
                     <div className="text-sm text-slate-500">{size}</div>
                     <div>
-                      <span className={`inline-flex rounded-full px-2 py-1 text-xs ${
-                        status === '已分享' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
-                      }`}>
+                      <span
+                        className={`inline-flex rounded-full px-2 py-1 text-xs ${
+                          status === '已分享'
+                            ? 'bg-emerald-50 text-emerald-600'
+                            : 'bg-blue-50 text-blue-600'
+                        }`}
+                      >
                         {status}
                       </span>
                     </div>
@@ -237,16 +262,26 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="features" className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+      <section
+        id="features"
+        className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24"
+      >
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-bold sm:text-4xl">为文件分享设计的完整体验</h2>
           <p className="mt-4 text-slate-600">覆盖个人文件管理、公开分享和后台运营的核心能力。</p>
         </div>
         <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {features.map((feature) => (
-            <article key={feature.title} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
-              <span className={`flex size-12 items-center justify-center rounded-2xl text-white ${feature.color}`}>
-                <svg className="size-6" viewBox="0 0 24 24" fill="none">{feature.icon}</svg>
+            <article
+              key={feature.title}
+              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+            >
+              <span
+                className={`flex size-12 items-center justify-center rounded-2xl text-white ${feature.color}`}
+              >
+                <svg className="size-6" viewBox="0 0 24 24" fill="none">
+                  {feature.icon}
+                </svg>
               </span>
               <h3 className="mt-5 text-xl font-bold">{feature.title}</h3>
               <p className="mt-3 leading-7 text-slate-600">{feature.description}</p>
@@ -261,7 +296,9 @@ export default function Home() {
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((step, index) => (
               <div key={step.title} className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
-                <div className="text-3xl font-bold text-blue-600">{String(index + 1).padStart(2, '0')}</div>
+                <div className="text-3xl font-bold text-blue-600">
+                  {String(index + 1).padStart(2, '0')}
+                </div>
                 <h3 className="mt-4 text-xl font-bold">{step.title}</h3>
                 <p className="mt-3 leading-7 text-slate-600">{step.description}</p>
               </div>
@@ -270,20 +307,29 @@ export default function Home() {
         </div>
       </section>
 
-
-      <footer id="contact" className="bg-slate-950 px-4 py-12 text-center text-slate-300 sm:px-6 lg:px-8">
+      <footer
+        id="contact"
+        className="bg-slate-950 px-4 py-12 text-center text-slate-300 sm:px-6 lg:px-8"
+      >
         <div className="mx-auto max-w-7xl">
           <div className="text-lg font-bold text-white">CloudShare · 云存储文件分享平台</div>
           <p className="mt-3 text-sm">安全、稳定、易用的文件存储与分享服务</p>
           <div className="mt-6 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
-            <a className="hover:text-white" href="#features">产品功能</a>
-            <a className="hover:text-white" href="#workflow">使用流程</a>
-            <Link className="hover:text-white" href="/login">登录</Link>
-            <Link className="hover:text-white" href="/register">注册</Link>
+            <a className="hover:text-white" href="#features">
+              产品功能
+            </a>
+            <a className="hover:text-white" href="#workflow">
+              使用流程
+            </a>
+            <Link className="hover:text-white" href="/login">
+              登录
+            </Link>
+            <Link className="hover:text-white" href="/register">
+              注册
+            </Link>
           </div>
         </div>
       </footer>
     </main>
   );
 }
-

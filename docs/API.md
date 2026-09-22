@@ -291,9 +291,9 @@ Content-Type: multipart/form-data
 
 **Query**
 
-| 参数 | 默认 | 说明 |
-| --- | --- | --- |
-| `page` | `1` | 页码 |
+| 参数    | 默认 | 说明     |
+| ------- | ---- | -------- |
+| `page`  | `1`  | 页码     |
 | `limit` | `20` | 每页数量 |
 
 ### GET `/api/files/stats`
@@ -342,9 +342,9 @@ Content-Type: multipart/form-data
 
 **Query**
 
-| 参数 | 默认 |
-| --- | --- |
-| `page` | `1` |
+| 参数    | 默认 |
+| ------- | ---- |
+| `page`  | `1`  |
 | `limit` | `20` |
 
 ### PATCH `/api/admin/users/:id`

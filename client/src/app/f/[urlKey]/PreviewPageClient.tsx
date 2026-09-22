@@ -92,9 +92,7 @@ export default function PreviewPageClient({ file }: Props) {
         viewCount={file.viewCount}
         downloadCount={file.downloadCount}
       />
-      <div className="flex-1">
-        {renderPreview()}
-      </div>
+      <div className="flex-1">{renderPreview()}</div>
     </div>
   );
 }

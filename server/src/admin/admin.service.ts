@@ -44,10 +44,12 @@ export class AdminService {
     return {
       items: users.map((u) => ({
         ...u,
-        quota: u.quota ? {
-          storageLimit: Number(u.quota.storageLimit),
-          storageUsed: Number(u.quota.storageUsed),
-        } : null,
+        quota: u.quota
+          ? {
+              storageLimit: Number(u.quota.storageLimit),
+              storageUsed: Number(u.quota.storageUsed),
+            }
+          : null,
       })),
       total,
       page,

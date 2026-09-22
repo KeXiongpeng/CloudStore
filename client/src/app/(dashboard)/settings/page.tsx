@@ -1,4 +1,5 @@
 'use client';
+import { getApiErrorMessage } from '@/lib/errors';
 
 import { useState } from 'react';
 import api from '@/lib/api';
@@ -23,8 +24,8 @@ export default function SettingsPage() {
       await api.patch('/users/me', { nickname });
       await refreshUser();
       setMessage('昵称已更新');
-    } catch (err: any) {
-      setError(err.response?.data?.message || '更新失败');
+    } catch (error: unknown) {
+      setError(getApiErrorMessage(error, '更新失败'));
     }
   };
 
@@ -52,8 +53,8 @@ export default function SettingsPage() {
       setOldPassword('');
       setNewPassword('');
       setConfirmNewPassword('');
-    } catch (err: any) {
-      setError(err.response?.data?.message || '密码修改失败');
+    } catch (error: unknown) {
+      setError(getApiErrorMessage(error, '密码修改失败'));
     }
   };
 

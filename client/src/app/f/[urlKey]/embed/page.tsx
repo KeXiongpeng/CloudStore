@@ -8,14 +8,21 @@ import VideoPlayer from '@/components/preview/VideoPlayer';
 import AudioPlayer from '@/components/preview/AudioPlayer';
 import PdfViewer from '@/components/preview/PdfViewer';
 
+interface PublicFile {
+  urlKey: string;
+  originalName: string;
+  mimeType: string;
+}
+
 export default function EmbedPage() {
   const params = useParams();
   const urlKey = params.urlKey as string;
-  const [file, setFile] = useState<any>(null);
+  const [file, setFile] = useState<PublicFile | null>(null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    api.get(`/public/files/${urlKey}`)
+    api
+      .get(`/public/files/${urlKey}`)
       .then((res) => setFile(res.data))
       .catch(() => setError(true));
   }, [urlKey]);

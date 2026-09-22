@@ -238,13 +238,7 @@ export class AuthService {
     const avatarUrl = userResponse.data.headimgurl;
     const email = buildWechatIdentityEmail(openid, unionid);
 
-    return this.findOrCreateOAuthUser(
-      'wechat',
-      unionid || openid,
-      email,
-      nickname,
-      avatarUrl,
-    );
+    return this.findOrCreateOAuthUser('wechat', unionid || openid, email, nickname, avatarUrl);
   }
 
   async generateTokens(userId: string, email: string, role: string) {

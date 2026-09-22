@@ -77,7 +77,7 @@ export class UsersService {
       storageLimit: Number(quota.storageLimit),
       storageUsed: Number(quota.storageUsed),
       tier: quota.tier,
-      usagePercent: Number(quota.storageUsed) / Number(quota.storageLimit) * 100,
+      usagePercent: (Number(quota.storageUsed) / Number(quota.storageLimit)) * 100,
     };
   }
 }

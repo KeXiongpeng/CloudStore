@@ -72,7 +72,12 @@ export default function FilesPage() {
         <>
           <div className="mt-6 space-y-3 md:hidden">
             {files.map((file) => (
-              <FileCard key={file.id} file={file} onDelete={handleDelete} onPreview={setPreviewFile} />
+              <FileCard
+                key={file.id}
+                file={file}
+                onDelete={handleDelete}
+                onPreview={setPreviewFile}
+              />
             ))}
           </div>
 
@@ -80,16 +85,31 @@ export default function FilesPage() {
             <table className="w-full table-fixed">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
-                  <th className="w-[36%] px-5 py-4 text-left text-xs font-medium uppercase text-slate-500">文件名</th>
-                  <th className="w-[10%] px-4 py-4 text-left text-xs font-medium uppercase text-slate-500">大小</th>
-                  <th className="w-[14%] px-4 py-4 text-left text-xs font-medium uppercase text-slate-500">浏览/下载</th>
-                  <th className="w-[18%] px-4 py-4 text-left text-xs font-medium uppercase text-slate-500">上传时间</th>
-                  <th className="w-[22%] px-5 py-4 text-left text-xs font-medium uppercase text-slate-500">操作</th>
+                  <th className="w-[36%] px-5 py-4 text-left text-xs font-medium uppercase text-slate-500">
+                    文件名
+                  </th>
+                  <th className="w-[10%] px-4 py-4 text-left text-xs font-medium uppercase text-slate-500">
+                    大小
+                  </th>
+                  <th className="w-[14%] px-4 py-4 text-left text-xs font-medium uppercase text-slate-500">
+                    浏览/下载
+                  </th>
+                  <th className="w-[18%] px-4 py-4 text-left text-xs font-medium uppercase text-slate-500">
+                    上传时间
+                  </th>
+                  <th className="w-[22%] px-5 py-4 text-left text-xs font-medium uppercase text-slate-500">
+                    操作
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {files.map((file) => (
-                  <FileRow key={file.id} file={file} onDelete={handleDelete} onPreview={setPreviewFile} />
+                  <FileRow
+                    key={file.id}
+                    file={file}
+                    onDelete={handleDelete}
+                    onPreview={setPreviewFile}
+                  />
                 ))}
               </tbody>
             </table>
@@ -131,7 +151,10 @@ export default function FilesPage() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex min-h-14 shrink-0 items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
-              <h2 className="min-w-0 truncate text-sm font-semibold text-slate-900 sm:text-base" title={previewFile.originalName}>
+              <h2
+                className="min-w-0 truncate text-sm font-semibold text-slate-900 sm:text-base"
+                title={previewFile.originalName}
+              >
                 {previewFile.originalName}
               </h2>
               <button
@@ -141,7 +164,12 @@ export default function FilesPage() {
                 aria-label="关闭预览"
               >
                 <svg className="size-5" viewBox="0 0 24 24" fill="none">
-                  <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  <path
+                    d="m6 6 12 12M18 6 6 18"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
                 </svg>
               </button>
             </div>
@@ -155,11 +183,19 @@ export default function FilesPage() {
                   className="mx-auto max-h-[78vh] max-w-full object-contain"
                 />
               ) : previewFile.mimeType.startsWith('video/') ? (
-                <video src={`/api/public/files/${previewFile.urlKey}/content`} controls className="max-h-[78vh] w-full">
+                <video
+                  src={`/api/public/files/${previewFile.urlKey}/content`}
+                  controls
+                  className="max-h-[78vh] w-full"
+                >
                   您的浏览器不支持视频播放
                 </video>
               ) : previewFile.mimeType.startsWith('audio/') ? (
-                <audio src={`/api/public/files/${previewFile.urlKey}/content`} controls className="w-full">
+                <audio
+                  src={`/api/public/files/${previewFile.urlKey}/content`}
+                  controls
+                  className="w-full"
+                >
                   您的浏览器不支持音频播放
                 </audio>
               ) : previewFile.mimeType === 'application/pdf' ? (

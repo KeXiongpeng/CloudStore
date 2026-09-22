@@ -33,6 +33,7 @@
 ### Task 1: Local MinIO Infrastructure and Storage Driver Contract
 
 **Files:**
+
 - Modify: `docker-compose.dev.yml`
 - Modify: `.env.example`
 - Create: `server/src/storage/storage-driver.ts`
@@ -44,6 +45,7 @@
 - Test: `server/test/storage/storage.service.spec.ts`
 
 **Interfaces:**
+
 - Consumes: existing AWS S3 SDK dependency.
 - Produces:
 
@@ -64,47 +66,47 @@ interface StorageDriver {
 Append this service to `docker-compose.dev.yml`:
 
 ```yaml
-  minio:
-    image: minio/minio:RELEASE.2024-09-22T00-33-43Z
-    container_name: csp-minio-dev
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - minio-dev-data:/data
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    networks:
-      - csp-dev-network
+minio:
+  image: minio/minio:RELEASE.2024-09-22T00-33-43Z
+  container_name: csp-minio-dev
+  command: server /data --console-address ":9001"
+  environment:
+    MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+    MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+  ports:
+    - '9000:9000'
+    - '9001:9001'
+  volumes:
+    - minio-dev-data:/data
+  healthcheck:
+    test: ['CMD', 'mc', 'ready', 'local']
+    interval: 5s
+    timeout: 5s
+    retries: 5
+  networks:
+    - csp-dev-network
 
-  minio-init:
-    image: minio/mc:RELEASE.2024-09-16T17-43-14Z
-    container_name: csp-minio-init-dev
-    depends_on:
-      minio:
-        condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-      mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin};
-      mc mb --ignore-existing local/${MINIO_BUCKET:-clouddrive-local};
-      mc anonymous set none local/${MINIO_BUCKET:-clouddrive-local};
-      exit 0;
-      "
-    networks:
-      - csp-dev-network
+minio-init:
+  image: minio/mc:RELEASE.2024-09-16T17-43-14Z
+  container_name: csp-minio-init-dev
+  depends_on:
+    minio:
+      condition: service_healthy
+  entrypoint: >
+    /bin/sh -c "
+    mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin};
+    mc mb --ignore-existing local/${MINIO_BUCKET:-clouddrive-local};
+    mc anonymous set none local/${MINIO_BUCKET:-clouddrive-local};
+    exit 0;
+    "
+  networks:
+    - csp-dev-network
 ```
 
 Add to top-level volumes:
 
 ```yaml
-  minio-dev-data:
+minio-dev-data:
 ```
 
 - [ ] **Step 2: Add environment contract**
@@ -212,12 +214,18 @@ describe('StorageService', () => {
     const service = new StorageService({
       driver: 'qiniu',
       minio: new MinioStorageDriver({
-        endpoint: 'http://localhost:9000', region: 'us-east-1',
-        accessKey: 'minioadmin', secretKey: 'minioadmin', bucket: 'clouddrive-local',
+        endpoint: 'http://localhost:9000',
+        region: 'us-east-1',
+        accessKey: 'minioadmin',
+        secretKey: 'minioadmin',
+        bucket: 'clouddrive-local',
       }),
       qiniu: new QiniuStorageDriver({
-        endpoint: 'https://s3.cn-east-1.qiniucs.com', region: 'cn-east-1',
-        accessKey: 'test', secretKey: 'test', bucket: 'test-bucket',
+        endpoint: 'https://s3.cn-east-1.qiniucs.com',
+        region: 'cn-east-1',
+        accessKey: 'test',
+        secretKey: 'test',
+        bucket: 'test-bucket',
       }),
     });
 
@@ -308,6 +316,7 @@ export abstract class BaseS3StorageDriver {
 ```
 
 Implement `MinioStorageDriver` and `QiniuStorageDriver` by extending it. Both use the same S3 commands:
+
 - `PutObjectCommand` for direct PUT;
 - `HeadObjectCommand` for existence and size;
 - `CreateMultipartUploadCommand`;
@@ -332,7 +341,13 @@ import { StorageDriver } from './storage-driver';
 
 @Injectable()
 export class StorageService {
-  constructor(private readonly drivers: { driver: 'minio' | 'qiniu'; minio: StorageDriver; qiniu: StorageDriver }) {}
+  constructor(
+    private readonly drivers: {
+      driver: 'minio' | 'qiniu';
+      minio: StorageDriver;
+      qiniu: StorageDriver;
+    },
+  ) {}
 
   get driverName(): 'minio' | 'qiniu' {
     return this.drivers.driver;
@@ -403,16 +418,17 @@ git add docker-compose.dev.yml .env.example server/src server/test
 git commit -m "feat(storage): add minio qiniu driver abstraction"
 ```
 
-
 ---
 
 ### Task 2: Upload, File Version, Folder, Object, and Quota Models
 
 **Files:**
+
 - Modify: `server/prisma/schema.prisma`
 - Create: generated migration under `server/prisma/migrations/<timestamp>_upload_pipeline`
 
 **Interfaces:**
+
 - Consumes: Workspace model from the RBAC plan.
 - Produces Prisma models `Folder`, `FileVersion`, `UploadSession`, `UploadChunk`, `StorageObject`, `WorkspaceQuota`, and related enums.
 
@@ -696,12 +712,14 @@ git commit -m "feat(upload): add persistent upload and version schema"
 ### Task 3: Transactional Workspace Quota Service
 
 **Files:**
+
 - Create: `server/src/quota/quota.service.ts`
 - Create: `server/src/quota/quota.module.ts`
 - Modify: `server/src/app.module.ts`
 - Test: `server/test/quota/quota.service.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `PrismaService`.
 - Produces:
 
@@ -728,37 +746,48 @@ describe('QuotaService', () => {
     const tx = {
       workspaceQuota: {
         findUnique: jest.fn().mockResolvedValue({
-          workspaceId: 'w1', totalSize: BigInt(100), usedSize: BigInt(80), reservedSize: BigInt(20),
+          workspaceId: 'w1',
+          totalSize: BigInt(100),
+          usedSize: BigInt(80),
+          reservedSize: BigInt(20),
         }),
       },
     };
-    const prisma = { $transaction: jest.fn(fn => fn(tx)) } as unknown as PrismaService;
+    const prisma = { $transaction: jest.fn((fn) => fn(tx)) } as unknown as PrismaService;
     const service = new QuotaService(prisma);
 
-    await expect(service.reserve({ workspaceId: 'w1', size: BigInt(1) }))
-      .rejects.toThrow(BadRequestException);
+    await expect(service.reserve({ workspaceId: 'w1', size: BigInt(1) })).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('reserves available quota', async () => {
     const update = jest.fn().mockResolvedValue({
-      usedSize: BigInt(10), reservedSize: BigInt(20), totalSize: BigInt(100),
+      usedSize: BigInt(10),
+      reservedSize: BigInt(20),
+      totalSize: BigInt(100),
     });
     const tx = {
       workspaceQuota: {
         findUnique: jest.fn().mockResolvedValue({
-          workspaceId: 'w1', totalSize: BigInt(100), usedSize: BigInt(10), reservedSize: BigInt(10),
+          workspaceId: 'w1',
+          totalSize: BigInt(100),
+          usedSize: BigInt(10),
+          reservedSize: BigInt(10),
         }),
         update,
       },
     };
-    const prisma = { $transaction: jest.fn(fn => fn(tx)) } as unknown as PrismaService;
+    const prisma = { $transaction: jest.fn((fn) => fn(tx)) } as unknown as PrismaService;
     const service = new QuotaService(prisma);
 
     await service.reserve({ workspaceId: 'w1', size: BigInt(10) });
 
-    expect(update).toHaveBeenCalledWith(expect.objectContaining({
-      data: { reservedSize: { increment: BigInt(10) } },
-    }));
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { reservedSize: { increment: BigInt(10) } },
+      }),
+    );
   });
 });
 ```
@@ -785,7 +814,10 @@ import { PrismaService } from '../prisma/prisma.service';
 export class QuotaService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private assertAvailable(row: { totalSize: BigInt; usedSize: BigInt; reservedSize: BigInt }, size: BigInt) {
+  private assertAvailable(
+    row: { totalSize: BigInt; usedSize: BigInt; reservedSize: BigInt },
+    size: BigInt,
+  ) {
     const available = row.totalSize - row.usedSize - row.reservedSize;
     if (size > available) {
       throw new BadRequestException('WORKSPACE_QUOTA_EXCEEDED');
@@ -793,7 +825,7 @@ export class QuotaService {
   }
 
   async reserve(input: { workspaceId: string; size: BigInt }) {
-    await this.prisma.$transaction(async tx => {
+    await this.prisma.$transaction(async (tx) => {
       const quota = await tx.workspaceQuota.findUnique({
         where: { workspaceId: input.workspaceId },
       });
@@ -810,7 +842,7 @@ export class QuotaService {
   }
 
   async confirm(input: { workspaceId: string; uploadSessionId: string; size: BigInt }) {
-    await this.prisma.$transaction(async tx => {
+    await this.prisma.$transaction(async (tx) => {
       const quota = await tx.workspaceQuota.findUnique({
         where: { workspaceId: input.workspaceId },
       });
@@ -832,7 +864,7 @@ export class QuotaService {
   }
 
   async release(input: { workspaceId: string; uploadSessionId: string; size: BigInt }) {
-    await this.prisma.$transaction(async tx => {
+    await this.prisma.$transaction(async (tx) => {
       await tx.workspaceQuota.update({
         where: { workspaceId: input.workspaceId },
         data: { reservedSize: { decrement: input.size } },
@@ -892,12 +924,12 @@ git add server/src/quota server/src/app.module.ts server/test/quota
 git commit -m "feat(quota): reserve confirm and release upload quota"
 ```
 
-
 ---
 
 ### Task 4: Upload Session Creation and Instant Upload Detection
 
 **Files:**
+
 - Create: `server/src/upload/dto/create-upload-session.dto.ts`
 - Create: `server/src/upload/upload.service.ts`
 - Create: `server/src/upload/upload.controller.ts`
@@ -906,12 +938,16 @@ git commit -m "feat(quota): reserve confirm and release upload quota"
 - Test: `server/test/upload/upload-session.service.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `WorkspacesService`, `QuotaService`, `StorageService`, `AuditService`.
 - Produces:
 
 ```ts
 class UploadService {
-  createSession(actor: WorkspaceActorContext, dto: CreateUploadSessionDto): Promise<CreateSessionResponse>;
+  createSession(
+    actor: WorkspaceActorContext,
+    dto: CreateUploadSessionDto,
+  ): Promise<CreateSessionResponse>;
   getResume(actor: WorkspaceActorContext, uploadSessionId: string): Promise<ResumeResponse>;
 }
 ```
@@ -921,36 +957,64 @@ class UploadService {
 Create `server/src/upload/dto/create-upload-session.dto.ts`:
 
 ```ts
-import { IsIn, IsInt, IsMD5, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Max, MaxLength, Min, MinLength } from 'class-validator';
+import {
+  IsIn,
+  IsInt,
+  IsMD5,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 
 export class CreateUploadSessionDto {
-  @IsString() @IsNotEmpty() @MaxLength(255)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
   filename!: string;
 
-  @IsString() @IsNotEmpty() @MaxLength(255)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
   mimeType!: string;
 
-  @IsNumber() @Min(1)
+  @IsNumber()
+  @Min(1)
   size!: number;
 
-  @IsOptional() @IsString() @Length(64, 64)
+  @IsOptional()
+  @IsString()
+  @Length(64, 64)
   hash?: string;
 
-  @IsOptional() @IsIn(['sha256'])
+  @IsOptional()
+  @IsIn(['sha256'])
   hashAlgorithm: string = 'sha256';
 
-  @IsOptional() @IsUUID()
+  @IsOptional()
+  @IsUUID()
   folderId?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   clientUploadId?: string;
 
-  @IsOptional() @IsInt() @Min(5242880) @Max(16777216)
+  @IsOptional()
+  @IsInt()
+  @Min(5242880)
+  @Max(16777216)
   chunkSize?: number;
 }
 
 export class CompleteSessionDto {
-  @IsOptional() @IsString() @Length(64, 64)
+  @IsOptional()
+  @IsString()
+  @Length(64, 64)
   hash?: string;
 
   @IsOptional()
@@ -987,20 +1051,39 @@ describe('UploadService session creation', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new UploadService(prisma, quota as any, storage as any, audit as any, workspaces as any);
+    service = new UploadService(
+      prisma,
+      quota as any,
+      storage as any,
+      audit as any,
+      workspaces as any,
+    );
   });
 
   it('creates instant strategy when hash and size match an available object', async () => {
     prisma.storageObject.findUnique.mockResolvedValue({
-      id: 'object-1', hash: 'a'.repeat(64), size: BigInt(8), status: 'available', storageKey: 'objects/a',
+      id: 'object-1',
+      hash: 'a'.repeat(64),
+      size: BigInt(8),
+      status: 'available',
+      storageKey: 'objects/a',
     });
     prisma.uploadSession.create.mockResolvedValue({
-      id: 'session-1', clientUploadId: 'client-1', mode: 'direct', strategy: 'instant',
-      chunkSize: 8388608, totalChunks: 1, uploadedChunks: 0, expiresAt: new Date(),
+      id: 'session-1',
+      clientUploadId: 'client-1',
+      mode: 'direct',
+      strategy: 'instant',
+      chunkSize: 8388608,
+      totalChunks: 1,
+      uploadedChunks: 0,
+      expiresAt: new Date(),
     });
 
     const result = await service.createSession(actor, {
-      filename: 'a.txt', mimeType: 'text/plain', size: 8, hash: 'a'.repeat(64),
+      filename: 'a.txt',
+      mimeType: 'text/plain',
+      size: 8,
+      hash: 'a'.repeat(64),
     });
 
     expect(result.strategy).toBe('instant');
@@ -1011,9 +1094,14 @@ describe('UploadService session creation', () => {
     prisma.storageObject.findUnique.mockResolvedValue(null);
     prisma.uploadSession.create.mockRejectedValue(new Error('foreign key'));
 
-    await expect(service.createSession(actor, {
-      filename: 'a.txt', mimeType: 'text/plain', size: 8, folderId: 'missing',
-    })).rejects.toThrow(BadRequestException);
+    await expect(
+      service.createSession(actor, {
+        filename: 'a.txt',
+        mimeType: 'text/plain',
+        size: 8,
+        folderId: 'missing',
+      }),
+    ).rejects.toThrow(BadRequestException);
   });
 });
 ```
@@ -1033,7 +1121,13 @@ Expected: FAIL because `UploadService` does not exist.
 Create `server/src/upload/upload.service.ts`:
 
 ```ts
-import { BadRequestException, ForbiddenException, HttpException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  HttpException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { QuotaService } from '../quota/quota.service';
@@ -1056,7 +1150,12 @@ export class UploadService {
 
   private extension(filename: string): string {
     const index = filename.lastIndexOf('.');
-    return index > 0 ? filename.slice(index + 1).toLowerCase().slice(0, 32) : '';
+    return index > 0
+      ? filename
+          .slice(index + 1)
+          .toLowerCase()
+          .slice(0, 32)
+      : '';
   }
 
   private storageKey(workspaceId: string, filename: string) {
@@ -1075,15 +1174,22 @@ export class UploadService {
     const chunkSize = dto.chunkSize ?? 8 * BYTES_PER_MB;
     const totalChunks = Math.max(1, Math.ceil(dto.size / chunkSize));
     const clientUploadId = dto.clientUploadId ?? randomUUID();
-    const strategy = dto.hash && dto.hashAlgorithm === 'sha256'
-      ? (await this.prisma.storageObject.findUnique({
-          where: { storageDriver_hashAlgorithm_hash: {
-            storageDriver: this.storageService.driverName,
-            hashAlgorithm: dto.hashAlgorithm,
-            hash: dto.hash.toLowerCase(),
-          } },
-        }))?.status === 'available' ? 'instant' : 'normal'
-      : 'normal';
+    const strategy =
+      dto.hash && dto.hashAlgorithm === 'sha256'
+        ? (
+            await this.prisma.storageObject.findUnique({
+              where: {
+                storageDriver_hashAlgorithm_hash: {
+                  storageDriver: this.storageService.driverName,
+                  hashAlgorithm: dto.hashAlgorithm,
+                  hash: dto.hash.toLowerCase(),
+                },
+              },
+            })
+          )?.status === 'available'
+          ? 'instant'
+          : 'normal'
+        : 'normal';
 
     try {
       await this.quotaService.reserve({ workspaceId: actor.workspaceId, size });
@@ -1126,9 +1232,10 @@ export class UploadService {
             data: Array.from({ length: totalChunks }, (_, index) => ({
               uploadSessionId: session.id,
               chunkIndex: index + 1,
-              size: index === totalChunks - 1
-                ? size - BigInt((totalChunks - 1) * chunkSize)
-                : BigInt(chunkSize),
+              size:
+                index === totalChunks - 1
+                  ? size - BigInt((totalChunks - 1) * chunkSize)
+                  : BigInt(chunkSize),
             })),
           });
         }
@@ -1154,11 +1261,13 @@ export class UploadService {
         expiresAt: session.expiresAt,
       };
     } catch (error) {
-      await this.quotaService.release({
-        workspaceId: actor.workspaceId,
-        uploadSessionId: clientUploadId,
-        size,
-      }).catch(() => undefined);
+      await this.quotaService
+        .release({
+          workspaceId: actor.workspaceId,
+          uploadSessionId: clientUploadId,
+          size,
+        })
+        .catch(() => undefined);
       throw error;
     }
   }
@@ -1179,11 +1288,11 @@ export class UploadService {
     }
 
     const uploadedChunks = session.chunks
-      .filter(chunk => chunk.status === 'uploaded')
-      .map(chunk => chunk.chunkIndex);
+      .filter((chunk) => chunk.status === 'uploaded')
+      .map((chunk) => chunk.chunkIndex);
     const missingChunks = session.chunks
-      .filter(chunk => chunk.status !== 'uploaded')
-      .map(chunk => chunk.chunkIndex);
+      .filter((chunk) => chunk.status !== 'uploaded')
+      .map((chunk) => chunk.chunkIndex);
 
     return {
       uploadSessionId: session.id,
@@ -1257,12 +1366,12 @@ git add server/src/upload server/src/app.module.ts server/test/upload
 git commit -m "feat(upload): create resumable sessions and instant detection"
 ```
 
-
 ---
 
 ### Task 5: Direct Upload, Instant Confirm, Chunk URLs, Chunk Confirm, and Merge
 
 **Files:**
+
 - Modify: `server/src/upload/dto/create-upload-session.dto.ts`
 - Modify: `server/src/upload/upload.service.ts`
 - Modify: `server/src/upload/upload.controller.ts`
@@ -1270,6 +1379,7 @@ git commit -m "feat(upload): create resumable sessions and instant detection"
 - Test: `server/test/upload/upload-chunk.service.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `UploadService`, `StorageService`, `QuotaService`, `AuditService`.
 - Produces:
 
@@ -1292,13 +1402,18 @@ export class DirectUrlDto {}
 export class InstantConfirmDto {}
 
 export class ChunkUrlRequestDto {
-  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(100)
-  @IsInt({ each: true }) @Min(1, { each: true })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
   chunkIndexes!: number[];
 }
 
 export class ConfirmChunkDto {
-  @IsString() @IsNotEmpty() @MaxLength(255)
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
   etag!: string;
 }
 
@@ -1321,13 +1436,15 @@ const prisma: any = {
   storageObject: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
   file: { create: jest.fn() },
   fileVersion: { create: jest.fn() },
-  $transaction: jest.fn(fn => fn({
-    uploadSession: prisma.uploadSession,
-    uploadChunk: prisma.uploadChunk,
-    storageObject: prisma.storageObject,
-    file: prisma.file,
-    fileVersion: prisma.fileVersion,
-  })),
+  $transaction: jest.fn((fn) =>
+    fn({
+      uploadSession: prisma.uploadSession,
+      uploadChunk: prisma.uploadChunk,
+      storageObject: prisma.storageObject,
+      file: prisma.file,
+      fileVersion: prisma.fileVersion,
+    }),
+  ),
 };
 const quota = { confirm: jest.fn(), release: jest.fn() };
 const storage = { headObject: jest.fn(), completeMultipart: jest.fn(), abortMultipart: jest.fn() };
@@ -1340,13 +1457,26 @@ describe('UploadService completion', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    service = new UploadService(prisma, quota as any, storage as any, audit as any, workspaces as any);
+    service = new UploadService(
+      prisma,
+      quota as any,
+      storage as any,
+      audit as any,
+      workspaces as any,
+    );
   });
 
   it('rejects completion when direct object is missing', async () => {
     prisma.uploadSession.findFirst.mockResolvedValue({
-      id: 's1', workspaceId: 'w1', createdBy: 'u1', mode: 'direct', status: 'uploading',
-      size: BigInt(8), storageKey: 'key', hash: null, chunks: [],
+      id: 's1',
+      workspaceId: 'w1',
+      createdBy: 'u1',
+      mode: 'direct',
+      status: 'uploading',
+      size: BigInt(8),
+      storageKey: 'key',
+      hash: null,
+      chunks: [],
     });
     storage.headObject.mockResolvedValue(null);
 
@@ -1355,8 +1485,14 @@ describe('UploadService completion', () => {
 
   it('rejects duplicate completion idempotently with completed response', async () => {
     prisma.uploadSession.findFirst.mockResolvedValue({
-      id: 's1', status: 'completed', mode: 'direct', workspaceId: 'w1', createdBy: 'u1',
-      size: BigInt(8), storageKey: 'key', chunks: [],
+      id: 's1',
+      status: 'completed',
+      mode: 'direct',
+      workspaceId: 'w1',
+      createdBy: 'u1',
+      size: BigInt(8),
+      storageKey: 'key',
+      chunks: [],
       file: { id: 'file-1', urlKey: 'abc' },
     });
 
@@ -1367,8 +1503,15 @@ describe('UploadService completion', () => {
 
   it('rejects merge when chunk state is incomplete', async () => {
     prisma.uploadSession.findFirst.mockResolvedValue({
-      id: 's1', status: 'uploading', mode: 'multipart', workspaceId: 'w1', createdBy: 'u1',
-      totalChunks: 3, size: BigInt(30), storageKey: 'key', providerUploadId: 'mp-1',
+      id: 's1',
+      status: 'uploading',
+      mode: 'multipart',
+      workspaceId: 'w1',
+      createdBy: 'u1',
+      totalChunks: 3,
+      size: BigInt(30),
+      storageKey: 'key',
+      providerUploadId: 'mp-1',
       chunks: [
         { chunkIndex: 1, status: 'uploaded', etag: 'e1', size: BigInt(10) },
         { chunkIndex: 2, status: 'uploaded', etag: 'e2', size: BigInt(10) },
@@ -1392,10 +1535,12 @@ const prisma: any = {
   storageObject: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
   file: { create: jest.fn() },
   fileVersion: { create: jest.fn() },
-  $transaction: jest.fn(fn => fn({
-    uploadSession: prisma.uploadSession,
-    uploadChunk: prisma.uploadChunk,
-  })),
+  $transaction: jest.fn((fn) =>
+    fn({
+      uploadSession: prisma.uploadSession,
+      uploadChunk: prisma.uploadChunk,
+    }),
+  ),
 };
 const quota = { confirm: jest.fn(), release: jest.fn() };
 const storage = { createPartPutUrl: jest.fn().mockResolvedValue('https://signed') };
@@ -1406,10 +1551,22 @@ describe('UploadService chunk handling', () => {
   const actor = { userId: 'u1', workspaceId: 'w1', memberId: 'm1', role: 'EDITOR' as const };
 
   it('returns deterministic signed URL for one chunk', async () => {
-    const service = new UploadService(prisma, quota as any, storage as any, audit as any, workspaces as any);
+    const service = new UploadService(
+      prisma,
+      quota as any,
+      storage as any,
+      audit as any,
+      workspaces as any,
+    );
     prisma.uploadSession.findFirst.mockResolvedValue({
-      id: 's1', workspaceId: 'w1', createdBy: 'u1', mode: 'multipart', status: 'uploading',
-      storageKey: 'key', providerUploadId: 'mp-1', expiresAt: new Date(Date.now() + 1000),
+      id: 's1',
+      workspaceId: 'w1',
+      createdBy: 'u1',
+      mode: 'multipart',
+      status: 'uploading',
+      storageKey: 'key',
+      providerUploadId: 'mp-1',
+      expiresAt: new Date(Date.now() + 1000),
     });
 
     const result = await service.createChunkUrls(actor, 's1', [1]);
@@ -1417,12 +1574,25 @@ describe('UploadService chunk handling', () => {
   });
 
   it('keeps chunk confirm idempotent', async () => {
-    const service = new UploadService(prisma, quota as any, storage as any, audit as any, workspaces as any);
+    const service = new UploadService(
+      prisma,
+      quota as any,
+      storage as any,
+      audit as any,
+      workspaces as any,
+    );
     prisma.uploadSession.findFirst.mockResolvedValue({
-      id: 's1', workspaceId: 'w1', createdBy: 'u1', status: 'uploading', totalChunks: 1,
+      id: 's1',
+      workspaceId: 'w1',
+      createdBy: 'u1',
+      status: 'uploading',
+      totalChunks: 1,
     });
     prisma.uploadChunk.findUnique.mockResolvedValue({
-      chunkIndex: 1, status: 'uploaded', etag: 'same', size: BigInt(8),
+      chunkIndex: 1,
+      status: 'uploaded',
+      etag: 'same',
+      size: BigInt(8),
     });
 
     const result = await service.confirmChunk(actor, 's1', 1, 'same');
@@ -1431,9 +1601,19 @@ describe('UploadService chunk handling', () => {
   });
 
   it('rejects invalid chunk index', async () => {
-    const service = new UploadService(prisma, quota as any, storage as any, audit as any, workspaces as any);
+    const service = new UploadService(
+      prisma,
+      quota as any,
+      storage as any,
+      audit as any,
+      workspaces as any,
+    );
     prisma.uploadSession.findFirst.mockResolvedValue({
-      id: 's1', workspaceId: 'w1', createdBy: 'u1', status: 'uploading', totalChunks: 1,
+      id: 's1',
+      workspaceId: 'w1',
+      createdBy: 'u1',
+      status: 'uploading',
+      totalChunks: 1,
     });
     prisma.uploadChunk.findUnique.mockResolvedValue(null);
 
@@ -1941,12 +2121,12 @@ git add server/src/upload server/test/upload
 git commit -m "feat(upload): direct multipart instant and retry flows"
 ```
 
-
 ---
 
 ### Task 6: Session Expiry Cleanup and Distributed Merge Lock
 
 **Files:**
+
 - Create: `server/src/upload/upload-expiration.service.ts`
 - Modify: `server/src/upload/upload.service.ts`
 - Create: `server/src/upload/cron/register-upload-cron.ts`
@@ -1954,6 +2134,7 @@ git commit -m "feat(upload): direct multipart instant and retry flows"
 - Test: `server/test/upload/upload-expiration.service.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `PrismaService`, `QuotaService`, `StorageService`, `AuditService`, `RedisService`.
 - Produces:
 
@@ -1984,22 +2165,38 @@ describe('UploadExpirationService', () => {
   it('expires due sessions and releases quota', async () => {
     prisma.uploadSession.findMany.mockResolvedValue([
       {
-        id: 's1', workspaceId: 'w1', mode: 'multipart', status: 'uploading',
-        providerUploadId: 'mp-1', storageKey: 'key', quotaReserved: BigInt(10),
+        id: 's1',
+        workspaceId: 'w1',
+        mode: 'multipart',
+        status: 'uploading',
+        providerUploadId: 'mp-1',
+        storageKey: 'key',
+        quotaReserved: BigInt(10),
       },
     ]);
 
-    const service = new UploadExpirationService(prisma, quota as any, storage as any, audit as any, redis as any);
+    const service = new UploadExpirationService(
+      prisma,
+      quota as any,
+      storage as any,
+      audit as any,
+      redis as any,
+    );
     const result = await service.expireDueSessions(new Date('2026-01-01T00:00:00Z'));
 
     expect(result).toEqual({ expiredCount: 1 });
     expect(storage.abortMultipart).toHaveBeenCalledWith({ key: 'key', uploadId: 'mp-1' });
     expect(quota.release).toHaveBeenCalledWith({
-      workspaceId: 'w1', uploadSessionId: 's1', size: BigInt(10),
+      workspaceId: 'w1',
+      uploadSessionId: 's1',
+      size: BigInt(10),
     });
-    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({
-      action: 'upload.expired', resourceId: 's1',
-    }));
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'upload.expired',
+        resourceId: 's1',
+      }),
+    );
   });
 });
 ```
@@ -2177,11 +2374,14 @@ export class UploadCronService implements OnModuleInit {
   constructor(private readonly expirationService: UploadExpirationService) {}
 
   onModuleInit() {
-    this.timer = setInterval(() => {
-      this.expirationService.expireDueSessions().catch(error => {
-        console.error('Upload expiry job failed', error);
-      });
-    }, 5 * 60 * 1000);
+    this.timer = setInterval(
+      () => {
+        this.expirationService.expireDueSessions().catch((error) => {
+          console.error('Upload expiry job failed', error);
+        });
+      },
+      5 * 60 * 1000,
+    );
   }
 
   onModuleDestroy() {
@@ -2215,6 +2415,7 @@ git commit -m "feat(upload): expire sessions and lock merge completion"
 ### Task 7: BullMQ Thumbnail Pipeline
 
 **Files:**
+
 - Create: `server/src/queue/queue.module.ts`
 - Create: `server/src/queue/queue.service.ts`
 - Create: `server/src/queue/processors/thumbnail.processor.ts`
@@ -2224,12 +2425,18 @@ git commit -m "feat(upload): expire sessions and lock merge completion"
 - Test: `server/test/upload/thumbnail-enqueue.spec.ts`
 
 **Interfaces:**
+
 - Consumes: upload completion, `StorageService`, Prisma.
 - Produces:
 
 ```ts
 class QueueService {
-  addThumbnailJob(input: { fileVersionId: string; storageKey: string; mimeType: string; workspaceId: string }): Promise<void>;
+  addThumbnailJob(input: {
+    fileVersionId: string;
+    storageKey: string;
+    mimeType: string;
+    workspaceId: string;
+  }): Promise<void>;
 }
 ```
 
@@ -2248,31 +2455,31 @@ If `pdf-dist` installation is blocked, use `pdfjs-dist@4` instead and keep the A
 Append to `docker-compose.dev.yml`:
 
 ```yaml
-  server-worker:
-    image: node:20-alpine
-    working_dir: /app
-    command: sh -c "npm install && npm run start:worker"
-    environment:
-      NODE_ENV: development
-      REDIS_HOST: redis
-      REDIS_PORT: "6379"
-      DATABASE_URL: postgresql://csp_user:csp_password_2024@postgres:5432/cloud_storage?schema=public
-      STORAGE_DRIVER: minio
-      MINIO_ENDPOINT: http://minio:9000
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      MINIO_BUCKET: clouddrive-local
-    volumes:
-      - ./server:/app
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-    networks:
-      - csp-dev-network
+server-worker:
+  image: node:20-alpine
+  working_dir: /app
+  command: sh -c "npm install && npm run start:worker"
+  environment:
+    NODE_ENV: development
+    REDIS_HOST: redis
+    REDIS_PORT: '6379'
+    DATABASE_URL: postgresql://csp_user:csp_password_2024@postgres:5432/cloud_storage?schema=public
+    STORAGE_DRIVER: minio
+    MINIO_ENDPOINT: http://minio:9000
+    MINIO_ACCESS_KEY: minioadmin
+    MINIO_SECRET_KEY: minioadmin
+    MINIO_BUCKET: clouddrive-local
+  volumes:
+    - ./server:/app
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    minio:
+      condition: service_healthy
+  networks:
+    - csp-dev-network
 ```
 
 Add script to `server/package.json`:
@@ -2382,7 +2589,10 @@ export class ThumbnailsService {
 
     const object = await this.storageService.getObjectForProcessing(input.storageKey);
     const thumbnailKey = `thumbnails/${input.workspaceId}/${input.fileVersionId}.webp`;
-    const output = await sharp(object).resize(512, 512, { fit: 'inside' }).webp({ quality: 78 }).toBuffer();
+    const output = await sharp(object)
+      .resize(512, 512, { fit: 'inside' })
+      .webp({ quality: 78 })
+      .toBuffer();
 
     await this.storageService.putProcessedObject(thumbnailKey, output, 'image/webp');
     await this.prisma.fileVersion.update({
@@ -2488,13 +2698,15 @@ const prisma: any = {
   storageObject: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn() },
   file: { create: jest.fn(), update: jest.fn() },
   fileVersion: { create: jest.fn(), update: jest.fn() },
-  $transaction: jest.fn(fn => fn({
-    uploadSession: prisma.uploadSession,
-    uploadChunk: prisma.uploadChunk,
-    storageObject: prisma.storageObject,
-    file: prisma.file,
-    fileVersion: prisma.fileVersion,
-  })),
+  $transaction: jest.fn((fn) =>
+    fn({
+      uploadSession: prisma.uploadSession,
+      uploadChunk: prisma.uploadChunk,
+      storageObject: prisma.storageObject,
+      file: prisma.file,
+      fileVersion: prisma.fileVersion,
+    }),
+  ),
 };
 const quota = { confirm: jest.fn(), release: jest.fn() };
 const storage = { headObject: jest.fn(), completeMultipart: jest.fn(), abortMultipart: jest.fn() };
@@ -2571,12 +2783,12 @@ git add server/src server/test server/package.json server/package-lock.json dock
 git commit -m "feat(upload): generate thumbnails through bullmq"
 ```
 
-
 ---
 
 ### Task 8: Frontend Upload Queue Store and Hash Worker
 
 **Files:**
+
 - Create: `client/src/features/upload/types.ts`
 - Create: `client/src/features/upload/store.ts`
 - Create: `client/src/features/upload/hash.ts`
@@ -2584,6 +2796,7 @@ git commit -m "feat(upload): generate thumbnails through bullmq"
 - Modify: `client/package.json`
 
 **Interfaces:**
+
 - Consumes: workspace store and permission matrix.
 - Produces:
 
@@ -2666,23 +2879,34 @@ export const useUploadQueue = create<UploadState>((set, get) => ({
   items: [],
   activeCount: 0,
   maxActiveFiles: 3,
-  setStatus: (id, status, patch = {}) => set(state => ({
-    items: state.items.map(item => item.id === id ? { ...item, status, ...patch } : item),
-  })),
-  updateProgress: (id, uploadedBytes, totalBytes) => set(state => ({
-    items: state.items.map(item => item.id === id ? {
-      ...item,
-      uploadedBytes,
-      progress: Math.min(99, Math.round((uploadedBytes / Math.max(totalBytes, 1)) * 100)),
-    } : item),
-  })),
-  enqueueFiles: (files, workspaceId, folderId) => set(state => ({
-    items: [...state.items, ...Array.from(files).map(file => toItem(file, workspaceId, folderId))],
-  })),
-  removeItem: id => set(state => ({ items: state.items.filter(item => item.id !== id) })),
-  clearCompleted: () => set(state => ({
-    items: state.items.filter(item => !['completed', 'canceled'].includes(item.status)),
-  })),
+  setStatus: (id, status, patch = {}) =>
+    set((state) => ({
+      items: state.items.map((item) => (item.id === id ? { ...item, status, ...patch } : item)),
+    })),
+  updateProgress: (id, uploadedBytes, totalBytes) =>
+    set((state) => ({
+      items: state.items.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              uploadedBytes,
+              progress: Math.min(99, Math.round((uploadedBytes / Math.max(totalBytes, 1)) * 100)),
+            }
+          : item,
+      ),
+    })),
+  enqueueFiles: (files, workspaceId, folderId) =>
+    set((state) => ({
+      items: [
+        ...state.items,
+        ...Array.from(files).map((file) => toItem(file, workspaceId, folderId)),
+      ],
+    })),
+  removeItem: (id) => set((state) => ({ items: state.items.filter((item) => item.id !== id) })),
+  clearCompleted: () =>
+    set((state) => ({
+      items: state.items.filter((item) => !['completed', 'canceled'].includes(item.status)),
+    })),
 }));
 ```
 
@@ -2692,14 +2916,14 @@ Create `client/public/workers/sha256-worker.js`:
 
 ```js
 async function digest(file) {
-  const hasher = new crypto.subtle ? crypto.subtle : globalThis.crypto.subtle;
+  const hasher = new crypto.subtle() ? crypto.subtle : globalThis.crypto.subtle;
   const digestValue = await hasher.digest('SHA-256', await file.arrayBuffer());
   return Array.from(new Uint8Array(digestValue))
-    .map(byte => byte.toString(16).padStart(2, '0'))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
     .join('');
 }
 
-self.onmessage = async event => {
+self.onmessage = async (event) => {
   try {
     const hash = await digest(event.data.file);
     self.postMessage({ ok: true, id: event.data.id, hash });
@@ -2717,14 +2941,14 @@ export function hashFileInWorker(file: File): Promise<string> {
     const worker = new Worker('/workers/sha256-worker.js');
     const id = crypto.randomUUID();
 
-    worker.onmessage = event => {
+    worker.onmessage = (event) => {
       if (event.data.id !== id) return;
       worker.terminate();
       if (event.data.ok) resolve(event.data.hash);
       else reject(new Error(event.data.error));
     };
 
-    worker.onerror = error => {
+    worker.onerror = (error) => {
       worker.terminate();
       reject(error);
     };
@@ -2764,6 +2988,7 @@ git commit -m "feat(upload): add queue state and web worker hashing"
 ### Task 9: Upload API Client, Queue Runner, Drag-and-Drop, and Progress UI
 
 **Files:**
+
 - Create: `client/src/features/upload/api.ts`
 - Create: `client/src/features/upload/runner.ts`
 - Create: `client/src/features/upload/UploadQueuePanel.tsx`
@@ -2771,6 +2996,7 @@ git commit -m "feat(upload): add queue state and web worker hashing"
 - Modify: `client/src/app/(dashboard)/files/page.tsx`
 
 **Interfaces:**
+
 - Consumes: upload REST API and Zustand queue.
 - Produces: reusable `UploadDropzone` and visible `UploadQueuePanel`.
 
@@ -2847,9 +3073,7 @@ export async function confirmInstantUpload(workspaceId: string, uploadSessionId:
 }
 
 export async function resumeUpload(workspaceId: string, uploadSessionId: string) {
-  const response = await api.get(
-    `/workspaces/${workspaceId}/upload/sessions/${uploadSessionId}`,
-  );
+  const response = await api.get(`/workspaces/${workspaceId}/upload/sessions/${uploadSessionId}`);
   return response.data;
 }
 ```
@@ -2861,8 +3085,13 @@ Create `client/src/features/upload/runner.ts`:
 ```ts
 import { XHRUploadResult, putWithProgress } from './xhr';
 import {
-  completeUpload, confirmChunk, confirmInstantUpload, createChunkUrls,
-  createDirectUrl, createUploadSession, resumeUpload,
+  completeUpload,
+  confirmChunk,
+  confirmInstantUpload,
+  createChunkUrls,
+  createDirectUrl,
+  createUploadSession,
+  resumeUpload,
 } from './api';
 import { hashFileInWorker } from './hash';
 import { useUploadQueue } from './store';
@@ -2871,12 +3100,12 @@ const CHUNK_SIZE = 8 * 1024 * 1024;
 const DIRECT_THRESHOLD = 8 * 1024 * 1024;
 
 function sleep(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function runUploadItem(id: string) {
   const state = useUploadQueue.getState();
-  const item = state.items.find(entry => entry.id === id);
+  const item = state.items.find((entry) => entry.id === id);
   if (!item) return;
 
   const { setStatus, updateProgress } = useUploadQueue.getState();
@@ -2888,7 +3117,7 @@ export async function runUploadItem(id: string) {
       state.setStatus(id, 'creating', { hash });
     }
 
-    const current = useUploadQueue.getState().items.find(entry => entry.id === id);
+    const current = useUploadQueue.getState().items.find((entry) => entry.id === id);
     if (!current) return;
 
     setStatus(id, 'creating');
@@ -2900,14 +3129,22 @@ export async function runUploadItem(id: string) {
 
     if (session.strategy === 'instant') {
       const result = await confirmInstantUpload(item.workspaceId, session.uploadSessionId);
-      setStatus(id, 'completed', { progress: 100, uploadedBytes: item.file.size, error: undefined });
+      setStatus(id, 'completed', {
+        progress: 100,
+        uploadedBytes: item.file.size,
+        error: undefined,
+      });
       return result;
     }
 
     if (item.file.size <= DIRECT_THRESHOLD) {
       const direct = await createDirectUrl(item.workspaceId, session.uploadSessionId);
-      await putWithProgress(direct.uploadUrl, item.file, bytes => updateProgress(id, bytes, item.file.size));
-      return await completeUpload(item.workspaceId, session.uploadSessionId, { hash: current.hash });
+      await putWithProgress(direct.uploadUrl, item.file, (bytes) =>
+        updateProgress(id, bytes, item.file.size),
+      );
+      return await completeUpload(item.workspaceId, session.uploadSessionId, {
+        hash: current.hash,
+      });
     }
 
     const totalChunks = Math.ceil(item.file.size / CHUNK_SIZE);
@@ -2923,10 +3160,8 @@ export async function runUploadItem(id: string) {
 
       for (let attempt = 0; attempt <= 3; attempt += 1) {
         try {
-          const result: XHRUploadResult = await putWithProgress(
-            urls[0].uploadUrl,
-            blob,
-            bytes => updateProgress(id, start + bytes, item.file.size),
+          const result: XHRUploadResult = await putWithProgress(urls[0].uploadUrl, blob, (bytes) =>
+            updateProgress(id, start + bytes, item.file.size),
           );
           await confirmChunk(item.workspaceId, session.uploadSessionId, chunkIndex, result.etag);
           parts.push({ partNumber: chunkIndex, etag: result.etag });
@@ -2954,8 +3189,10 @@ export async function runUploadItem(id: string) {
 
 export async function resumeQueuedUploads() {
   const state = useUploadQueue.getState();
-  const resumable = state.items.filter(item =>
-    ['hashing', 'creating', 'uploading', 'merging', 'failed'].includes(item.status) && item.uploadSessionId,
+  const resumable = state.items.filter(
+    (item) =>
+      ['hashing', 'creating', 'uploading', 'merging', 'failed'].includes(item.status) &&
+      item.uploadSessionId,
   );
 
   for (const item of resumable) {
@@ -2982,7 +3219,7 @@ export function putWithProgress(
     xhr.open('PUT', url);
     xhr.setRequestHeader('Content-Type', body.type || 'application/octet-stream');
 
-    xhr.upload.onprogress = event => {
+    xhr.upload.onprogress = (event) => {
       if (event.lengthComputable && onProgress) onProgress(event.loaded);
     };
 
@@ -3014,17 +3251,20 @@ import { useUploadQueue } from './store';
 import { runUploadItem } from './runner';
 
 export function UploadDropzone({ folderId }: { folderId?: string }) {
-  const workspaceId = useWorkspaceStore(state => state.currentWorkspaceId);
-  const enqueueFiles = useUploadQueue(state => state.enqueueFiles);
+  const workspaceId = useWorkspaceStore((state) => state.currentWorkspaceId);
+  const enqueueFiles = useUploadQueue((state) => state.enqueueFiles);
   const [dragging, setDragging] = useState(false);
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    if (!workspaceId) return;
-    enqueueFiles(acceptedFiles, workspaceId, folderId);
+  const onDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      if (!workspaceId) return;
+      enqueueFiles(acceptedFiles, workspaceId, folderId);
 
-    const items = useUploadQueue.getState().items.slice(-acceptedFiles.length);
-    await Promise.all(items.map(item => runUploadItem(item.id)));
-  }, [enqueueFiles, folderId, workspaceId]);
+      const items = useUploadQueue.getState().items.slice(-acceptedFiles.length);
+      await Promise.all(items.map((item) => runUploadItem(item.id)));
+    },
+    [enqueueFiles, folderId, workspaceId],
+  );
 
   const { getRootProps, getInputProps } = useDropzone({
     onDrop,
@@ -3038,7 +3278,9 @@ export function UploadDropzone({ folderId }: { folderId?: string }) {
     <div
       {...getRootProps()}
       className={`rounded-xl border-2 border-dashed p-8 text-center transition ${
-        dragging ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'border-neutral-300 dark:border-neutral-700'
+        dragging
+          ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
+          : 'border-neutral-300 dark:border-neutral-700'
       }`}
     >
       <input {...getInputProps()} />
@@ -3076,7 +3318,10 @@ export function UploadQueuePanel() {
     <section className="rounded-xl border p-4 dark:border-neutral-700">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-lg font-semibold">Upload queue</h2>
-        <button onClick={clearCompleted} className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-100">
+        <button
+          onClick={clearCompleted}
+          className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-100"
+        >
           Clear completed
         </button>
       </div>
@@ -3084,7 +3329,7 @@ export function UploadQueuePanel() {
       {items.length === 0 && <p className="text-sm text-neutral-500">No active uploads.</p>}
 
       <ul className="space-y-3">
-        {items.map(item => (
+        {items.map((item) => (
           <li key={item.id} className="rounded-lg border p-3 dark:border-neutral-700">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
@@ -3095,13 +3340,20 @@ export function UploadQueuePanel() {
               </div>
               <div className="flex gap-2">
                 {item.status === 'failed' && (
-                  <button className="text-xs text-blue-600" onClick={() => retryId(item.id)}>Retry</button>
+                  <button className="text-xs text-blue-600" onClick={() => retryId(item.id)}>
+                    Retry
+                  </button>
                 )}
-                <button className="text-xs text-red-600" onClick={() => cancel(item.id)}>Cancel</button>
+                <button className="text-xs text-red-600" onClick={() => cancel(item.id)}>
+                  Cancel
+                </button>
               </div>
             </div>
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
-              <div className="h-full bg-blue-600 transition-all" style={{ width: `${item.progress}%` }} />
+              <div
+                className="h-full bg-blue-600 transition-all"
+                style={{ width: `${item.progress}%` }}
+              />
             </div>
             {item.error && <p className="mt-1 text-xs text-red-500">{item.error}</p>}
           </li>
@@ -3135,6 +3387,7 @@ cancel: id => set(state => ({
 - [ ] **Step 4: Wire files page**
 
 Modify `client/src/app/(dashboard)/files/page.tsx`:
+
 - render `UploadDropzone` only when `UI_PERMISSIONS[role].upload` is true;
 - render `UploadQueuePanel`;
 - invalidate the files query when an item reaches `completed`;
@@ -3143,6 +3396,7 @@ Modify `client/src/app/(dashboard)/files/page.tsx`:
 - [ ] **Step 5: Verify upload flows manually**
 
 Start dependencies and both apps, then verify:
+
 1. A 1 KB file direct-uploads.
 2. An 8 MB boundary file direct-uploads.
 3. A 50 MB file multipart-uploads with 7 chunks.
@@ -3174,11 +3428,13 @@ git commit -m "feat(upload): add queue ui drag drop and retry"
 ### Task 10: Permission UI and Frontend Upload Regression
 
 **Files:**
+
 - Modify: `client/src/features/upload/UploadDropzone.tsx`
 - Modify: `client/src/app/(dashboard)/files/page.tsx`
 - Test: `client/src/features/upload/queue.test.ts`
 
 **Interfaces:**
+
 - Consumes: workspace permissions, upload runner, and Zustand queue.
 - Produces: permission-gated upload UI and repeatable frontend queue regression.
 
@@ -3196,10 +3452,9 @@ describe('upload queue store', () => {
   });
 
   it('enqueues files with workspace context', () => {
-    useUploadQueue.getState().enqueueFiles(
-      [new File(['a'], 'a.txt', { type: 'text/plain' })],
-      'workspace-1',
-    );
+    useUploadQueue
+      .getState()
+      .enqueueFiles([new File(['a'], 'a.txt', { type: 'text/plain' })], 'workspace-1');
 
     const item = useUploadQueue.getState().items[0];
     expect(item.workspaceId).toBe('workspace-1');
@@ -3209,13 +3464,29 @@ describe('upload queue store', () => {
   it('clears only completed and canceled items', () => {
     useUploadQueue.setState({
       items: [
-        { id: '1', file: new File(['a'], 'a'), workspaceId: 'w', status: 'completed', progress: 100, uploadedBytes: 1, attempt: 0 },
-        { id: '2', file: new File(['a'], 'a'), workspaceId: 'w', status: 'failed', progress: 10, uploadedBytes: 1, attempt: 1 },
+        {
+          id: '1',
+          file: new File(['a'], 'a'),
+          workspaceId: 'w',
+          status: 'completed',
+          progress: 100,
+          uploadedBytes: 1,
+          attempt: 0,
+        },
+        {
+          id: '2',
+          file: new File(['a'], 'a'),
+          workspaceId: 'w',
+          status: 'failed',
+          progress: 10,
+          uploadedBytes: 1,
+          attempt: 1,
+        },
       ],
     });
 
     useUploadQueue.getState().clearCompleted();
-    expect(useUploadQueue.getState().items.map(item => item.id)).toEqual(['2']);
+    expect(useUploadQueue.getState().items.map((item) => item.id)).toEqual(['2']);
   });
 });
 ```
@@ -3238,6 +3509,7 @@ Add scripts:
 - [ ] **Step 2: Gate upload UI by permission and add optimistic deletion**
 
 In the files page:
+
 - read the active workspace role;
 - use `UI_PERMISSIONS[role].upload`;
 - when false, render a disabled dropzone with text `You do not have permission to upload`;
@@ -3270,7 +3542,7 @@ export function useDeleteWorkspaceFile(workspaceId: string) {
       if (previous) {
         client.setQueryData<FileListResponse>(queryKey, {
           ...previous,
-          items: previous.items.filter(file => file.id !== fileId),
+          items: previous.items.filter((file) => file.id !== fileId),
           total: Math.max(0, previous.total - 1),
         });
       }
@@ -3311,9 +3583,11 @@ git commit -m "test(upload): gate upload ui and cover queue state"
 ```
 
 ---
+
 ### Task 11: Folder Destination Backend and Frontend Folder Upload
 
 **Files:**
+
 - Create: `server/src/files/folder.service.ts`
 - Create: `server/src/files/dto/ensure-folder.dto.ts`
 - Create: `client/src/features/folder/api.ts`
@@ -3323,12 +3597,16 @@ git commit -m "test(upload): gate upload ui and cover queue state"
 - Test: `server/test/files/folder.service.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `WorkspaceGuard`, `PermissionGuard`, Prisma Folder model.
 - Produces:
 
 ```ts
 class FolderService {
-  ensureFolderPath(actor: WorkspaceActorContext, segments: string[]): Promise<{ folderId?: string }>;
+  ensureFolderPath(
+    actor: WorkspaceActorContext,
+    segments: string[],
+  ): Promise<{ folderId?: string }>;
 }
 ```
 
@@ -3344,7 +3622,7 @@ const prisma: any = {
     findFirst: jest.fn(),
     create: jest.fn(),
   },
-  $transaction: jest.fn(fn => fn(prisma)),
+  $transaction: jest.fn((fn) => fn(prisma)),
 };
 
 describe('FolderService.ensureFolderPath', () => {
@@ -3352,7 +3630,12 @@ describe('FolderService.ensureFolderPath', () => {
     prisma.folder.findFirst
       .mockResolvedValueOnce({ id: 'root', path: 'docs', name: 'docs', parentId: null })
       .mockResolvedValueOnce(null);
-    prisma.folder.create.mockResolvedValue({ id: 'child', path: 'docs/design', name: 'design', parentId: 'root' });
+    prisma.folder.create.mockResolvedValue({
+      id: 'child',
+      path: 'docs/design',
+      name: 'design',
+      parentId: 'root',
+    });
 
     const service = new FolderService(prisma as any);
     const result = await service.ensureFolderPath(
@@ -3381,11 +3664,22 @@ Expected: FAIL because `FolderService` does not exist.
 Create `server/src/files/dto/ensure-folder.dto.ts`:
 
 ```ts
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class EnsureFolderDto {
-  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(16)
-  @IsString({ each: true }) @MinLength(1, { each: true }) @MaxLength(255, { each: true })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(16)
+  @IsString({ each: true })
+  @MinLength(1, { each: true })
+  @MaxLength(255, { each: true })
   segments!: string[];
 }
 ```
@@ -3488,7 +3782,7 @@ for (const [directory, files] of byDirectory) {
 }
 
 const queued = useUploadQueue.getState().items.slice(-acceptedFiles.length);
-await Promise.all(queued.map(item => runUploadItem(item.id)));
+await Promise.all(queued.map((item) => runUploadItem(item.id)));
 ```
 
 This avoids synthetic filename placeholders. Keep the existing file-only behavior when there is no `webkitRelativePath`.
@@ -3524,6 +3818,7 @@ git commit -m "feat(upload): ensure nested folder destinations"
 ### Task 12: Upload Pipeline Regression, Docs, and Deployment Rehearsal
 
 **Files:**
+
 - Modify: `docs/ARCHITECTURE.md`
 - Modify: `docs/API.md`
 - Modify: `docs/DATABASE.md`
@@ -3531,12 +3826,14 @@ git commit -m "feat(upload): ensure nested folder destinations"
 - Create: `docs/superpowers/plans/upload-pipeline-release-checklist.md`
 
 **Interfaces:**
+
 - Consumes: all upload backend and frontend tasks.
 - Produces: release-ready documentation, regression evidence, and deployment checklist.
 
 - [ ] **Step 1: Add integration regression test**
 
 Create `server/test/upload/upload-pipeline.e2e-spec.ts` with six tests:
+
 1. viewer upload returns `403 WORKSPACE_PERMISSION_DENIED`;
 2. insufficient quota returns `413 WORKSPACE_QUOTA_EXCEEDED`;
 3. direct upload completes;
@@ -3580,12 +3877,14 @@ Expected: all PASS.
 - [ ] **Step 4: Rehearse MinIO and Qiniu paths**
 
 Set `STORAGE_DRIVER=minio` and run:
+
 - 1 KB direct upload;
 - 20 MB multipart upload;
 - identical second upload instant upload;
 - expired session cleanup.
 
 Then use an isolated Qiniu test bucket and `STORAGE_DRIVER=qiniu` to repeat:
+
 - 1 KB direct upload;
 - 20 MB multipart upload;
 - duplicate complete idempotency.
@@ -3595,6 +3894,7 @@ Do not run this against the production bucket.
 - [ ] **Step 5: Update documentation**
 
 Update:
+
 - `README.md`: local MinIO URLs, commands, test accounts, upload matrix;
 - `docs/ARCHITECTURE.md`: upload sequence, BullMQ worker, storage driver abstraction;
 - `docs/API.md`: every upload endpoint, DTO, permission, progress/resume behavior, and error code;
