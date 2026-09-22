@@ -44,12 +44,12 @@
 
 ### 任务 1：后端测试与严格类型基线
 
-- [ ] 安装 Jest、ts-jest、supertest。
-- [ ] 创建 `server/jest.config.js` 和 `server/test/setup-env.ts`。
-- [ ] 添加 `test`、`test:watch`、`test:cov`、`typecheck` 脚本。
-- [ ] 开启 `strict` 和 `noUncheckedIndexedAccess`。
-- [ ] 验证现有测试和类型检查。
-- [ ] 提交：`test(server): add workspace rbac test baseline`
+- [x] 安装 Jest、ts-jest、supertest。
+- [x] 创建 `server/jest.config.js` 和 `server/test/setup-env.ts`。
+- [x] 添加 `test`、`test:watch`、`test:cov`、`typecheck` 脚本。
+- [x] 开启 `strict` 和 `noUncheckedIndexedAccess`。
+- [x] 验证现有测试和类型检查。
+- [x] 提交：`test(server): add workspace rbac test baseline`
 
 ### 任务 2：权限矩阵单一来源
 

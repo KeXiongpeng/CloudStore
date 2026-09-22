@@ -1,5 +1,4 @@
-﻿import assert from 'node:assert/strict';
-import {
+﻿import {
   buildOAuthRedirectUri,
   buildWechatIdentityEmail,
   getEnabledOAuthProviders,
@@ -12,28 +11,33 @@ const credentials = {
   wechat: { clientId: 'wechat-id', clientSecret: 'wechat-secret' },
 };
 
-assert.deepEqual(getEnabledOAuthProviders(credentials), ['github', 'wechat']);
-assert.deepEqual(getEnabledOAuthProviders({}), []);
+describe('oauth utils', () => {
+  it('returns only enabled OAuth providers', () => {
+    expect(getEnabledOAuthProviders(credentials)).toEqual(['github', 'wechat']);
+    expect(getEnabledOAuthProviders({})).toEqual([]);
+  });
 
-assert.equal(
-  buildOAuthRedirectUri('https://kxpwty.cn', 'github'),
-  'https://kxpwty.cn/api/auth/github/callback',
-);
-assert.equal(
-  buildOAuthRedirectUri('https://kxpwty.cn', 'google', 'https://custom.example/google'),
-  'https://custom.example/google',
-);
+  it('builds provider redirect URLs with optional overrides', () => {
+    expect(buildOAuthRedirectUri('https://kxpwty.cn', 'github')).toBe(
+      'https://kxpwty.cn/api/auth/github/callback',
+    );
+    expect(
+      buildOAuthRedirectUri('https://kxpwty.cn', 'google', 'https://custom.example/google'),
+    ).toBe('https://custom.example/google');
+  });
 
-assert.equal(isValidOAuthState('same-value', 'same-value'), true);
-assert.equal(isValidOAuthState('same-value', 'other-value'), false);
-assert.equal(isValidOAuthState('', 'same-value'), false);
-assert.equal(isValidOAuthState('same-value', ''), false);
-assert.equal(isValidOAuthState(undefined as any, 'same-value'), false);
+  it('validates OAuth state', () => {
+    expect(isValidOAuthState('same-value', 'same-value')).toBe(true);
+    expect(isValidOAuthState('same-value', 'other-value')).toBe(false);
+    expect(isValidOAuthState('', 'same-value')).toBe(false);
+    expect(isValidOAuthState('same-value', '')).toBe(false);
+    expect(isValidOAuthState(undefined as any, 'same-value')).toBe(false);
+  });
 
-assert.equal(buildWechatIdentityEmail('openid-value'), 'wechat_openid-value@wechat.local');
-assert.equal(
-  buildWechatIdentityEmail('openid-value', 'unionid-value'),
-  'wechat_unionid-value@wechat.local',
-);
-
-console.log('OAuth utility tests passed');
+  it('builds deterministic WeChat identity emails', () => {
+    expect(buildWechatIdentityEmail('openid-value')).toBe('wechat_openid-value@wechat.local');
+    expect(buildWechatIdentityEmail('openid-value', 'unionid-value')).toBe(
+      'wechat_unionid-value@wechat.local',
+    );
+  });
+});
