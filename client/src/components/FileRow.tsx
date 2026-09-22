@@ -1,18 +1,7 @@
-'use client';
+﻿'use client';
 
-import { useState } from 'react';
-
-interface FileItem {
-  id: string;
-  originalName: string;
-  urlKey: string;
-  fileSize: number;
-  mimeType: string;
-  isPrivate: boolean;
-  viewCount: number;
-  downloadCount: number;
-  createdAt: string;
-}
+import { useEffect, useState } from 'react';
+import FileCard, { FileItem, formatFileDate, formatFileSize, getFileIcon } from '@/components/FileCard';
 
 interface FileRowProps {
   file: FileItem;
@@ -20,38 +9,16 @@ interface FileRowProps {
   onPreview: (file: FileItem) => void;
 }
 
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function getFileIcon(mimeType: string): string {
-  if (mimeType.startsWith('image/')) return '🖼️';
-  if (mimeType.startsWith('video/')) return '🎬';
-  if (mimeType.startsWith('audio/')) return '🎵';
-  if (mimeType === 'application/pdf') return '📄';
-  if (mimeType.includes('zip') || mimeType.includes('tar') || mimeType.includes('7z')) return '📦';
-  return '📎';
-}
-
 export default function FileRow({ file, onDelete, onPreview }: FileRowProps) {
   const [copied, setCopied] = useState(false);
-  const fileUrl = `${window.location.origin}/f/${file.urlKey}`;
+  const [origin, setOrigin] = useState('');
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   const handleCopyLink = async () => {
-    await navigator.clipboard.writeText(fileUrl);
+    await navigator.clipboard.writeText(`${origin}/f/${file.urlKey}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -63,46 +30,43 @@ export default function FileRow({ file, onDelete, onPreview }: FileRowProps) {
   };
 
   return (
-    <tr className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900">
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-3">
+    <tr className="border-b border-slate-100 transition hover:bg-slate-50">
+      <td className="px-5 py-4">
+        <div className="flex min-w-0 items-center gap-3">
           <span className="text-lg">{getFileIcon(file.mimeType)}</span>
-          <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-slate-900" title={file.originalName}>
               {file.originalName}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {file.mimeType}
-            </p>
+            <p className="mt-1 truncate text-xs text-slate-500">{file.mimeType}</p>
           </div>
         </div>
       </td>
-      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
-        {formatSize(file.fileSize)}
-      </td>
-      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+      <td className="px-4 py-4 text-sm text-slate-600">{formatFileSize(file.fileSize)}</td>
+      <td className="px-4 py-4 text-sm text-slate-600">
         {file.viewCount} / {file.downloadCount}
       </td>
-      <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-        {formatDate(file.createdAt)}
-      </td>
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
+      <td className="px-4 py-4 text-sm text-slate-500">{formatFileDate(file.createdAt)}</td>
+      <td className="px-5 py-4">
+        <div className="flex flex-wrap items-center gap-2">
           <button
+            type="button"
             onClick={() => onPreview(file)}
-            className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30"
+            className="rounded-lg px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
           >
             预览
           </button>
           <button
+            type="button"
             onClick={handleCopyLink}
-            className="rounded px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+            className="rounded-lg px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
           >
             {copied ? '已复制' : '复制链接'}
           </button>
           <button
+            type="button"
             onClick={handleDelete}
-            className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
+            className="rounded-lg px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
           >
             删除
           </button>
