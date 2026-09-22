@@ -122,12 +122,12 @@
 
 ### 任务 8：跨工作区隔离集成测试
 
-- [ ] 创建 e2e Jest 配置。
-- [ ] 注册用户 A 和用户 B。
-- [ ] 用户 A 创建工作区。
-- [ ] 用户 B 不能读取工作区 A。
-- [ ] 用户 B 不能邀请成员到工作区 A。
-- [ ] 提交：`test(workspace): prove cross workspace isolation`
+- [x] 创建 e2e Jest 配置。
+- [x] 注册用户 A 和用户 B。
+- [x] 用户 A 创建工作区。
+- [x] 用户 B 不能读取工作区 A。
+- [x] 用户 B 不能邀请成员到工作区 A。
+- [x] 提交：`test(workspace): prove cross workspace isolation`
 
 ### 任务 9：前端工作区上下文与成员管理
 
