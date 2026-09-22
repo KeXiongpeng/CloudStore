@@ -12,15 +12,10 @@ import { QueryAuditLogDto } from './dto/query-audit-log.dto';
 export class AuditController {
   constructor(private readonly auditService: AuditService) {}
 
-  @Get('workspaces/audit-logs')
+  @Get('workspaces/:workspaceId/audit-logs')
   @UseGuards(WorkspaceGuard, PermissionGuard)
   @RequirePermission('audit:read')
-  listByQuery(@Query('workspaceId') workspaceId: string, @Query() query: QueryAuditLogDto) {
-    return this.auditService.list(workspaceId, query);
-  }
-
-  @Get('audit-logs')
-  listLocal(@Query('workspaceId') workspaceId: string, @Query() query: QueryAuditLogDto) {
-    return this.auditService.list(workspaceId, query);
+  list(@WorkspaceActor() actor: WorkspaceActorContext, @Query() query: QueryAuditLogDto) {
+    return this.auditService.list(actor.workspaceId, query);
   }
 }
