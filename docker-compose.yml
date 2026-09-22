@@ -1,4 +1,4 @@
-services:
+﻿services:
   nginx:
     image: nginx:1.25-alpine
     container_name: csp-nginx
@@ -45,6 +45,17 @@ services:
       - QINIU_BUCKET=${QINIU_BUCKET}
       - QINIU_ENDPOINT=${QINIU_ENDPOINT}
       - CORS_ORIGIN=${CORS_ORIGIN}
+      - APP_URL=${APP_URL:-http://localhost}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - GITHUB_REDIRECT_URI=${GITHUB_REDIRECT_URI}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+      - WECHAT_CLIENT_ID=${WECHAT_CLIENT_ID}
+      - WECHAT_CLIENT_SECRET=${WECHAT_CLIENT_SECRET}
+      - WECHAT_REDIRECT_URI=${WECHAT_REDIRECT_URI}
     depends_on:
       postgres:
         condition: service_healthy

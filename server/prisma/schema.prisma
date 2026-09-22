@@ -20,6 +20,7 @@ enum Tier {
 enum OAuthProvider {
   github
   google
+  wechat
 }
 
 enum AccessAction {
@@ -28,15 +29,15 @@ enum AccessAction {
 }
 
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  passwordHash  String?        @map("password_hash")
-  nickname      String?
-  avatarUrl     String?        @map("avatar_url")
-  role          Role           @default(user)
-  tier          Tier           @default(free)
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String?  @map("password_hash")
+  nickname     String?
+  avatarUrl    String?  @map("avatar_url")
+  role         Role     @default(user)
+  tier         Tier     @default(free)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   oauthAccounts OAuthAccount[]
   files         File[]
@@ -60,21 +61,21 @@ model OAuthAccount {
 }
 
 model File {
-  id            String       @id @default(uuid())
-  userId        String       @map("user_id")
-  originalName  String       @map("original_name")
-  storageKey    String       @unique @map("storage_key")
-  urlKey        String       @unique @map("url_key")
-  fileSize      BigInt       @map("file_size")
-  mimeType      String       @map("mime_type")
-  isPrivate     Boolean      @default(false) @map("is_private")
-  viewCount     Int          @default(0) @map("view_count")
-  downloadCount Int          @default(0) @map("download_count")
-  uploadIp      String?      @map("upload_ip")
-  createdAt     DateTime     @default(now()) @map("created_at")
-  deletedAt     DateTime?    @map("deleted_at")
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  originalName  String    @map("original_name")
+  storageKey    String    @unique @map("storage_key")
+  urlKey        String    @unique @map("url_key")
+  fileSize      BigInt    @map("file_size")
+  mimeType      String    @map("mime_type")
+  isPrivate     Boolean   @default(false) @map("is_private")
+  viewCount     Int       @default(0) @map("view_count")
+  downloadCount Int       @default(0) @map("download_count")
+  uploadIp      String?   @map("upload_ip")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  deletedAt     DateTime? @map("deleted_at")
 
-  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessLogs AccessLog[]
 
   @@map("files")
@@ -94,12 +95,12 @@ model UserQuota {
 }
 
 model ApiKey {
-  id       String    @id @default(uuid())
-  userId   String    @map("user_id")
-  name     String
-  keyHash  String    @map("key_hash")
-  lastUsed DateTime? @map("last_used")
-  createdAt DateTime @default(now()) @map("created_at")
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  name      String
+  keyHash   String    @map("key_hash")
+  lastUsed  DateTime? @map("last_used")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

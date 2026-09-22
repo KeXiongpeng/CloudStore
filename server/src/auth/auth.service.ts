@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+﻿import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
@@ -8,8 +8,21 @@ import { RedisService } from '../redis/redis.service';
 import * as bcrypt from 'bcryptjs';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { buildWechatIdentityEmail, OAuthProviderName } from './oauth.utils';
 
-const FREE_STORAGE_LIMIT = 500 * 1024 * 1024; // 500MB
+const FREE_STORAGE_LIMIT = 500 * 1024 * 1024;
+
+interface OAuthLoginResult {
+  access_token: string;
+  refresh_token: string;
+  user: {
+    id: string;
+    email: string;
+    nickname: string | null;
+    role: string;
+    tier: string;
+  };
+}
 
 @Injectable()
 export class AuthService {
@@ -30,7 +43,6 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
-
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
@@ -53,13 +65,7 @@ export class AuthService {
     return {
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
-      user: {
-        id: user.id,
-        email: user.email,
-        nickname: user.nickname,
-        role: user.role,
-        tier: user.tier,
-      },
+      user: this.serializeUser(user),
     };
   }
 
@@ -82,13 +88,7 @@ export class AuthService {
     return {
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
-      user: {
-        id: user.id,
-        email: user.email,
-        nickname: user.nickname,
-        role: user.role,
-        tier: user.tier,
-      },
+      user: this.serializeUser(user),
     };
   }
 
@@ -125,6 +125,128 @@ export class AuthService {
     return { message: '已成功登出' };
   }
 
+  async githubLogin(code: string, redirectUri: string): Promise<OAuthLoginResult> {
+    const clientId = this.configService.get<string>('github.clientId');
+    const clientSecret = this.configService.get<string>('github.clientSecret');
+
+    const tokenResponse = await firstValueFrom(
+      this.httpService.post(
+        'https://github.com/login/oauth/access_token',
+        {
+          client_id: clientId,
+          client_secret: clientSecret,
+          code,
+          redirect_uri: redirectUri,
+        },
+        { headers: { Accept: 'application/json' } },
+      ),
+    );
+
+    const accessToken = this.getAccessToken(tokenResponse.data, 'GitHub');
+
+    const userResponse = await firstValueFrom(
+      this.httpService.get('https://api.github.com/user', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/vnd.github+json',
+        },
+      }),
+    );
+
+    let email = userResponse.data.email;
+    if (!email) {
+      const emailResponse = await firstValueFrom(
+        this.httpService.get('https://api.github.com/user/emails', {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: 'application/vnd.github+json',
+          },
+        }),
+      );
+
+      const emails = Array.isArray(emailResponse.data) ? emailResponse.data : [];
+      email =
+        emails.find((item: any) => item.primary && item.verified)?.email ||
+        emails.find((item: any) => item.verified)?.email;
+    }
+
+    const { id, login, avatar_url } = userResponse.data;
+    return this.findOrCreateOAuthUser(
+      'github',
+      String(id),
+      email || `github_${id}@users.noreply.github.com`,
+      login,
+      avatar_url,
+    );
+  }
+
+  async googleLogin(code: string, redirectUri: string): Promise<OAuthLoginResult> {
+    const clientId = this.configService.get<string>('google.clientId');
+    const clientSecret = this.configService.get<string>('google.clientSecret');
+
+    const tokenResponse = await firstValueFrom(
+      this.httpService.post('https://oauth2.googleapis.com/token', {
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+      }),
+    );
+
+    const accessToken = this.getAccessToken(tokenResponse.data, 'Google');
+
+    const userResponse = await firstValueFrom(
+      this.httpService.get('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }),
+    );
+
+    const { id, email, name, picture } = userResponse.data;
+    return this.findOrCreateOAuthUser('google', id, email, name, picture);
+  }
+
+  async wechatLogin(code: string, redirectUri: string): Promise<OAuthLoginResult> {
+    const appId = this.configService.get<string>('wechat.clientId');
+    const secret = this.configService.get<string>('wechat.clientSecret');
+
+    const tokenResponse = await firstValueFrom(
+      this.httpService.get('https://api.weixin.qq.com/sns/oauth2/access_token', {
+        params: {
+          appid: appId,
+          secret,
+          code,
+          grant_type: 'authorization_code',
+        },
+      }),
+    );
+
+    const accessToken = this.getAccessToken(tokenResponse.data, '微信');
+    const { openid, unionid } = tokenResponse.data;
+
+    const userResponse = await firstValueFrom(
+      this.httpService.get('https://api.weixin.qq.com/sns/userinfo', {
+        params: {
+          access_token: accessToken,
+          openid,
+          lang: 'zh_CN',
+        },
+      }),
+    );
+
+    const nickname = userResponse.data.nickname;
+    const avatarUrl = userResponse.data.headimgurl;
+    const email = buildWechatIdentityEmail(openid, unionid);
+
+    return this.findOrCreateOAuthUser(
+      'wechat',
+      unionid || openid,
+      email,
+      nickname,
+      avatarUrl,
+    );
+  }
+
   async generateTokens(userId: string, email: string, role: string) {
     const accessTokenTtl = this.configService.get<number>('jwt.accessTokenTtl', 900);
     const refreshTokenTtl = this.configService.get<number>('jwt.refreshTokenTtl', 604800);
@@ -154,8 +276,37 @@ export class AuthService {
     await this.redisService.set(`user:${userId}:refresh`, refreshToken, refreshTokenTtl);
   }
 
-  private async findOrCreateOAuthUser(provider: 'github' | 'google', providerId: string, email: string, nickname?: string) {
-    let oauthAccount = await this.prisma.oAuthAccount.findUnique({
+  private getAccessToken(payload: any, providerName: string): string {
+    if (payload?.errcode || !payload?.access_token) {
+      throw new UnauthorizedException(`${providerName}授权失败`);
+    }
+    return payload.access_token;
+  }
+
+  private serializeUser(user: {
+    id: string;
+    email: string;
+    nickname: string | null;
+    role: string;
+    tier: string;
+  }) {
+    return {
+      id: user.id,
+      email: user.email,
+      nickname: user.nickname,
+      role: user.role,
+      tier: user.tier,
+    };
+  }
+
+  private async findOrCreateOAuthUser(
+    provider: OAuthProviderName,
+    providerId: string,
+    email: string,
+    nickname?: string,
+    avatarUrl?: string,
+  ): Promise<OAuthLoginResult> {
+    const oauthAccount = await this.prisma.oAuthAccount.findUnique({
       where: {
         provider_providerId: {
           provider,
@@ -172,13 +323,7 @@ export class AuthService {
       return {
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
-        user: {
-          id: user.id,
-          email: user.email,
-          nickname: user.nickname,
-          role: user.role,
-          tier: user.tier,
-        },
+        user: this.serializeUser(user),
       };
     }
 
@@ -190,12 +335,19 @@ export class AuthService {
 
     if (existingUser) {
       userId = existingUser.id;
+      if (!existingUser.avatarUrl && avatarUrl) {
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { avatarUrl },
+        });
+      }
     } else {
       const newUser = await this.prisma.user.create({
         data: {
           email,
-          nickname: nickname || email.split('@')[0],
+          nickname: nickname || `${provider}_user`,
           passwordHash: null,
+          avatarUrl,
         },
       });
 
@@ -220,7 +372,7 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
-      throw new Error('用户创建失败');
+      throw new UnauthorizedException('OAuth 用户创建失败');
     }
 
     const tokens = await this.generateTokens(user.id, user.email, user.role);
@@ -229,65 +381,7 @@ export class AuthService {
     return {
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
-      user: {
-        id: user.id,
-        email: user.email,
-        nickname: user.nickname,
-        role: user.role,
-        tier: user.tier,
-      },
+      user: this.serializeUser(user),
     };
-  }
-
-  async githubLogin(code: string) {
-    const clientId = this.configService.get<string>('github.clientId');
-    const clientSecret = this.configService.get<string>('github.clientSecret');
-
-    const tokenResponse = await firstValueFrom(
-      this.httpService.post('https://github.com/login/oauth/access_token', {
-        client_id: clientId,
-        client_secret: clientSecret,
-        code,
-      }, {
-        headers: { Accept: 'application/json' },
-      }),
-    );
-
-    const accessToken = tokenResponse.data.access_token;
-
-    const userResponse = await firstValueFrom(
-      this.httpService.get('https://api.github.com/user', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      }),
-    );
-
-    const { id: githubId, email, login } = userResponse.data;
-    return this.findOrCreateOAuthUser('github', String(githubId), email || `github_${githubId}@placeholder.com`, login);
-  }
-
-  async googleLogin(code: string) {
-    const clientId = this.configService.get<string>('google.clientId');
-    const clientSecret = this.configService.get<string>('google.clientSecret');
-
-    const tokenResponse = await firstValueFrom(
-      this.httpService.post('https://oauth2.googleapis.com/token', {
-        code,
-        client_id: clientId,
-        client_secret: clientSecret,
-        redirect_uri: process.env.GOOGLE_REDIRECT_URI || 'http://localhost/api/auth/google/callback',
-        grant_type: 'authorization_code',
-      }),
-    );
-
-    const accessToken = tokenResponse.data.access_token;
-
-    const userResponse = await firstValueFrom(
-      this.httpService.get('https://www.googleapis.com/oauth2/v2/userinfo', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      }),
-    );
-
-    const { id: googleId, email, name } = userResponse.data;
-    return this.findOrCreateOAuthUser('google', googleId, email, name);
   }
 }
