@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   BadRequestException,
   PayloadTooLargeException,
@@ -22,6 +22,19 @@ export class FilesService {
     private s3Service: S3Service,
     private redisService: RedisService,
   ) {}
+
+  private async getPersonalWorkspaceId(userId: string): Promise<string> {
+    const membership = await this.prisma.workspaceMember.findFirst({
+      where: { userId, role: 'OWNER', status: 'active' },
+      select: { workspaceId: true },
+    });
+
+    if (!membership) {
+      throw new BadRequestException('WORKSPACE_NOT_FOUND');
+    }
+
+    return membership.workspaceId;
+  }
 
   private async generateStorageKey(userId: string, filename: string): Promise<string> {
     const now = new Date();
@@ -107,6 +120,8 @@ export class FilesService {
     const file = await this.prisma.file.create({
       data: {
         userId,
+        workspaceId: await this.getPersonalWorkspaceId(userId),
+        createdBy: userId,
         originalName: dto.filename,
         storageKey: dto.storageKey,
         urlKey,
@@ -218,6 +233,8 @@ export class FilesService {
     const file = await this.prisma.file.create({
       data: {
         userId,
+        workspaceId: await this.getPersonalWorkspaceId(userId),
+        createdBy: userId,
         originalName: dto.filename,
         storageKey: state.storageKey,
         urlKey,

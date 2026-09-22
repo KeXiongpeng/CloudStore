@@ -43,6 +43,8 @@ model User {
   files         File[]
   quota         UserQuota?
   apiKeys       ApiKey[]
+  ownedWorkspaces Workspace[] @relation("WorkspaceOwner")
+  workspaceMemberships WorkspaceMember[] @relation("WorkspaceMemberships")
 
   @@map("users")
 }
@@ -63,6 +65,8 @@ model OAuthAccount {
 model File {
   id            String    @id @default(uuid())
   userId        String    @map("user_id")
+  workspaceId   String    @map("workspace_id")
+  createdBy     String    @map("created_by")
   originalName  String    @map("original_name")
   storageKey    String    @unique @map("storage_key")
   urlKey        String    @unique @map("url_key")
@@ -76,6 +80,7 @@ model File {
   deletedAt     DateTime? @map("deleted_at")
 
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace  Workspace   @relation(fields: [workspaceId], references: [id])
   accessLogs AccessLog[]
 
   @@map("files")
@@ -117,4 +122,108 @@ model AccessLog {
   file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
 
   @@map("access_logs")
+}
+
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+  GUEST
+}
+
+enum WorkspaceStatus {
+  active
+  suspended
+}
+
+enum WorkspaceMemberStatus {
+  active
+  disabled
+}
+
+enum InvitationStatus {
+  pending
+  accepted
+  revoked
+  expired
+}
+
+model Workspace {
+  id            String          @id @default(uuid())
+  name          String          @db.VarChar(128)
+  slug          String          @unique @db.VarChar(64)
+  ownerId       String          @map("owner_id")
+  storageDriver String          @default("qiniu") @map("storage_driver") @db.VarChar(32)
+  status        WorkspaceStatus @default(active)
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  owner       User                  @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  members     WorkspaceMember[]
+  invitations WorkspaceInvitation[]
+  auditLogs   AuditLog[]
+  files       File[]
+
+  @@index([ownerId])
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String                @id @default(uuid())
+  workspaceId String                @map("workspace_id")
+  userId      String                @map("user_id")
+  role        WorkspaceRole
+  status      WorkspaceMemberStatus @default(active)
+  joinedAt    DateTime              @default(now()) @map("joined_at")
+  updatedAt   DateTime              @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation("WorkspaceMemberships", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+  @@map("workspace_members")
+}
+
+model WorkspaceInvitation {
+  id          String           @id @default(uuid())
+  workspaceId String           @map("workspace_id")
+  email       String           @db.VarChar(254)
+  role        WorkspaceRole
+  tokenHash   String           @unique @map("token_hash")
+  invitedBy   String           @map("invited_by")
+  status      InvitationStatus @default(pending)
+  expiresAt   DateTime         @map("expires_at")
+  acceptedAt  DateTime?        @map("accepted_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, email, status])
+  @@index([email])
+  @@map("workspace_invitations")
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  workspaceId  String?  @map("workspace_id")
+  actorId      String?  @map("actor_id")
+  action       String   @db.VarChar(64)
+  resourceType String   @map("resource_type") @db.VarChar(32)
+  resourceId   String   @map("resource_id") @db.VarChar(64)
+  ip           String?  @db.VarChar(64)
+  userAgent    String?  @map("user_agent") @db.VarChar(512)
+  requestId    String?  @map("request_id") @db.VarChar(64)
+  before       Json?
+  after        Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@index([workspaceId, actorId, createdAt])
+  @@index([workspaceId, resourceType, resourceId])
+  @@map("audit_logs")
 }

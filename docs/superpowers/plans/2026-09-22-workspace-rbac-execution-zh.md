@@ -61,13 +61,13 @@
 
 ### 任务 3：工作区 RBAC 数据模型
 
-- [ ] 新增 `Workspace`、`WorkspaceMember`、`WorkspaceInvitation`、`AuditLog`。
-- [ ] 为旧用户创建个人工作区。
-- [ ] 为每个工作区创建 `OWNER` 成员记录。
-- [ ] 回填旧文件的 `workspace_id` 和 `created_by`。
-- [ ] 校验没有文件缺少工作区。
-- [ ] 运行 Prisma 迁移和生成。
-- [ ] 提交：`feat(workspace): add rbac schema and personal workspace migration`
+- [x] 新增 `Workspace`、`WorkspaceMember`、`WorkspaceInvitation`、`AuditLog`。
+- [x] 为旧用户创建个人工作区。
+- [x] 为每个工作区创建 `OWNER` 成员记录。
+- [x] 回填旧文件的 `workspace_id` 和 `created_by`。
+- [x] 校验没有文件缺少工作区。
+- [x] 运行 Prisma 迁移和生成。
+- [x] 提交：`feat(workspace): add rbac schema and personal workspace migration`
 
 ### 任务 4：工作区服务和成员上下文
 
