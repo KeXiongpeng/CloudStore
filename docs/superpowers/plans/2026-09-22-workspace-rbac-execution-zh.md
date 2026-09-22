@@ -89,12 +89,12 @@
 
 ### 任务 6：审计日志服务与查询接口
 
-- [ ] 实现 `AuditService.record`。
-- [ ] 审计写入失败不能阻断业务主流程，但必须记录服务端日志。
-- [ ] 实现 `AuditService.list` 分页和过滤。
-- [ ] 审计查询必须要求 `audit:read`。
-- [ ] 注册 AuditModule。
-- [ ] 提交：`feat(audit): add workspace audit trail and query api`
+- [x] 实现 `AuditService.record`。
+- [x] 审计写入失败不能阻断业务主流程，但必须记录服务端日志。
+- [x] 实现 `AuditService.list` 分页和过滤。
+- [x] 审计查询必须要求 `audit:read`。
+- [x] 注册 AuditModule。
+- [x] 提交：`feat(audit): add workspace audit trail and query api`
 
 ### 任务 7：邀请与成员管理
 

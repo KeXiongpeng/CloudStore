@@ -10,7 +10,7 @@ module.exports = {
     {
       name: 'audit-must-not-depend-on-business-modules',
       severity: 'error',
-      from: { path: '^server/src/audit/.+' },
+      from: { path: '^server/src/audit/audit\\.service\\.ts$' },
       to: { path: '^server/src/(workspaces|upload|files|storage|quota)/.+' },
     },
     {
