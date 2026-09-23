@@ -25,11 +25,11 @@ export class WorkspaceFilesService {
         take: limit,
         select: {
           id: true,
-          originalName: true,
+          name: true,
           urlKey: true,
-          fileSize: true,
+          size: true,
           mimeType: true,
-          isPrivate: true,
+          visibility: true,
           workspaceId: true,
           createdBy: true,
           createdAt: true,
@@ -39,7 +39,12 @@ export class WorkspaceFilesService {
     ]);
 
     return {
-      items: files.map((file) => ({ ...file, fileSize: Number(file.fileSize) })),
+      items: files.map((file) => ({
+        ...file,
+        originalName: file.name,
+        fileSize: Number(file.size),
+        isPrivate: file.visibility === 'private',
+      })),
       total,
       page,
       limit,
@@ -53,7 +58,12 @@ export class WorkspaceFilesService {
     });
 
     if (!file) throw new NotFoundException('文件不存在');
-    return { ...file, fileSize: Number(file.fileSize) };
+    return {
+      ...file,
+      originalName: file.name,
+      fileSize: Number(file.size),
+      isPrivate: file.visibility === 'private',
+    };
   }
 
   async delete(actor: WorkspaceActorContext, fileId: string) {
@@ -68,10 +78,17 @@ export class WorkspaceFilesService {
       data: { deletedAt: new Date() },
     });
 
-    await this.s3Service.deleteObject(file.storageKey);
-    await this.prisma.userQuota.update({
-      where: { userId: actor.userId },
-      data: { storageUsed: { decrement: file.fileSize } },
+    if (file.currentVersionId) {
+      const version = await this.prisma.fileVersion.findUnique({
+        where: { id: file.currentVersionId },
+      });
+      if (version) {
+        await this.s3Service.deleteObject(version.storageKey);
+      }
+    }
+    await this.prisma.workspaceQuota.update({
+      where: { workspaceId: actor.workspaceId },
+      data: { usedSize: { decrement: file.size } },
     });
 
     return { id: fileId };
@@ -79,20 +96,16 @@ export class WorkspaceFilesService {
 
   async stats(actor: WorkspaceActorContext) {
     const where = { workspaceId: actor.workspaceId, deletedAt: null };
-    const [totalFiles, counts, totalSize] = await Promise.all([
+    const [totalFiles, totalSize] = await Promise.all([
       this.prisma.file.count({ where }),
-      this.prisma.file.aggregate({
-        where,
-        _sum: { viewCount: true, downloadCount: true },
-      }),
-      this.prisma.file.aggregate({ where, _sum: { fileSize: true } }),
+      this.prisma.file.aggregate({ where, _sum: { size: true } }),
     ]);
 
     return {
       totalFiles,
-      totalViews: counts._sum.viewCount || 0,
-      totalDownloads: counts._sum.downloadCount || 0,
-      totalSize: Number(totalSize._sum.fileSize || 0),
+      totalViews: 0,
+      totalDownloads: 0,
+      totalSize: Number(totalSize._sum.size || 0),
     };
   }
 }

@@ -17,23 +17,17 @@ export class PublicService {
       where: {
         urlKey,
         deletedAt: null,
-        isPrivate: false,
+        visibility: 'public',
         workspace: { status: 'active' },
       },
       select: {
         id: true,
-        originalName: true,
+        name: true,
         urlKey: true,
-        storageKey: true,
-        fileSize: true,
         mimeType: true,
-        viewCount: true,
-        downloadCount: true,
         createdAt: true,
-        user: {
-          select: {
-            nickname: true,
-          },
+        currentVersion: {
+          select: { storageKey: true },
         },
       },
     });
@@ -42,11 +36,17 @@ export class PublicService {
       throw new NotFoundException('文件不存在或已删除');
     }
 
-    const fileUrl = await this.s3Service.generatePresignedGetUrl(file.storageKey, 3600);
+    const fileUrl = await this.s3Service.generatePresignedGetUrl(
+      file.currentVersion?.storageKey || '',
+      3600,
+    );
 
     return {
-      ...file,
-      fileSize: Number(file.fileSize),
+      id: file.id,
+      originalName: file.name,
+      urlKey: file.urlKey,
+      mimeType: file.mimeType,
+      createdAt: file.createdAt,
       fileUrl,
     };
   }
@@ -71,15 +71,6 @@ export class PublicService {
       },
     });
 
-    await this.prisma.file.update({
-      where: { id: file.id },
-      data: {
-        viewCount: {
-          increment: 1,
-        },
-      },
-    });
-
     return { message: 'ok' };
   }
 
@@ -88,14 +79,16 @@ export class PublicService {
       where: {
         urlKey,
         deletedAt: null,
-        isPrivate: false,
+        visibility: 'public',
         workspace: { status: 'active' },
       },
       select: {
         id: true,
-        storageKey: true,
         mimeType: true,
-        originalName: true,
+        name: true,
+        currentVersion: {
+          select: { storageKey: true },
+        },
       },
     });
 
@@ -103,12 +96,12 @@ export class PublicService {
       return false;
     }
 
-    const s3Object = await this.s3Service.getObject(file.storageKey);
+    const s3Object = await this.s3Service.getObject(file.currentVersion?.storageKey || '');
     if (!s3Object || !s3Object.Body) {
       return false;
     }
 
-    const contentDisposition = `inline; filename*=UTF-8''${encodeURIComponent(file.originalName)}`;
+    const contentDisposition = `inline; filename*=UTF-8''${encodeURIComponent(file.name)}`;
     res.setHeader('Content-Type', file.mimeType);
     res.setHeader('Content-Disposition', contentDisposition);
     res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -124,9 +117,10 @@ export class PublicService {
       where: {
         urlKey,
         deletedAt: null,
-        isPrivate: false,
+        visibility: 'public',
         workspace: { status: 'active' },
       },
+      include: { currentVersion: true },
     });
 
     if (!file) {
@@ -143,16 +137,10 @@ export class PublicService {
       },
     });
 
-    await this.prisma.file.update({
-      where: { id: file.id },
-      data: {
-        downloadCount: {
-          increment: 1,
-        },
-      },
-    });
-
-    const downloadUrl = await this.s3Service.generatePresignedGetUrl(file.storageKey, 3600);
+    const downloadUrl = await this.s3Service.generatePresignedGetUrl(
+      file.currentVersion?.storageKey || '',
+      3600,
+    );
 
     return { downloadUrl };
   }

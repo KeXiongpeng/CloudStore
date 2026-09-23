@@ -33,7 +33,7 @@ export class AdminService {
           },
           _count: {
             select: {
-              files: true,
+              ownedWorkspaces: true,
             },
           },
         },
@@ -113,7 +113,7 @@ export class AdminService {
     }
 
     await this.prisma.file.deleteMany({
-      where: { userId },
+      where: { createdBy: userId },
     });
 
     await this.prisma.userQuota.deleteMany({
@@ -132,30 +132,21 @@ export class AdminService {
   }
 
   async getStats() {
-    const [totalUsers, totalFiles, totalSizeResult, totalViewsResult, totalDownloadsResult] =
-      await Promise.all([
-        this.prisma.user.count(),
-        this.prisma.file.count({ where: { deletedAt: null } }),
-        this.prisma.file.aggregate({
-          where: { deletedAt: null },
-          _sum: { fileSize: true },
-        }),
-        this.prisma.file.aggregate({
-          where: { deletedAt: null },
-          _sum: { viewCount: true },
-        }),
-        this.prisma.file.aggregate({
-          where: { deletedAt: null },
-          _sum: { downloadCount: true },
-        }),
-      ]);
+    const [totalUsers, totalFiles, totalSizeResult] = await Promise.all([
+      this.prisma.user.count(),
+      this.prisma.file.count({ where: { deletedAt: null } }),
+      this.prisma.file.aggregate({
+        where: { deletedAt: null },
+        _sum: { size: true },
+      }),
+    ]);
 
     return {
       totalUsers,
       totalFiles,
-      totalStorage: Number(totalSizeResult._sum.fileSize || 0),
-      totalViews: totalViewsResult._sum.viewCount || 0,
-      totalDownloads: totalDownloadsResult._sum.downloadCount || 0,
+      totalStorage: Number(totalSizeResult._sum?.size || 0),
+      totalViews: 0,
+      totalDownloads: 0,
     };
   }
 }
