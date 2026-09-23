@@ -1,3 +1,5 @@
+name: cloud-storage
+
 # 云存储文件分享平台 - 生产环境部署
 # 与 portfolio 项目共用 nginx-proxy，通过域名分流
 
@@ -38,7 +40,7 @@ services:
 
   # ── NestJS 后端 API ──
   nestjs:
-    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v5
+    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v6
     restart: unless-stopped
     expose:
       - '3000'
@@ -61,8 +63,28 @@ services:
       - shared-proxy
 
   # ── Next.js 前端 ──
+  server-worker:
+    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v6
+    restart: unless-stopped
+    command: ['node', 'dist/worker.js']
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nestjs:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-csp_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cloud_storage}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    networks:
+      - app-net
+
   nextjs:
-    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/client:v3
+    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/client:v4
     restart: unless-stopped
     expose:
       - '3001'
