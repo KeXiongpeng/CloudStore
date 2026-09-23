@@ -28,14 +28,25 @@ function toItem(file: File, workspaceId: string, folderId?: string): UploadItem 
   };
 }
 
-export const useUploadQueue = create<UploadState>((set) => ({
+const AUTO_REMOVE_COMPLETED_MS = 3000;
+
+export const useUploadQueue = create<UploadState>((set, get) => ({
   items: [],
   activeCount: 0,
   maxActiveFiles: 3,
-  setStatus: (id, status, patch = {}) =>
+  setStatus: (id, status, patch = {}) => {
     set((state) => ({
       items: state.items.map((item) => (item.id === id ? { ...item, status, ...patch } : item)),
-    })),
+    }));
+
+    if (status === 'completed') {
+      setTimeout(() => {
+        if (useUploadQueue.getState().items.some((item) => item.id === id)) {
+          get().removeItem(id);
+        }
+      }, AUTO_REMOVE_COMPLETED_MS);
+    }
+  },
   updateProgress: (id, uploadedBytes, totalBytes) =>
     set((state) => ({
       items: state.items.map((item) =>
