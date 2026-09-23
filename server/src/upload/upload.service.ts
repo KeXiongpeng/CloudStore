@@ -14,6 +14,7 @@ import { AuditService } from '../audit/audit.service';
 import { WorkspacesService } from '../workspaces/workspaces.service';
 import { WorkspaceActorContext } from '../workspaces/types';
 import { CompleteSessionDto, CreateUploadSessionDto } from './dto/create-upload-session.dto';
+import { UploadExpirationService } from './upload-expiration.service';
 
 const BYTES_PER_MB = 1024 * 1024;
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -26,6 +27,7 @@ export class UploadService {
     private readonly storageService: StorageService,
     private readonly auditService: AuditService,
     private readonly workspacesService: WorkspacesService,
+    private readonly expirationService?: UploadExpirationService,
   ) {}
 
   private extension(filename: string): string {
@@ -456,7 +458,13 @@ export class UploadService {
       data: { status: 'merging' },
     });
 
+    let mergeLockValue: string | null = null;
+
     try {
+      if (this.expirationService) {
+        mergeLockValue = await this.expirationService.acquireMergeLock(session.id);
+      }
+
       if (session.mode === 'multipart') {
         const incomplete =
           session.chunks.length !== session.totalChunks ||
@@ -525,6 +533,10 @@ export class UploadService {
         data: { status: 'failed', failureReason: (error as Error).message.slice(0, 1000) },
       });
       throw error;
+    } finally {
+      if (this.expirationService && mergeLockValue) {
+        await this.expirationService.releaseMergeLock(session.id, mergeLockValue);
+      }
     }
   }
 
