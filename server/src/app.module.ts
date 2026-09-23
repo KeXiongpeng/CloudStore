@@ -12,6 +12,7 @@ import { PublicModule } from './public/public.module';
 import { AdminModule } from './admin/admin.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
 import { AuditModule } from './audit/audit.module';
+import { QuotaModule } from './quota/quota.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { AuditModule } from './audit/audit.module';
     AdminModule,
     WorkspacesModule,
     AuditModule,
+    QuotaModule,
   ],
 })
 export class AppModule {}
