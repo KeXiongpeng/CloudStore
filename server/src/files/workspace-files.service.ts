@@ -3,6 +3,30 @@ import { PrismaService } from '../prisma/prisma.service';
 import { S3Service } from '../s3/s3.service';
 import { WorkspaceActorContext } from '../workspaces/types';
 
+export function serializeWorkspaceFile(file: {
+  id: string;
+  name: string;
+  urlKey: string;
+  size: bigint;
+  mimeType: string;
+  visibility: string;
+  workspaceId: string;
+  createdBy: string;
+  createdAt: Date;
+}) {
+  return {
+    id: file.id,
+    originalName: file.name,
+    urlKey: file.urlKey,
+    fileSize: Number(file.size),
+    mimeType: file.mimeType,
+    isPrivate: file.visibility === 'private',
+    workspaceId: file.workspaceId,
+    createdBy: file.createdBy,
+    createdAt: file.createdAt,
+  };
+}
+
 @Injectable()
 export class WorkspaceFilesService {
   constructor(
@@ -39,12 +63,7 @@ export class WorkspaceFilesService {
     ]);
 
     return {
-      items: files.map((file) => ({
-        ...file,
-        originalName: file.name,
-        fileSize: Number(file.size),
-        isPrivate: file.visibility === 'private',
-      })),
+      items: files.map(serializeWorkspaceFile),
       total,
       page,
       limit,
@@ -58,12 +77,7 @@ export class WorkspaceFilesService {
     });
 
     if (!file) throw new NotFoundException('文件不存在');
-    return {
-      ...file,
-      originalName: file.name,
-      fileSize: Number(file.size),
-      isPrivate: file.visibility === 'private',
-    };
+    return serializeWorkspaceFile(file);
   }
 
   async delete(actor: WorkspaceActorContext, fileId: string) {

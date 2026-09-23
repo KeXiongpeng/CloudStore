@@ -43,11 +43,17 @@ export async function uploadSmallFile(
   file: File,
   onProgress?: (progress: number) => void,
 ): Promise<UploadedFile> {
+  console.debug('[legacy-upload] presign request', {
+    filename: file.name,
+    size: file.size,
+    contentType: file.type,
+  });
   const presignResponse = await api.post('/files/presign', {
     filename: file.name,
     contentType: file.type,
     fileSize: file.size,
   });
+  console.debug('[legacy-upload] presign response', presignResponse.data);
 
   const { uploadUrl, storageKey } = presignResponse.data;
 
@@ -59,12 +65,18 @@ export async function uploadSmallFile(
 
   if (onProgress) onProgress(95);
 
+  console.debug('[legacy-upload] callback request', {
+    filename: file.name,
+    size: file.size,
+    storageKey,
+  });
   const callbackResponse = await api.post('/files/callback', {
     filename: file.name,
     contentType: file.type,
     fileSize: file.size,
     storageKey,
   });
+  console.debug('[legacy-upload] callback response', callbackResponse.data);
 
   if (onProgress) onProgress(100);
   return callbackResponse.data;

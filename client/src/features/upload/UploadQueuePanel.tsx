@@ -4,14 +4,14 @@ import { useUploadQueue } from './store';
 import { runUploadItem } from './runner';
 
 const STATUS_LABEL: Record<string, string> = {
-  hashing: '????',
-  creating: '????',
-  instant: '??',
-  uploading: '???',
-  merging: '???',
-  completed: '???',
-  canceled: '???',
-  failed: '??',
+  hashing: '\u8ba1\u7b97\u54c8\u5e0c',
+  creating: '\u521b\u5efa\u4f1a\u8bdd',
+  instant: '\u79d2\u4f20',
+  uploading: '\u4e0a\u4f20\u4e2d',
+  merging: '\u5408\u5e76\u4e2d',
+  completed: '\u5df2\u5b8c\u6210',
+  canceled: '\u5df2\u53d6\u6d88',
+  failed: '\u5931\u8d25',
 };
 
 export function UploadQueuePanel() {
@@ -21,17 +21,19 @@ export function UploadQueuePanel() {
   return (
     <section className="rounded-xl border p-4 dark:border-neutral-700">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">????</h2>
+        <h2 className="text-lg font-semibold">&#19978;&#20256;&#38431;&#21015;</h2>
         <button
           type="button"
           onClick={clearCompleted}
           className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-100"
         >
-          ?????
+          &#28165;&#29702;&#24050;&#23436;&#25104;
         </button>
       </div>
 
-      {items.length === 0 && <p className="text-sm text-neutral-500">??????</p>}
+      {items.length === 0 && (
+        <p className="text-sm text-neutral-500">&#26242;&#26080;&#19978;&#20256;&#20219;&#21153;</p>
+      )}
 
       <ul className="space-y-3">
         {items.map((item) => (
@@ -40,7 +42,7 @@ export function UploadQueuePanel() {
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">{item.file.name}</p>
                 <p className="text-xs text-neutral-500">
-                  {STATUS_LABEL[item.status]} ? {item.progress}%
+                  {STATUS_LABEL[item.status]} &middot; {item.progress}%
                 </p>
               </div>
               <div className="flex gap-2">
@@ -52,7 +54,7 @@ export function UploadQueuePanel() {
                       runUploadItem(item.id).catch(() => undefined);
                     }}
                   >
-                    ??
+                    &#37325;&#35797;
                   </button>
                 )}
               </div>

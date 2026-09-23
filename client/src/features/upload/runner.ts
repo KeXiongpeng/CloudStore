@@ -27,7 +27,13 @@ export async function runUploadItem(id: string) {
   try {
     if (!queued.hash) {
       setStatus(id, 'hashing');
+      console.debug('[upload] hashing started', {
+        id,
+        name: queued.file.name,
+        size: queued.file.size,
+      });
       const hash = await hashFileInWorker(queued.file);
+      console.debug('[upload] hashing finished', { id, hash });
       setStatus(id, 'creating', { hash });
     }
 
@@ -41,6 +47,7 @@ export async function runUploadItem(id: string) {
     const session = initialSessionId
       ? await resumeUpload(workspaceId, initialSessionId)
       : await createUploadSession(current);
+    console.debug('[upload] session ready', { id, session });
 
     setStatus(id, session.strategy === 'instant' ? 'instant' : 'uploading', {
       uploadSessionId: session.uploadSessionId,
@@ -59,6 +66,7 @@ export async function runUploadItem(id: string) {
 
     if (current.file.size <= DIRECT_THRESHOLD) {
       const direct = await createDirectUrl(workspaceId, session.uploadSessionId);
+      console.debug('[upload] direct URL ready', { id, uploadSessionId: session.uploadSessionId });
       await putWithProgress(direct.uploadUrl, file, (bytes) =>
         updateProgress(id, bytes, file.size),
       );
@@ -77,6 +85,7 @@ export async function runUploadItem(id: string) {
 
     for (const chunkIndex of missing) {
       const urls = await createChunkUrls(workspaceId, session.uploadSessionId, [chunkIndex]);
+      console.debug('[upload] chunk URL ready', { id, chunkIndex });
       const start = (chunkIndex - 1) * CHUNK_SIZE;
       const blob = current.file.slice(start, Math.min(start + CHUNK_SIZE, current.file.size));
 
@@ -85,6 +94,7 @@ export async function runUploadItem(id: string) {
           const result: XHRUploadResult = await putWithProgress(urls[0].uploadUrl, blob, (bytes) =>
             updateProgress(id, start + bytes, current.file.size),
           );
+          console.debug('[upload] chunk uploaded', { id, chunkIndex, etag: result.etag });
           await confirmChunk(workspaceId, session.uploadSessionId, chunkIndex, result.etag);
           parts.push({ partNumber: chunkIndex, etag: result.etag });
           break;
@@ -106,6 +116,16 @@ export async function runUploadItem(id: string) {
     setStatus(id, 'completed', { progress: 100, uploadedBytes: file.size });
     return result;
   } catch (error) {
+    console.error('[upload] failed', {
+      id,
+      error,
+      message: (error as Error)?.message,
+      axiosCode: (error as { response?: { data?: { code?: string } } })?.response?.data?.code,
+      axiosMessage: (error as { response?: { data?: { message?: unknown } } })?.response?.data
+        ?.message,
+      requestId: (error as { response?: { data?: { requestId?: string } } })?.response?.data
+        ?.requestId,
+    });
     const item = useUploadQueue.getState().items.find((entry) => entry.id === id);
     setStatus(id, 'failed', {
       error: (error as Error).message,

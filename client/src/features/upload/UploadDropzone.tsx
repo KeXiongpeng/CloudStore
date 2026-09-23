@@ -51,7 +51,7 @@ export function UploadDropzone({
   if (disabled) {
     return (
       <div className="rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-50 p-8 text-center">
-        <p className="text-sm text-neutral-500">??????????</p>
+        <p className="text-sm text-neutral-500">当前角色没有上传权限</p>
       </div>
     );
   }
@@ -66,8 +66,10 @@ export function UploadDropzone({
       }`}
     >
       <input {...getInputProps()} />
-      <p className="text-sm text-neutral-600 dark:text-neutral-300">?????????????????</p>
-      {!workspace && <p className="mt-1 text-xs text-red-500">???????</p>}
+      <p className="text-sm text-neutral-600 dark:text-neutral-300">
+        拖拽文件到这里上传，或点击选择文件
+      </p>
+      {!workspace && <p className="mt-1 text-xs text-red-500">请先选择工作区</p>}
     </div>
   );
 }

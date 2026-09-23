@@ -52,6 +52,16 @@ api.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config;
+    if (typeof window !== 'undefined') {
+      console.error('[api] request failed', {
+        method: originalRequest?.method?.toUpperCase(),
+        url: originalRequest?.url,
+        status: error.response?.status,
+        code: error.response?.data?.code,
+        message: error.response?.data?.message,
+        requestId: error.response?.data?.requestId,
+      });
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {

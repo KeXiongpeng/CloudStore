@@ -45,7 +45,7 @@ export default function FilesPage() {
       setFiles(response.data.items);
       setTotal(response.data.total);
     } catch (error) {
-      console.error('????????:', error);
+      console.error('\u83b7\u53d6\u6587\u4ef6\u5217\u8868\u5931\u8d25:', error);
     } finally {
       setLoading(false);
     }
@@ -75,7 +75,7 @@ export default function FilesPage() {
     try {
       await api.delete(`/workspaces/${workspace.id}/files/${fileId}`);
     } catch (error) {
-      console.error('??????:', error);
+      console.error('\u5220\u9664\u6587\u4ef6\u5931\u8d25:', error);
       setFiles(previousFiles);
       setTotal(previousTotal);
     }
@@ -89,13 +89,13 @@ export default function FilesPage() {
     <div className="mx-auto w-full max-w-7xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">????</h1>
+          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">文件管理</h1>
           <p className="mt-1 text-sm text-slate-500">
-            {workspace ? `??????${workspace.name}` : '???????'}
+            {workspace ? `当前工作区：${workspace.name}` : '请先选择工作区'}
           </p>
         </div>
         <span className="rounded-full bg-white px-3 py-1.5 text-sm text-slate-500 shadow-sm">
-          ? {total} ???
+          共 {total} 个文件
         </span>
       </div>
 
@@ -108,11 +108,11 @@ export default function FilesPage() {
 
       {loading ? (
         <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-8 text-center text-slate-500">
-          ???...
+          加载中...
         </div>
       ) : files.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-          <p className="text-slate-500">????????</p>
+          <p className="text-slate-500">还没有上传过文件</p>
         </div>
       ) : shouldVirtualize ? (
         <div
@@ -146,19 +146,19 @@ export default function FilesPage() {
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50">
                 <th className="w-[36%] px-5 py-4 text-left text-xs font-medium uppercase text-slate-500">
-                  ???
+                  文件名
                 </th>
                 <th className="w-[10%] px-4 py-4 text-left text-xs font-medium uppercase text-slate-500">
-                  ??
+                  大小
                 </th>
                 <th className="w-[14%] px-4 py-4 text-left text-xs font-medium uppercase text-slate-500">
-                  ??/??
+                  浏览/下载
                 </th>
                 <th className="w-[18%] px-4 py-4 text-left text-xs font-medium uppercase text-slate-500">
-                  ????
+                  上传时间
                 </th>
                 <th className="w-[22%] px-5 py-4 text-left text-xs font-medium uppercase text-slate-500">
-                  ??
+                  操作
                 </th>
               </tr>
             </thead>
@@ -184,7 +184,7 @@ export default function FilesPage() {
             disabled={page === 1}
             className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-700 disabled:opacity-50"
           >
-            ???
+            上一页
           </button>
           <span className="rounded-xl bg-white px-4 py-2 text-sm text-slate-600 shadow-sm">
             {page} / {totalPages}
@@ -195,7 +195,7 @@ export default function FilesPage() {
             disabled={page === totalPages}
             className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-700 disabled:opacity-50"
           >
-            ???
+            下一页
           </button>
         </div>
       )}
@@ -217,7 +217,7 @@ export default function FilesPage() {
                 type="button"
                 onClick={() => setPreviewFile(null)}
                 className="flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
-                aria-label="????"
+                aria-label="关闭预览"
               >
                 ?
               </button>
@@ -235,7 +235,7 @@ export default function FilesPage() {
                     href={`/api/public/files/${previewFile.urlKey}/download`}
                     className="text-sm font-medium text-blue-600 hover:text-blue-500"
                   >
-                    ????
+                    下载文件
                   </a>
                 </div>
               )}
