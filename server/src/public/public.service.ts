@@ -1,6 +1,6 @@
 ﻿import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { S3Service } from '../s3/s3.service';
+import { StorageService } from '../storage/storage.service';
 import { RedisService } from '../redis/redis.service';
 import { Response } from 'express';
 
@@ -8,7 +8,7 @@ import { Response } from 'express';
 export class PublicService {
   constructor(
     private prisma: PrismaService,
-    private s3Service: S3Service,
+    private storageService: StorageService,
     private redisService: RedisService,
   ) {}
 
@@ -36,7 +36,7 @@ export class PublicService {
       throw new NotFoundException('文件不存在或已删除');
     }
 
-    const fileUrl = await this.s3Service.generatePresignedGetUrl(
+    const fileUrl = await this.storageService.generatePresignedGetUrl(
       file.currentVersion?.storageKey || '',
       3600,
     );
@@ -96,7 +96,7 @@ export class PublicService {
       return false;
     }
 
-    const s3Object = await this.s3Service.getObject(file.currentVersion?.storageKey || '');
+    const s3Object = await this.storageService.getObject(file.currentVersion?.storageKey || '');
     if (!s3Object || !s3Object.Body) {
       return false;
     }
@@ -137,7 +137,7 @@ export class PublicService {
       },
     });
 
-    const downloadUrl = await this.s3Service.generatePresignedGetUrl(
+    const downloadUrl = await this.storageService.generatePresignedGetUrl(
       file.currentVersion?.storageKey || '',
       3600,
     );

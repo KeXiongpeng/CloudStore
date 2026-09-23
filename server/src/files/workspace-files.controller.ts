@@ -1,15 +1,28 @@
-import { Controller, Delete, Get, Param, Query, UseGuards, ParseIntPipe } from '@nestjs/common';
-import { WorkspaceFilesService } from './workspace-files.service';
+import {
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Query,
+  Req,
+  UseGuards,
+  ParseIntPipe,
+} from '@nestjs/common';
+import { WorkspaceFileAccessService, WorkspaceFilesService } from './workspace-files.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionGuard, WorkspaceGuard } from '../workspaces';
 import { RequirePermission } from '../workspaces/decorators/require-permission.decorator';
 import { WorkspaceActor } from '../workspaces/decorators/workspace-actor.decorator';
 import { WorkspaceActorContext } from '../workspaces/types';
+import { Request } from 'express';
 
 @Controller('workspaces/:workspaceId/files')
 @UseGuards(JwtAuthGuard, WorkspaceGuard)
 export class WorkspaceFilesController {
-  constructor(private readonly filesService: WorkspaceFilesService) {}
+  constructor(
+    private readonly filesService: WorkspaceFilesService,
+    private readonly fileAccessService: WorkspaceFileAccessService,
+  ) {}
 
   @Get()
   @UseGuards(PermissionGuard)
@@ -27,6 +40,23 @@ export class WorkspaceFilesController {
   @RequirePermission('file:view')
   stats(@WorkspaceActor() actor: WorkspaceActorContext) {
     return this.filesService.stats(actor);
+  }
+
+  @Get(':fileId/access-url')
+  @UseGuards(PermissionGuard)
+  @RequirePermission('file:view')
+  accessUrl(
+    @WorkspaceActor() actor: WorkspaceActorContext,
+    @Param('fileId') fileId: string,
+    @Query('mode') mode: 'preview' | 'download' = 'preview',
+    @Req() req: Request,
+  ) {
+    return this.fileAccessService.getUrl(
+      actor,
+      fileId,
+      mode === 'download' ? 'download' : 'preview',
+      req.ip || (req.headers['x-forwarded-for'] as string) || 'unknown',
+    );
   }
 
   @Get(':fileId')

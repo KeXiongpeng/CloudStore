@@ -1,5 +1,6 @@
 import {
   AbortMultipartUploadCommand,
+  GetObjectCommandOutput,
   CompleteMultipartUploadCommand,
   CreateMultipartUploadCommand,
   DeleteObjectCommand,
@@ -71,6 +72,26 @@ export abstract class BaseS3StorageDriver implements StorageDriver {
         ContentType: contentType,
       }),
     );
+  }
+
+  async generatePresignedGetUrl(
+    key: string,
+    expiresInSeconds: number,
+    responseContentDisposition?: string,
+  ): Promise<string> {
+    return getSignedUrl(
+      this.client,
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ResponseContentDisposition: responseContentDisposition,
+      }),
+      { expiresIn: expiresInSeconds },
+    );
+  }
+
+  async getObject(key: string): Promise<GetObjectCommandOutput> {
+    return this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
   }
 
   async headObject(key: string): Promise<HeadObjectResult | null> {

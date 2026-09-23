@@ -367,7 +367,7 @@ export class UploadService {
         hashAlgorithm: input.session.hashAlgorithm,
         uploadSessionId: input.session.id,
         urlKey: randomUUID().replace(/-/g, ''),
-        visibility: 'private',
+        visibility: 'public',
       },
     });
 

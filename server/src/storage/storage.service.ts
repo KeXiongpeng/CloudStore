@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { StorageDriver } from './storage-driver';
+import { GetObjectCommandOutput } from '@aws-sdk/client-s3';
 
 @Injectable()
 export class StorageService {
@@ -22,6 +23,18 @@ export class StorageService {
 
   createDirectPutUrl(input: Parameters<StorageDriver['createDirectPutUrl']>[0]) {
     return this.driver.createDirectPutUrl(input);
+  }
+
+  generatePresignedGetUrl(
+    key: string,
+    expiresInSeconds = 3600,
+    responseContentDisposition?: string,
+  ): Promise<string> {
+    return this.driver.generatePresignedGetUrl(key, expiresInSeconds, responseContentDisposition);
+  }
+
+  getObject(key: string): Promise<GetObjectCommandOutput> {
+    return this.driver.getObject(key);
   }
 
   headObject(key: string) {

@@ -1,3 +1,5 @@
+import { GetObjectCommandOutput } from '@aws-sdk/client-s3';
+
 export interface DirectPutUrlInput {
   key: string;
   contentType: string;
@@ -36,6 +38,12 @@ export interface HeadObjectResult {
 
 export interface StorageDriver {
   readonly name: 'minio' | 'qiniu';
+  generatePresignedGetUrl(
+    key: string,
+    expiresInSeconds: number,
+    responseContentDisposition?: string,
+  ): Promise<string>;
+  getObject(key: string): Promise<GetObjectCommandOutput>;
   getObjectForProcessing(key: string): Promise<Buffer>;
   putProcessedObject(key: string, body: Buffer, contentType: string): Promise<void>;
   createDirectPutUrl(input: DirectPutUrlInput): Promise<string>;

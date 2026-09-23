@@ -19,8 +19,54 @@ export default function FilesPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const limit = 100;
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const closePreview = useCallback(() => {
+    setPreviewFile(null);
+    setPreviewUrl(null);
+    setPreviewError(null);
+  }, []);
+
+  const openPreview = useCallback(
+    async (file: FileItem) => {
+      if (!workspace) return;
+      setPreviewFile(file);
+      setPreviewUrl(null);
+      setPreviewError(null);
+      setPreviewLoading(true);
+      try {
+        const response = await api.get(`/workspaces/${workspace.id}/files/${file.id}/access-url`, {
+          params: { mode: 'preview' },
+        });
+        setPreviewUrl(response.data.url);
+      } catch (error) {
+        console.error('??????:', error);
+        setPreviewError('????????????');
+      } finally {
+        setPreviewLoading(false);
+      }
+    },
+    [workspace],
+  );
+
+  const handleDownload = useCallback(
+    async (file: FileItem) => {
+      if (!workspace) return;
+      try {
+        const response = await api.get(`/workspaces/${workspace.id}/files/${file.id}/access-url`, {
+          params: { mode: 'download' },
+        });
+        window.open(response.data.url, '_blank', 'noopener,noreferrer');
+      } catch (error) {
+        console.error('????:', error);
+      }
+    },
+    [workspace],
+  );
 
   const virtualizer = useVirtualizer({
     count: files.length,
@@ -134,7 +180,12 @@ export default function FilesPage() {
                   }}
                   className="border-b border-slate-100 p-3"
                 >
-                  <FileCard file={file} onDelete={handleDelete} onPreview={setPreviewFile} />
+                  <FileCard
+                    file={file}
+                    onDelete={handleDelete}
+                    onPreview={openPreview}
+                    onDownload={handleDownload}
+                  />
                 </div>
               );
             })}
@@ -168,7 +219,8 @@ export default function FilesPage() {
                   key={file.id}
                   file={file}
                   onDelete={handleDelete}
-                  onPreview={setPreviewFile}
+                  onPreview={openPreview}
+                  onDownload={handleDownload}
                 />
               ))}
             </tbody>
@@ -203,7 +255,7 @@ export default function FilesPage() {
       {previewFile && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-3 sm:p-4"
-          onClick={() => setPreviewFile(null)}
+          onClick={closePreview}
         >
           <div
             className="relative flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white"
@@ -215,28 +267,52 @@ export default function FilesPage() {
               </h2>
               <button
                 type="button"
-                onClick={() => setPreviewFile(null)}
-                className="flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
-                aria-label="关闭预览"
+                onClick={closePreview}
+                className="flex size-9 shrink-0 items-center justify-center rounded-lg text-xl leading-none text-slate-500 hover:bg-slate-100"
+                aria-label="????"
               >
-                ?
+                &times;
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-5">
-              {previewFile.mimeType.startsWith('image/') ? (
-                <iframe
-                  src={`/api/public/files/${previewFile.urlKey}/content`}
-                  className="h-[76vh] w-full border-0"
-                  title={previewFile.originalName}
-                />
-              ) : (
-                <div className="py-12 text-center">
-                  <a
-                    href={`/api/public/files/${previewFile.urlKey}/download`}
-                    className="text-sm font-medium text-blue-600 hover:text-blue-500"
-                  >
-                    下载文件
-                  </a>
+              {previewLoading && (
+                <div className="flex h-[60vh] items-center justify-center text-slate-500">
+                  ?????...
+                </div>
+              )}
+              {previewError && (
+                <div className="flex h-[60vh] items-center justify-center text-red-500">
+                  {previewError}
+                </div>
+              )}
+              {!previewLoading && !previewError && previewUrl && (
+                <div className="flex h-full flex-col gap-4">
+                  <div className="min-h-0 flex-1">
+                    {previewFile.mimeType.startsWith('image/') ||
+                    previewFile.mimeType.startsWith('video/') ||
+                    previewFile.mimeType.startsWith('audio/') ||
+                    previewFile.mimeType.startsWith('text/') ||
+                    previewFile.mimeType === 'application/pdf' ? (
+                      <iframe
+                        src={previewUrl}
+                        className="h-[68vh] w-full rounded-xl border border-slate-200"
+                        title={previewFile.originalName}
+                      />
+                    ) : (
+                      <div className="flex h-[60vh] flex-col items-center justify-center gap-3 text-slate-500">
+                        <p>????????????</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => window.open(previewUrl, '_blank', 'noopener,noreferrer')}
+                      className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                    >
+                      ????
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

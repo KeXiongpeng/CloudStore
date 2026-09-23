@@ -1,6 +1,6 @@
 ﻿import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { S3Service } from '../s3/s3.service';
+import { StorageService } from '../storage/storage.service';
 import { WorkspaceActorContext } from '../workspaces/types';
 
 export function serializeWorkspaceFile(file: {
@@ -31,7 +31,7 @@ export function serializeWorkspaceFile(file: {
 export class WorkspaceFilesService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly s3Service: S3Service,
+    private readonly storageService: StorageService,
   ) {}
 
   async list(actor: WorkspaceActorContext, page = 1, limit = 20) {
@@ -97,7 +97,7 @@ export class WorkspaceFilesService {
         where: { id: file.currentVersionId },
       });
       if (version) {
-        await this.s3Service.deleteObject(version.storageKey);
+        await this.storageService.deleteObject(version.storageKey);
       }
     }
     await this.prisma.workspaceQuota.update({
@@ -120,6 +120,56 @@ export class WorkspaceFilesService {
       totalViews: 0,
       totalDownloads: 0,
       totalSize: Number(totalSize._sum.size || 0),
+    };
+  }
+}
+
+export type WorkspaceFileAccessMode = 'preview' | 'download';
+
+@Injectable()
+export class WorkspaceFileAccessService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
+
+  async getUrl(
+    actor: WorkspaceActorContext,
+    fileId: string,
+    mode: WorkspaceFileAccessMode,
+    ip?: string,
+  ) {
+    const file = await this.prisma.file.findFirst({
+      where: { id: fileId, workspaceId: actor.workspaceId, deletedAt: null },
+      include: { currentVersion: true },
+    });
+
+    if (!file?.currentVersion) throw new NotFoundException('?????????????');
+
+    const dispositionType = mode === 'download' ? 'attachment' : 'inline';
+    const responseContentDisposition = `${dispositionType}; filename*=UTF-8''${encodeURIComponent(
+      file.name,
+    )}`;
+    const url = await this.storageService.generatePresignedGetUrl(
+      file.currentVersion.storageKey,
+      3600,
+      responseContentDisposition,
+    );
+    const expiresAt = new Date(Date.now() + 3600 * 1000);
+
+    if (mode === 'download') {
+      await this.prisma.accessLog.create({
+        data: { fileId: file.id, ip: ip || 'unknown', action: 'download' },
+      });
+    }
+
+    return {
+      url,
+      expiresAt,
+      filename: file.name,
+      mimeType: file.mimeType,
+      size: Number(file.size),
+      disposition: dispositionType,
     };
   }
 }
