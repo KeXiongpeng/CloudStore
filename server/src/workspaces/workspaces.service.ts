@@ -59,6 +59,16 @@ export class WorkspacesService {
         await tx.workspaceMember.create({
           data: { workspaceId: workspace.id, userId, role: 'OWNER' },
         });
+        await tx.workspaceQuota.create({
+          data: {
+            workspaceId: workspace.id,
+            totalSize: BigInt(10 * 1024 * 1024 * 1024),
+            usedSize: BigInt(0),
+            reservedSize: BigInt(0),
+            maxFileSize: BigInt(10 * 1024 * 1024 * 1024),
+            maxFileCount: 100000,
+          },
+        });
         return workspace;
       });
     }

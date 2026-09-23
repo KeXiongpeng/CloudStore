@@ -14,7 +14,8 @@ describe('WorkspacesService', () => {
       delete: jest.fn(),
       findUnique: jest.fn(),
     },
-    workspaceMember: { findUnique: jest.fn() },
+    workspaceMember: { findUnique: jest.fn(), create: jest.fn() },
+    workspaceQuota: { create: jest.fn() },
     $transaction: jest.fn(),
   };
 
@@ -71,5 +72,35 @@ describe('WorkspacesService', () => {
         role: 'ADMIN',
       }),
     ).rejects.toThrow(ForbiddenException);
+  });
+});
+
+describe('WorkspacesService.createWorkspace quota bootstrap', () => {
+  it('creates a workspace quota in the same transaction', async () => {
+    const prisma: any = {
+      workspace: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({ id: 'workspace-1' }),
+      },
+      workspaceMember: {
+        create: jest.fn().mockResolvedValue({ id: 'member-1' }),
+      },
+      workspaceQuota: {
+        create: jest.fn().mockResolvedValue({ id: 'quota-1' }),
+      },
+      $transaction: jest.fn((fn: any) => fn(prisma)),
+    };
+    const moduleRef = await Test.createTestingModule({
+      providers: [WorkspacesService, { provide: PrismaService, useValue: prisma }],
+    }).compile();
+    const service = moduleRef.get(WorkspacesService);
+
+    await service.createWorkspace('user-1', { name: 'Upload Team' });
+
+    expect(prisma.workspaceQuota.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ workspaceId: 'workspace-1' }),
+      }),
+    );
   });
 });

@@ -1,11 +1,12 @@
 import { Global, Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MinioStorageDriver } from './minio-storage.driver';
 import { QiniuStorageDriver } from './qiniu-storage.driver';
 import { StorageService } from './storage.service';
 
 @Global()
 @Module({
+  imports: [ConfigModule],
   providers: [
     {
       provide: 'STORAGE_DRIVERS',

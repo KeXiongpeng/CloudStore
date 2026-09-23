@@ -1,5 +1,6 @@
 ﻿import {
   BadRequestException,
+  Logger,
   ConflictException,
   ForbiddenException,
   HttpException,
@@ -22,6 +23,8 @@ const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class UploadService {
+  private readonly logger = new Logger(UploadService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly quotaService: QuotaService,
@@ -348,6 +351,7 @@ export class UploadService {
       hashAlgorithm: string;
       storageKey: string;
     };
+    storageKey?: string;
   }) {
     const file = await this.prisma.file.create({
       data: {
@@ -371,7 +375,7 @@ export class UploadService {
       data: {
         fileId: file.id,
         versionNo: 1,
-        storageKey: input.session.storageKey,
+        storageKey: input.storageKey ?? input.session.storageKey,
         size: input.session.size,
         hash: input.session.hash,
         hashAlgorithm: input.session.hashAlgorithm,
@@ -406,7 +410,8 @@ export class UploadService {
         mimeType: session.mimeType,
         workspaceId: session.workspaceId,
       });
-    } catch {
+    } catch (error) {
+      this.logger.error('Failed to enqueue thumbnail', error as Error);
       await this.prisma.fileVersion.update({
         where: { id: fileVersionId },
         data: { thumbnailStatus: 'failed' },
@@ -558,6 +563,17 @@ export class UploadService {
         strategy: session.strategy,
       };
     } catch (error) {
+      if (session.quotaReserved > BigInt(0)) {
+        try {
+          await this.quotaService.release({
+            workspaceId: session.workspaceId,
+            uploadSessionId: session.id,
+            size: session.quotaReserved,
+          });
+        } catch {
+          // Preserve the original completion error if reservation cleanup fails.
+        }
+      }
       await this.prisma.uploadSession.update({
         where: { id: session.id },
         data: { status: 'failed', failureReason: (error as Error).message.slice(0, 1000) },
@@ -602,7 +618,11 @@ export class UploadService {
       data: { referenceCount: { increment: 1 } },
     });
 
-    const created = await this.createFileAndVersion({ actor, session });
+    const created = await this.createFileAndVersion({
+      actor,
+      session,
+      storageKey: object.storageKey,
+    });
 
     await this.prisma.uploadSession.update({
       where: { id: session.id },

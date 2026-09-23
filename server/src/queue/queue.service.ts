@@ -29,7 +29,7 @@ export class QueueService implements OnModuleDestroy {
 
   async addThumbnailJob(input: ThumbnailJobData) {
     await this.thumbnailQueue.add('generate', input, {
-      jobId: `thumbnail:${input.fileVersionId}`,
+      jobId: `thumbnail-${input.fileVersionId}`,
     });
   }
 

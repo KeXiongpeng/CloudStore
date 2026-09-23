@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { StorageDriver } from './storage-driver';
 
 @Injectable()
 export class StorageService {
   constructor(
+    @Inject('STORAGE_DRIVERS')
     private readonly drivers: {
       driver: 'minio' | 'qiniu';
       minio: StorageDriver;

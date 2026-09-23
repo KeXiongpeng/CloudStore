@@ -49,11 +49,17 @@ describe('UploadService completion', () => {
       hash: null,
       hashAlgorithm: 'sha256',
       strategy: 'normal',
+      quotaReserved: BigInt(8),
       chunks: [],
     });
     storage.headObject.mockResolvedValue(null);
 
     await expect(service.complete(actor, 's1', {})).rejects.toThrow(NotFoundException);
+    expect(quota.release).toHaveBeenCalledWith({
+      workspaceId: 'w1',
+      uploadSessionId: 's1',
+      size: BigInt(8),
+    });
   });
 
   it('rejects duplicate completion idempotently with completed response', async () => {
@@ -95,5 +101,63 @@ describe('UploadService completion', () => {
     });
 
     await expect(service.complete(actor, 's1', {})).rejects.toThrow(ConflictException);
+  });
+});
+
+describe('UploadService instant file storage key', () => {
+  it('creates the file version with the existing storage object key', async () => {
+    const prisma: any = {
+      uploadSession: { findFirst: jest.fn(), update: jest.fn() },
+      storageObject: { findUnique: jest.fn(), update: jest.fn() },
+      file: {
+        create: jest.fn().mockResolvedValue({ id: 'file-1', urlKey: 'key' }),
+        update: jest.fn(),
+      },
+      fileVersion: { create: jest.fn().mockResolvedValue({ id: 'version-1' }) },
+      $transaction: jest.fn(),
+    };
+    const quota = { confirm: jest.fn() };
+    const storage = { driverName: 'minio' };
+    const audit = { record: jest.fn() };
+    prisma.uploadSession.findFirst.mockResolvedValue({
+      id: 'instant-session',
+      workspaceId: 'w1',
+      createdBy: 'u1',
+      status: 'merging',
+      strategy: 'instant',
+      folderId: null,
+      filename: 'same.png',
+      mimeType: 'image/png',
+      size: BigInt(68),
+      hash: 'a'.repeat(64),
+      hashAlgorithm: 'sha256',
+      storageKey: 'sessions/new-wrong-key.png',
+      chunks: [],
+      file: null,
+    });
+    prisma.storageObject.findUnique.mockResolvedValue({
+      id: 'object-1',
+      status: 'available',
+      size: BigInt(68),
+      storageKey: 'objects/existing-key.png',
+    });
+    const service = new UploadService(
+      prisma,
+      quota as any,
+      storage as any,
+      audit as any,
+      {} as any,
+    );
+
+    await service.confirmInstant(
+      { userId: 'u1', workspaceId: 'w1', memberId: 'm1', role: 'EDITOR' },
+      'instant-session',
+    );
+
+    expect(prisma.fileVersion.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ storageKey: 'objects/existing-key.png' }),
+      }),
+    );
   });
 });

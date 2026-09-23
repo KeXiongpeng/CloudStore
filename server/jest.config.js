@@ -4,6 +4,9 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/src', '<rootDir>/test'],
   setupFiles: ['<rootDir>/test/setup-env.ts'],
+  moduleNameMapper: {
+    '^@nestjs/bullmq$': '<rootDir>/test/mocks/@nestjs-bullmq.ts',
+  },
   testPathIgnorePatterns: ['/node_modules/', '.e2e-spec.ts$'],
   collectCoverageFrom: ['src/**/*.ts', '!src/main.ts'],
   coverageThreshold: {
