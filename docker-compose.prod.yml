@@ -89,8 +89,8 @@ services:
     expose:
       - '3001'
     environment:
-      - VIRTUAL_HOST=kxpwty.cn
-      - LETSENCRYPT_HOST=kxpwty.cn
+      - VIRTUAL_HOST=cloudstore.kxpwty.cn,kxpwty.cn
+      - LETSENCRYPT_HOST=cloudstore.kxpwty.cn,kxpwty.cn
       - VIRTUAL_PORT=3001
       - BACKEND_URL=http://nestjs:3000
       - NEXT_PUBLIC_API_URL=http://nestjs:3000
