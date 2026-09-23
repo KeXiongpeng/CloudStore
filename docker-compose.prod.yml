@@ -40,7 +40,7 @@ services:
 
   # ── NestJS 后端 API ──
   nestjs:
-    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v6
+    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v7
     restart: unless-stopped
     expose:
       - '3000'
@@ -64,7 +64,7 @@ services:
 
   # ── Next.js 前端 ──
   server-worker:
-    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v6
+    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v7
     restart: unless-stopped
     command: ['node', 'dist/worker.js']
     env_file:
