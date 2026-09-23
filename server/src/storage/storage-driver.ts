@@ -36,6 +36,8 @@ export interface HeadObjectResult {
 
 export interface StorageDriver {
   readonly name: 'minio' | 'qiniu';
+  getObjectForProcessing(key: string): Promise<Buffer>;
+  putProcessedObject(key: string, body: Buffer, contentType: string): Promise<void>;
   createDirectPutUrl(input: DirectPutUrlInput): Promise<string>;
   headObject(key: string): Promise<HeadObjectResult | null>;
   createMultipart(input: CreateMultipartInput): Promise<{ uploadId: string }>;

@@ -3,6 +3,7 @@ import {
   CompleteMultipartUploadCommand,
   CreateMultipartUploadCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -43,6 +44,32 @@ export abstract class BaseS3StorageDriver implements StorageDriver {
         ContentType: input.contentType,
       }),
       input.expiresInSeconds,
+    );
+  }
+
+  async getObjectForProcessing(key: string): Promise<Buffer> {
+    const object = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+
+    if (!object.Body) {
+      throw new Error(`Storage object not found: ${key}`);
+    }
+
+    const chunks: Buffer[] = [];
+    // @ts-expect-error S3 SDK returns a Node readable stream on Node runtimes.
+    for await (const chunk of object.Body) {
+      chunks.push(Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks);
+  }
+
+  async putProcessedObject(key: string, body: Buffer, contentType: string): Promise<void> {
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+      }),
     );
   }
 

@@ -43,6 +43,14 @@ export class StorageService {
     return this.driver.abortMultipart(input);
   }
 
+  getObjectForProcessing(key: string): Promise<Buffer> {
+    return this.driver.getObjectForProcessing(key);
+  }
+
+  putProcessedObject(key: string, body: Buffer, contentType: string): Promise<void> {
+    return this.driver.putProcessedObject(key, body, contentType);
+  }
+
   deleteObject(key: string) {
     return this.driver.deleteObject(key);
   }

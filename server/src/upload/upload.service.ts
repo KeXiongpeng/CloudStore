@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { QuotaService } from '../quota/quota.service';
 import { StorageService } from '../storage/storage.service';
 import { AuditService } from '../audit/audit.service';
+import { QueueService } from '../queue/queue.service';
 import { WorkspacesService } from '../workspaces/workspaces.service';
 import { WorkspaceActorContext } from '../workspaces/types';
 import { CompleteSessionDto, CreateUploadSessionDto } from './dto/create-upload-session.dto';
@@ -27,6 +28,7 @@ export class UploadService {
     private readonly storageService: StorageService,
     private readonly auditService: AuditService,
     private readonly workspacesService: WorkspacesService,
+    private readonly queueService?: QueueService,
     private readonly expirationService?: UploadExpirationService,
   ) {}
 
@@ -386,6 +388,32 @@ export class UploadService {
     return { file, version };
   }
 
+  private async enqueueThumbnail(
+    fileVersionId: string,
+    session: {
+      id: string;
+      workspaceId: string;
+      storageKey: string;
+      mimeType: string;
+    },
+  ) {
+    if (!this.queueService) return;
+
+    try {
+      await this.queueService.addThumbnailJob({
+        fileVersionId,
+        storageKey: session.storageKey,
+        mimeType: session.mimeType,
+        workspaceId: session.workspaceId,
+      });
+    } catch {
+      await this.prisma.fileVersion.update({
+        where: { id: fileVersionId },
+        data: { thumbnailStatus: 'failed' },
+      });
+    }
+  }
+
   private async upsertStorageObject(session: {
     hash: string | null;
     hashAlgorithm: string;
@@ -520,6 +548,8 @@ export class UploadService {
         },
       });
 
+      await this.enqueueThumbnail(created.version.id, session);
+
       return {
         fileId: created.file.id,
         urlKey: created.file.urlKey,
@@ -593,6 +623,8 @@ export class UploadService {
       resourceId: created.file.id,
       after: { storageObjectId: object.id, size: Number(session.size) },
     });
+
+    await this.enqueueThumbnail(created.version.id, session);
 
     return {
       fileId: created.file.id,

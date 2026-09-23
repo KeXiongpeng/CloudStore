@@ -74,6 +74,32 @@ services:
     networks:
       - csp-dev-network
 
+  server-worker:
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run start:worker"
+    environment:
+      NODE_ENV: development
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+      DATABASE_URL: postgresql://csp_user:csp_password_2024@postgres:5432/cloud_storage?schema=public
+      STORAGE_DRIVER: minio
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: clouddrive-local
+    volumes:
+      - ./server:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - csp-dev-network
+
 volumes:
   postgres-dev-data:
   minio-dev-data:
