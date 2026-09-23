@@ -153,3 +153,7 @@ erDiagram
 - 每个旧用户迁移一个 Personal Workspace。
 - 旧文件已回填 `workspace_id` 和 `created_by`。
 - 公开访问仍支持旧 `url_key`，但要求所属工作区 `active`。
+
+## Upload Pipeline Data Model
+
+Core entities: `WorkspaceQuota`, `Folder`, `UploadSession`, `UploadChunk`, `StorageObject`, `File`, and `FileVersion`. A session reserves quota before upload; completion moves reserved bytes to used bytes, while cancellation/expiry releases them. Chunks start at index 1 and retain ETag/status for resume. Files point to their current version; versions point to immutable storage keys. Deduplication is keyed by storage driver, algorithm, and lowercase SHA-256 hash. Session state flows through pending ? uploading ? merging ? completed/failed/canceled/expired.

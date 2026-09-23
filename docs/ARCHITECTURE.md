@@ -151,3 +151,7 @@ sequenceDiagram
 ```
 
 `WorkspacesService`、`WorkspaceGuard` 和 `PermissionGuard` 由 `WorkspaceCoreModule` 统一提供。业务服务查询必须包含 `workspaceId`；前端权限控制只用于展示。
+
+## Upload Pipeline (Phase 3)
+
+Uploads are workspace-scoped and quota-reserved. The client hashes a file with SHA-256, creates an upload session, and receives either an instant-upload result or a direct/part PUT URL. Direct mode covers files up to 8 MiB; multipart mode uses 8 MiB chunks with three exponential-backoff retries. Upload completion is guarded by a Redis merge lock, validated against storage object size, and committed with file/version records and quota confirmation. BullMQ generates image thumbnails in a separate worker so thumbnail failure never fails the upload. MinIO and Qiniu are isolated behind `StorageService`.

@@ -168,3 +168,14 @@ docs/         架构、数据库、接口、部署文档
 - 生产环境必须替换所有示例密码。
 - OAuth `state` 使用 HttpOnly Cookie 校验，防止 CSRF。
 - 对象存储访问使用预签名 URL，不直接暴露长期凭证。
+
+## Phase 3 Upload Pipeline
+
+Local storage uses MinIO:
+
+- API console: <http://localhost:9001>
+- S3 endpoint: <http://localhost:9000>
+- Default credentials: `minioadmin` / `minioadmin`
+- Start dependencies: `docker compose -f docker-compose.dev.yml up -d`
+
+Upload features: direct upload, 8 MiB multipart, resume, SHA-256 instant upload, reference-counted deduplication, retry/backoff, quota reservation, session expiry, and BullMQ thumbnails. Backend tests: `cd server && npm test`. Frontend tests: `cd client && npm test`.

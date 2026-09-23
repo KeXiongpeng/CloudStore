@@ -412,3 +412,18 @@ Content-Type: multipart/form-data
 - `WORKSPACE_OWNER_CANNOT_BE_REMOVED`
 - `WORKSPACE_INVITATION_NOT_FOUND`
 - `WORKSPACE_INVITATION_ALREADY_EXISTS`
+
+## Workspace Upload API
+
+All routes require JWT, workspace membership, and `file:upload`.
+
+- `POST /api/workspaces/:workspaceId/upload/sessions` ? create session/instant detection.
+- `POST /api/workspaces/:workspaceId/upload/sessions/:id/direct-url` ? direct PUT URL.
+- `POST /api/workspaces/:workspaceId/upload/sessions/:id/chunk-urls` ? part PUT URLs.
+- `POST /api/workspaces/:workspaceId/upload/sessions/:id/chunks/:chunkIndex/complete` ? confirm ETag.
+- `POST /api/workspaces/:workspaceId/upload/sessions/:id/instant` ? confirm deduplicated upload.
+- `POST /api/workspaces/:workspaceId/upload/sessions/:id/complete` ? merge/commit; idempotent after completion.
+- `DELETE /api/workspaces/:workspaceId/upload/sessions/:id/cancel` ? abort and release reservation.
+- `POST /api/workspaces/:workspaceId/folders/ensure` ? create nested folder path.
+
+Key errors: `UPLOAD_SESSION_NOT_FOUND`, `UPLOAD_SESSION_EXPIRED`, `UPLOAD_SESSION_ALREADY_COMPLETED`, `UPLOAD_CHUNK_INVALID`, `UPLOAD_INSTANT_NOT_AVAILABLE`, `WORKSPACE_QUOTA_EXCEEDED`.
