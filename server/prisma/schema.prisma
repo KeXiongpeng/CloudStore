@@ -136,18 +136,20 @@ model File {
   hash             String?   @db.VarChar(128)
   hashAlgorithm    String    @default("sha256") @map("hash_algorithm") @db.VarChar(16)
   currentVersionId String?   @unique @map("current_version_id")
+  uploadSessionId  String?   @unique @map("upload_session_id")
   urlKey           String    @unique @map("url_key")
   visibility       String    @default("private")
   deletedAt        DateTime? @map("deleted_at")
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  workspace      Workspace     @relation(fields: [workspaceId], references: [id])
-  folder         Folder?       @relation(fields: [folderId], references: [id])
+  workspace      Workspace      @relation(fields: [workspaceId], references: [id])
+  folder         Folder?        @relation(fields: [folderId], references: [id])
   versions       FileVersion[]
-  currentVersion FileVersion?  @relation("CurrentFileVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  currentVersion FileVersion?   @relation("CurrentFileVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  uploadSession  UploadSession? @relation(fields: [uploadSessionId], references: [id], onDelete: SetNull)
   accessLogs     AccessLog[]
-  User           User?         @relation(fields: [userId], references: [id])
+  User           User?          @relation(fields: [userId], references: [id])
   userId         String?
 
   @@index([workspaceId, deletedAt, createdAt])
@@ -224,6 +226,7 @@ model UploadSession {
   workspace Workspace     @relation(fields: [workspaceId], references: [id])
   folder    Folder?       @relation(fields: [folderId], references: [id])
   chunks    UploadChunk[]
+  file      File?
 
   @@index([workspaceId, createdBy, status])
   @@index([status, expiresAt])

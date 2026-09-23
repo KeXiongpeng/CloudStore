@@ -1,4 +1,7 @@
 ﻿import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -62,3 +65,25 @@ export class CompleteSessionDto {
   @IsOptional()
   parts?: { partNumber: number; etag: string }[];
 }
+
+export class DirectUrlDto {}
+
+export class InstantConfirmDto {}
+
+export class ChunkUrlRequestDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  chunkIndexes!: number[];
+}
+
+export class ConfirmChunkDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  etag!: string;
+}
+
+export class CancelSessionDto {}

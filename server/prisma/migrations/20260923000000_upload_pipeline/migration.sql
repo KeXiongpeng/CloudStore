@@ -39,6 +39,7 @@ ALTER TABLE "files" ADD COLUMN "size" BIGINT;
 ALTER TABLE "files" ADD COLUMN "hash" VARCHAR(128);
 ALTER TABLE "files" ADD COLUMN "hash_algorithm" VARCHAR(16) NOT NULL DEFAULT 'sha256';
 ALTER TABLE "files" ADD COLUMN "current_version_id" TEXT;
+ALTER TABLE "files" ADD COLUMN "upload_session_id" TEXT;
 ALTER TABLE "files" ADD COLUMN "visibility" TEXT NOT NULL DEFAULT 'private';
 ALTER TABLE "files" ADD COLUMN "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
@@ -209,6 +210,7 @@ ALTER TABLE "folders" ADD CONSTRAINT "folders_workspace_id_fkey" FOREIGN KEY ("w
 ALTER TABLE "folders" ADD CONSTRAINT "folders_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "folders"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 ALTER TABLE "files" ADD CONSTRAINT "files_folder_id_fkey" FOREIGN KEY ("folder_id") REFERENCES "folders"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 ALTER TABLE "file_versions" ADD CONSTRAINT "file_versions_file_id_fkey" FOREIGN KEY ("file_id") REFERENCES "files"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "files" ADD CONSTRAINT "files_upload_session_id_fkey" FOREIGN KEY ("upload_session_id") REFERENCES "upload_sessions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 ALTER TABLE "files" ADD CONSTRAINT "files_current_version_id_fkey" FOREIGN KEY ("current_version_id") REFERENCES "file_versions"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 ALTER TABLE "upload_sessions" ADD CONSTRAINT "upload_sessions_workspace_id_fkey" FOREIGN KEY ("workspace_id") REFERENCES "workspaces"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "upload_sessions" ADD CONSTRAINT "upload_sessions_folder_id_fkey" FOREIGN KEY ("folder_id") REFERENCES "folders"("id") ON DELETE SET NULL ON UPDATE CASCADE;
