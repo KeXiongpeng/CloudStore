@@ -66,11 +66,18 @@ export default function FilesPage() {
 
   const handleDelete = async (fileId: string) => {
     if (!workspace) return;
+    const previousFiles = files;
+    const previousTotal = total;
+
+    setFiles((current) => current.filter((file) => file.id !== fileId));
+    setTotal((current) => Math.max(0, current - 1));
+
     try {
       await api.delete(`/workspaces/${workspace.id}/files/${fileId}`);
-      fetchFiles();
     } catch (error) {
       console.error('??????:', error);
+      setFiles(previousFiles);
+      setTotal(previousTotal);
     }
   };
 
@@ -94,15 +101,9 @@ export default function FilesPage() {
 
       {canUpload && (
         <div className="mt-6 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-          <UploadDropzone />
+          <UploadDropzone disabled={!canUpload} />
           <UploadQueuePanel />
         </div>
-      )}
-
-      {!canUpload && (
-        <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          ??????????
-        </p>
       )}
 
       {loading ? (

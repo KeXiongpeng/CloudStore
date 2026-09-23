@@ -6,7 +6,13 @@ import { useWorkspaceStore } from '../workspace/store';
 import { runQueuedUploads } from './runner';
 import { useUploadQueue } from './store';
 
-export function UploadDropzone({ folderId }: { folderId?: string }) {
+export function UploadDropzone({
+  folderId,
+  disabled = false,
+}: {
+  folderId?: string;
+  disabled?: boolean;
+}) {
   const workspace = useWorkspaceStore((state) => state.currentWorkspace);
   const enqueueFiles = useUploadQueue((state) => state.enqueueFiles);
   const [dragging, setDragging] = useState(false);
@@ -27,6 +33,14 @@ export function UploadDropzone({ folderId }: { folderId?: string }) {
     onDropAccepted: () => setDragging(false),
     noClick: false,
   });
+
+  if (disabled) {
+    return (
+      <div className="rounded-xl border-2 border-dashed border-neutral-200 bg-neutral-50 p-8 text-center">
+        <p className="text-sm text-neutral-500">??????????</p>
+      </div>
+    );
+  }
 
   return (
     <div
