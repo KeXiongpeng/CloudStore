@@ -1,0 +1,72 @@
+'use client';
+
+import { useUploadQueue } from './store';
+import { runUploadItem } from './runner';
+
+const STATUS_LABEL: Record<string, string> = {
+  hashing: '????',
+  creating: '????',
+  instant: '??',
+  uploading: '???',
+  merging: '???',
+  completed: '???',
+  canceled: '???',
+  failed: '??',
+};
+
+export function UploadQueuePanel() {
+  const items = useUploadQueue((state) => state.items);
+  const clearCompleted = useUploadQueue((state) => state.clearCompleted);
+
+  return (
+    <section className="rounded-xl border p-4 dark:border-neutral-700">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-lg font-semibold">????</h2>
+        <button
+          type="button"
+          onClick={clearCompleted}
+          className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-100"
+        >
+          ?????
+        </button>
+      </div>
+
+      {items.length === 0 && <p className="text-sm text-neutral-500">??????</p>}
+
+      <ul className="space-y-3">
+        {items.map((item) => (
+          <li key={item.id} className="rounded-lg border p-3 dark:border-neutral-700">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{item.file.name}</p>
+                <p className="text-xs text-neutral-500">
+                  {STATUS_LABEL[item.status]} ? {item.progress}%
+                </p>
+              </div>
+              <div className="flex gap-2">
+                {item.status === 'failed' && (
+                  <button
+                    type="button"
+                    className="text-xs text-blue-600"
+                    onClick={() => {
+                      runUploadItem(item.id).catch(() => undefined);
+                    }}
+                  >
+                    ??
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-800">
+              <div
+                className="h-full bg-blue-600 transition-all"
+                style={{ width: `${item.progress}%` }}
+              />
+            </div>
+            {item.error && <p className="mt-1 text-xs text-red-500">{item.error}</p>}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
