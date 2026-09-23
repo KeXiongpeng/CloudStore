@@ -127,8 +127,12 @@ export async function runUploadItem(id: string) {
         ?.requestId,
     });
     const item = useUploadQueue.getState().items.find((entry) => entry.id === id);
+    const axiosCode = (error as { response?: { data?: { code?: string } } })?.response?.data?.code;
+    const humanMessage =
+      axiosCode === 'WORKSPACE_NOT_FOUND' ? '?????????????????????' : (error as Error).message;
+
     setStatus(id, 'failed', {
-      error: (error as Error).message,
+      error: humanMessage,
       attempt: (item?.attempt || 0) + 1,
     });
     throw error;

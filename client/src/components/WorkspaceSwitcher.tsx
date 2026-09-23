@@ -12,7 +12,12 @@ export default function WorkspaceSwitcher() {
   const setCurrentWorkspace = useWorkspaceStore((state) => state.setCurrentWorkspace);
 
   useEffect(() => {
-    if (!currentWorkspace && workspaces?.length) {
+    if (!workspaces?.length) return;
+
+    const persistedWorkspaceIsValid =
+      currentWorkspace && workspaces.some((workspace) => workspace.id === currentWorkspace.id);
+
+    if (!persistedWorkspaceIsValid) {
       setCurrentWorkspace(workspaces[0]);
     }
   }, [currentWorkspace, setCurrentWorkspace, workspaces]);
