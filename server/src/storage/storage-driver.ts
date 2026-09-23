@@ -42,6 +42,7 @@ export interface StorageDriver {
     key: string,
     expiresInSeconds: number,
     responseContentDisposition?: string,
+    responseContentType?: string,
   ): Promise<string>;
   getObject(key: string): Promise<GetObjectCommandOutput>;
   getObjectForProcessing(key: string): Promise<Buffer>;

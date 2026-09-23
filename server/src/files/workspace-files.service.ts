@@ -144,16 +144,23 @@ export class WorkspaceFileAccessService {
       include: { currentVersion: true },
     });
 
-    if (!file?.currentVersion) throw new NotFoundException('?????????????');
+    if (!file?.currentVersion) throw new NotFoundException('FILE_NOT_FOUND');
 
     const dispositionType = mode === 'download' ? 'attachment' : 'inline';
     const responseContentDisposition = `${dispositionType}; filename*=UTF-8''${encodeURIComponent(
       file.name,
     )}`;
+    const isTextLike =
+      file.mimeType.startsWith('text/') ||
+      ['application/json', 'application/xml', 'application/javascript'].some((type) =>
+        file.mimeType.startsWith(type),
+      );
+    const responseContentType = isTextLike ? `${file.mimeType}; charset=utf-8` : file.mimeType;
     const url = await this.storageService.generatePresignedGetUrl(
       file.currentVersion.storageKey,
       3600,
       responseContentDisposition,
+      responseContentType,
     );
     const expiresAt = new Date(Date.now() + 3600 * 1000);
 

@@ -33,7 +33,7 @@ export function UploadQueuePanel() {
         ...completedIdsRef.current,
         ...newlyCompleted.map((item) => item.id),
       ]);
-      setNotification(`${newlyCompleted[0].file.name} ????`);
+      setNotification(`${newlyCompleted[0].file.name} \u4e0a\u4f20\u6210\u529f`);
       const timer = setTimeout(() => setNotification(null), 4000);
       return () => clearTimeout(timer);
     }

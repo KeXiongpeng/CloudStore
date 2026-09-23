@@ -78,6 +78,7 @@ export abstract class BaseS3StorageDriver implements StorageDriver {
     key: string,
     expiresInSeconds: number,
     responseContentDisposition?: string,
+    responseContentType?: string,
   ): Promise<string> {
     return getSignedUrl(
       this.client,
@@ -85,6 +86,7 @@ export abstract class BaseS3StorageDriver implements StorageDriver {
         Bucket: this.bucket,
         Key: key,
         ResponseContentDisposition: responseContentDisposition,
+        ResponseContentType: responseContentType,
       }),
       { expiresIn: expiresInSeconds },
     );

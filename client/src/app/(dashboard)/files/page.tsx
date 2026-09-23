@@ -44,8 +44,8 @@ export default function FilesPage() {
         });
         setPreviewUrl(response.data.url);
       } catch (error) {
-        console.error('??????:', error);
-        setPreviewError('????????????');
+        console.error('\u83b7\u53d6\u9884\u89c8\u5931\u8d25:', error);
+        setPreviewError('\u9884\u89c8\u52a0\u8f7d\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5');
       } finally {
         setPreviewLoading(false);
       }
@@ -62,7 +62,7 @@ export default function FilesPage() {
         });
         window.open(response.data.url, '_blank', 'noopener,noreferrer');
       } catch (error) {
-        console.error('????:', error);
+        console.error('\u4e0b\u8f7d\u5931\u8d25:', error);
       }
     },
     [workspace],
@@ -269,7 +269,7 @@ export default function FilesPage() {
                 type="button"
                 onClick={closePreview}
                 className="flex size-9 shrink-0 items-center justify-center rounded-lg text-xl leading-none text-slate-500 hover:bg-slate-100"
-                aria-label="????"
+                aria-label="\u5173\u95ed\u9884\u89c8"
               >
                 &times;
               </button>
@@ -277,7 +277,7 @@ export default function FilesPage() {
             <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-5">
               {previewLoading && (
                 <div className="flex h-[60vh] items-center justify-center text-slate-500">
-                  ?????...
+                  &#21152;&#36733;&#20013;...
                 </div>
               )}
               {previewError && (
@@ -300,7 +300,9 @@ export default function FilesPage() {
                       />
                     ) : (
                       <div className="flex h-[60vh] flex-col items-center justify-center gap-3 text-slate-500">
-                        <p>????????????</p>
+                        <p>
+                          &#35813;&#25991;&#20214;&#31867;&#22411;&#19981;&#25903;&#25345;&#22312;&#32447;&#39044;&#35272;
+                        </p>
                       </div>
                     )}
                   </div>
@@ -310,7 +312,7 @@ export default function FilesPage() {
                       onClick={() => window.open(previewUrl, '_blank', 'noopener,noreferrer')}
                       className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700"
                     >
-                      ????
+                      &#19979;&#36733;&#25991;&#20214;
                     </button>
                   </div>
                 </div>

@@ -102,7 +102,12 @@ export class PublicService {
     }
 
     const contentDisposition = `inline; filename*=UTF-8''${encodeURIComponent(file.name)}`;
-    res.setHeader('Content-Type', file.mimeType);
+    const isTextLike =
+      file.mimeType.startsWith('text/') ||
+      ['application/json', 'application/xml', 'application/javascript'].some((type) =>
+        file.mimeType.startsWith(type),
+      );
+    res.setHeader('Content-Type', isTextLike ? `${file.mimeType}; charset=utf-8` : file.mimeType);
     res.setHeader('Content-Disposition', contentDisposition);
     res.setHeader('Cache-Control', 'public, max-age=3600');
 

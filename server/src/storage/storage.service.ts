@@ -29,8 +29,14 @@ export class StorageService {
     key: string,
     expiresInSeconds = 3600,
     responseContentDisposition?: string,
+    responseContentType?: string,
   ): Promise<string> {
-    return this.driver.generatePresignedGetUrl(key, expiresInSeconds, responseContentDisposition);
+    return this.driver.generatePresignedGetUrl(
+      key,
+      expiresInSeconds,
+      responseContentDisposition,
+      responseContentType,
+    );
   }
 
   getObject(key: string): Promise<GetObjectCommandOutput> {
