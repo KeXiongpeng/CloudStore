@@ -14,11 +14,17 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FilesService } from './files.service';
+import { FolderService } from './folder.service';
+import { EnsureFolderDto } from './dto/ensure-folder.dto';
 import { PresignUploadDto } from './dto/presign-upload.dto';
 import { UploadCallbackDto } from './dto/upload-callback.dto';
 import { InitMultipartDto } from './dto/init-multipart.dto';
 import { CompleteMultipartDto } from './dto/complete-multipart.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { PermissionGuard, WorkspaceGuard } from '../workspaces';
+import { RequirePermission } from '../workspaces/decorators/require-permission.decorator';
+import { WorkspaceActor } from '../workspaces/decorators/workspace-actor.decorator';
+import { WorkspaceActorContext } from '../workspaces/types';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Request } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -97,5 +103,18 @@ export class FilesController {
   @Delete(':id')
   deleteFile(@CurrentUser('id') userId: string, @Param('id') fileId: string) {
     return this.filesService.deleteFile(userId, fileId);
+  }
+}
+
+@Controller('workspaces/:workspaceId/folders')
+@UseGuards(JwtAuthGuard, WorkspaceGuard)
+export class WorkspaceFoldersController {
+  constructor(private readonly folderService: FolderService) {}
+
+  @Post('ensure')
+  @UseGuards(PermissionGuard)
+  @RequirePermission('file:upload')
+  ensureFolder(@WorkspaceActor() actor: WorkspaceActorContext, @Body() dto: EnsureFolderDto) {
+    return this.folderService.ensureFolderPath(actor, dto.segments);
   }
 }

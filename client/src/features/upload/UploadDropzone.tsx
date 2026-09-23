@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { ensureFolderDirectory } from '../folder/api';
 import { useWorkspaceStore } from '../workspace/store';
 import { runQueuedUploads } from './runner';
 import { useUploadQueue } from './store';
@@ -20,7 +21,20 @@ export function UploadDropzone({
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
       if (!workspace) return;
-      enqueueFiles(acceptedFiles, workspace.id, folderId);
+      const byDirectory = new Map<string, File[]>();
+
+      for (const file of acceptedFiles) {
+        const relativePath =
+          (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
+        const directory = relativePath.replace(/[^/]+$/, '');
+        byDirectory.set(directory, [...(byDirectory.get(directory) ?? []), file]);
+      }
+
+      for (const [directory, directoryFiles] of byDirectory) {
+        const resolvedFolderId = await ensureFolderDirectory(workspace.id, directory);
+        enqueueFiles(directoryFiles, workspace.id, folderId ?? resolvedFolderId);
+      }
+
       await runQueuedUploads();
     },
     [enqueueFiles, folderId, workspace],
