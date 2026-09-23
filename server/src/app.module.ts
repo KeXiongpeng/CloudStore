@@ -13,6 +13,7 @@ import { AdminModule } from './admin/admin.module';
 import { WorkspacesModule } from './workspaces/workspaces.module';
 import { AuditModule } from './audit/audit.module';
 import { QuotaModule } from './quota/quota.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { QuotaModule } from './quota/quota.module';
     WorkspacesModule,
     AuditModule,
     QuotaModule,
+    UploadModule,
   ],
 })
 export class AppModule {}
