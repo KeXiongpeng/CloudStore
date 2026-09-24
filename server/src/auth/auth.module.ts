@@ -5,10 +5,12 @@ import { ConfigService, ConfigModule } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { WorkspaceCoreModule } from '../workspaces/workspace-core.module';
 
 @Module({
   imports: [
     HttpModule,
+    WorkspaceCoreModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

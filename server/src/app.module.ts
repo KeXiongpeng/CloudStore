@@ -10,6 +10,10 @@ import { S3Module } from './s3/s3.module';
 import { FilesModule } from './files/files.module';
 import { PublicModule } from './public/public.module';
 import { AdminModule } from './admin/admin.module';
+import { WorkspacesModule } from './workspaces/workspaces.module';
+import { AuditModule } from './audit/audit.module';
+import { QuotaModule } from './quota/quota.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -27,6 +31,10 @@ import { AdminModule } from './admin/admin.module';
     FilesModule,
     PublicModule,
     AdminModule,
+    WorkspacesModule,
+    AuditModule,
+    QuotaModule,
+    UploadModule,
   ],
 })
 export class AppModule {}

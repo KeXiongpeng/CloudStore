@@ -1,4 +1,4 @@
-﻿# API 接口文档
+# API 接口文档
 
 所有接口均带全局前缀 `/api`。除公开接口和管理说明中特别标注的情况外，认证接口需要在请求头携带：
 
@@ -291,9 +291,9 @@ Content-Type: multipart/form-data
 
 **Query**
 
-| 参数 | 默认 | 说明 |
-| --- | --- | --- |
-| `page` | `1` | 页码 |
+| 参数    | 默认 | 说明     |
+| ------- | ---- | -------- |
+| `page`  | `1`  | 页码     |
 | `limit` | `20` | 每页数量 |
 
 ### GET `/api/files/stats`
@@ -342,9 +342,9 @@ Content-Type: multipart/form-data
 
 **Query**
 
-| 参数 | 默认 |
-| --- | --- |
-| `page` | `1` |
+| 参数    | 默认 |
+| ------- | ---- |
+| `page`  | `1`  |
 | `limit` | `20` |
 
 ### PATCH `/api/admin/users/:id`
@@ -367,3 +367,63 @@ Content-Type: multipart/form-data
 ### GET `/api/admin/stats`
 
 返回平台用户、文件、存储、浏览和下载统计。
+
+## 工作区 / RBAC API（v2 升级）
+
+### 工作区
+
+| 方法   | 路径                           | 权限               |
+| ------ | ------------------------------ | ------------------ |
+| POST   | `/api/workspaces`              | 登录用户           |
+| GET    | `/api/workspaces`              | 登录用户           |
+| GET    | `/api/workspaces/:workspaceId` | `workspace:view`   |
+| PATCH  | `/api/workspaces/:workspaceId` | `workspace:update` |
+| DELETE | `/api/workspaces/:workspaceId` | `workspace:delete` |
+
+### 成员、邀请、审计
+
+| 方法   | 路径                                             | 权限                 |
+| ------ | ------------------------------------------------ | -------------------- |
+| GET    | `/api/workspaces/:workspaceId/members`           | `member:read`        |
+| PATCH  | `/api/workspaces/:workspaceId/members/:memberId` | `member:update_role` |
+| DELETE | `/api/workspaces/:workspaceId/members/:memberId` | `member:remove`      |
+| GET    | `/api/workspaces/:workspaceId/invitations`       | `member:read`        |
+| POST   | `/api/workspaces/:workspaceId/invitations`       | `member:invite`      |
+| POST   | `/api/invitations/accept`                        | 登录用户             |
+| GET    | `/api/workspaces/:workspaceId/audit-logs`        | `audit:read`         |
+
+### 工作区文件
+
+| 方法   | 路径                                         | 权限          |
+| ------ | -------------------------------------------- | ------------- |
+| GET    | `/api/workspaces/:workspaceId/files`         | `file:view`   |
+| GET    | `/api/workspaces/:workspaceId/files/stats`   | `file:view`   |
+| GET    | `/api/workspaces/:workspaceId/files/:fileId` | `file:view`   |
+| DELETE | `/api/workspaces/:workspaceId/files/:fileId` | `file:delete` |
+
+邀请令牌是 64 位十六进制字符串，数据库只保存 SHA-256 哈希。邀请默认 7 天过期。
+
+### 核心错误码
+
+- `WORKSPACE_NOT_FOUND`
+- `WORKSPACE_PERMISSION_DENIED`
+- `WORKSPACE_MEMBER_INACTIVE`
+- `WORKSPACE_MEMBER_NOT_FOUND`
+- `WORKSPACE_OWNER_CANNOT_BE_REMOVED`
+- `WORKSPACE_INVITATION_NOT_FOUND`
+- `WORKSPACE_INVITATION_ALREADY_EXISTS`
+
+## Workspace Upload API
+
+All routes require JWT, workspace membership, and `file:upload`.
+
+- `POST /api/workspaces/:workspaceId/upload/sessions` ? create session/instant detection.
+- `POST /api/workspaces/:workspaceId/upload/sessions/:id/direct-url` ? direct PUT URL.
+- `POST /api/workspaces/:workspaceId/upload/sessions/:id/chunk-urls` ? part PUT URLs.
+- `POST /api/workspaces/:workspaceId/upload/sessions/:id/chunks/:chunkIndex/complete` ? confirm ETag.
+- `POST /api/workspaces/:workspaceId/upload/sessions/:id/instant` ? confirm deduplicated upload.
+- `POST /api/workspaces/:workspaceId/upload/sessions/:id/complete` ? merge/commit; idempotent after completion.
+- `DELETE /api/workspaces/:workspaceId/upload/sessions/:id/cancel` ? abort and release reservation.
+- `POST /api/workspaces/:workspaceId/folders/ensure` ? create nested folder path.
+
+Key errors: `UPLOAD_SESSION_NOT_FOUND`, `UPLOAD_SESSION_EXPIRED`, `UPLOAD_SESSION_ALREADY_COMPLETED`, `UPLOAD_CHUNK_INVALID`, `UPLOAD_INSTANT_NOT_AVAILABLE`, `WORKSPACE_QUOTA_EXCEEDED`.

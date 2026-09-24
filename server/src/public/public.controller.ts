@@ -21,13 +21,13 @@ export class PublicController {
 
   @Post('files/:urlKey/view')
   async recordView(@Param('urlKey') urlKey: string, @Req() req: Request) {
-    const ip = req.ip || req.headers['x-forwarded-for'] as string || 'unknown';
+    const ip = req.ip || (req.headers['x-forwarded-for'] as string) || 'unknown';
     return this.publicService.recordView(urlKey, ip);
   }
 
   @Get('files/:urlKey/download')
   async download(@Param('urlKey') urlKey: string, @Req() req: Request, @Res() res: Response) {
-    const ip = req.ip || req.headers['x-forwarded-for'] as string || 'unknown';
+    const ip = req.ip || (req.headers['x-forwarded-for'] as string) || 'unknown';
     const { downloadUrl } = await this.publicService.getDownloadUrl(urlKey, ip);
     res.redirect(downloadUrl);
   }

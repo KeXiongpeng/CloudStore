@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 export interface FileItem {
   id: string;
+  workspaceId: string;
   originalName: string;
   urlKey: string;
   fileSize: number;
@@ -18,6 +19,7 @@ interface FileCardProps {
   file: FileItem;
   onDelete: (id: string) => void;
   onPreview: (file: FileItem) => void;
+  onDownload: (file: FileItem) => void;
 }
 
 export function formatFileSize(bytes: number): string {
@@ -46,7 +48,7 @@ export function getFileIcon(mimeType: string): string {
   return '📎';
 }
 
-export default function FileCard({ file, onDelete, onPreview }: FileCardProps) {
+export default function FileCard({ file, onDelete, onPreview, onDownload }: FileCardProps) {
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState('');
 
@@ -95,7 +97,7 @@ export default function FileCard({ file, onDelete, onPreview }: FileCardProps) {
         </div>
       </dl>
 
-      <div className="mt-4 grid grid-cols-3 gap-2">
+      <div className="mt-4 grid grid-cols-4 gap-2">
         <button
           type="button"
           onClick={() => onPreview(file)}
@@ -109,6 +111,13 @@ export default function FileCard({ file, onDelete, onPreview }: FileCardProps) {
           className="h-9 rounded-xl bg-slate-100 text-xs font-medium text-slate-700 transition hover:bg-slate-200"
         >
           {copied ? '已复制' : '复制链接'}
+        </button>
+        <button
+          type="button"
+          onClick={() => onDownload(file)}
+          className="h-9 rounded-xl bg-emerald-50 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100"
+        >
+          &#19979;&#36733;
         </button>
         <button
           type="button"

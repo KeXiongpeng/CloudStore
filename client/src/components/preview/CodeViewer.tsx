@@ -6,7 +6,7 @@ interface CodeViewerProps {
   mimeType: string;
 }
 
-export default function CodeViewer({ fileUrl, fileName, mimeType }: CodeViewerProps) {
+export default function CodeViewer({ fileUrl, fileName }: CodeViewerProps) {
   return (
     <div className="h-[75vh] w-full">
       <iframe

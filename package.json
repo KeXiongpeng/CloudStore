@@ -1,14 +1,25 @@
 {
-    "name":  "cloud-storage-platform",
-    "version":  "0.1.0",
-    "private":  true,
-    "description":  "云存储文件分享平台",
-    "scripts":  {
-                    "dev":  "docker compose -f docker-compose.yml up --build",
-                    "dev:build":  "docker compose -f docker-compose.yml up -d --build",
-                    "start":  "docker compose -f docker-compose.yml up -d",
-                    "stop":  "docker compose down",
-                    "logs":  "docker compose logs -f",
-                    "dev:deps":  "docker compose -f docker-compose.dev.yml up -d"
-                }
+  "name": "cloud-storage-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "云存储文件分享平台",
+  "scripts": {
+    "dev": "docker compose -f docker-compose.yml up --build",
+    "dev:build": "docker compose -f docker-compose.yml up -d --build",
+    "start": "docker compose -f docker-compose.yml up -d",
+    "stop": "docker compose down",
+    "logs": "docker compose logs -f",
+    "dev:deps": "docker compose -f docker-compose.dev.yml up -d",
+    "prepare": "husky",
+    "deps:graph": "dependency-cruiser --config .dependency-cruiser.cjs \"server/src/**/*.ts\" \"client/src/**/*.ts\" \"client/src/**/*.tsx\"",
+    "format:check": "prettier --check .",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "dependency-cruiser": "16.10.4",
+    "eslint": "8.57.1",
+    "husky": "9.1.7",
+    "lint-staged": "15.5.2",
+    "prettier": "3.9.8"
+  }
 }

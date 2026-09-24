@@ -3,19 +3,19 @@ import { IsNotEmpty, IsString, IsNumber, IsOptional } from 'class-validator';
 export class UploadCallbackDto {
   @IsNotEmpty()
   @IsString()
-  filename: string;
+  filename!: string;
 
   @IsNotEmpty()
   @IsString()
-  contentType: string;
+  contentType!: string;
 
   @IsNotEmpty()
   @IsNumber()
-  fileSize: number;
+  fileSize!: number;
 
   @IsNotEmpty()
   @IsString()
-  storageKey: string;
+  storageKey!: string;
 
   @IsOptional()
   @IsString()

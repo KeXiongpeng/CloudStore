@@ -1,4 +1,4 @@
-﻿# 架构说明
+# 架构说明
 
 ## 技术架构
 
@@ -35,16 +35,16 @@ flowchart TB
 
 ## 模块职责
 
-| 模块 | 职责 |
-| --- | --- |
-| `client/src/app` | 页面路由、服务端渲染、公开预览、认证页、后台页面 |
-| `client/src/lib/api.ts` | Axios 实例、JWT 请求头、401 自动刷新 |
-| `server/src/auth` | 注册、登录、刷新令牌、OAuth、JWT 签发 |
-| `server/src/users` | 当前用户、昵称、密码、配额查询 |
-| `server/src/files` | 预签名上传、分片上传、文件列表、删除、统计 |
-| `server/src/public` | 公开文件元信息、内容流、浏览 / 下载统计 |
-| `server/src/admin` | 用户管理、套餐调整、平台统计 |
-| `server/prisma` | 数据模型、迁移、seed |
+| 模块                    | 职责                                             |
+| ----------------------- | ------------------------------------------------ |
+| `client/src/app`        | 页面路由、服务端渲染、公开预览、认证页、后台页面 |
+| `client/src/lib/api.ts` | Axios 实例、JWT 请求头、401 自动刷新             |
+| `server/src/auth`       | 注册、登录、刷新令牌、OAuth、JWT 签发            |
+| `server/src/users`      | 当前用户、昵称、密码、配额查询                   |
+| `server/src/files`      | 预签名上传、分片上传、文件列表、删除、统计       |
+| `server/src/public`     | 公开文件元信息、内容流、浏览 / 下载统计          |
+| `server/src/admin`      | 用户管理、套餐调整、平台统计                     |
+| `server/prisma`         | 数据模型、迁移、seed                             |
 
 ## 认证流程
 
@@ -130,3 +130,28 @@ sequenceDiagram
 3. 后端校验文件未删除且非私有，返回元信息和临时预览 URL。
 4. 前端根据 MIME 类型渲染预览器。
 5. 用户访问下载地址时，后端记录下载日志并重定向到预签名下载 URL。
+
+## 工作区权限链路
+
+```mermaid
+sequenceDiagram
+  participant B as Browser
+  participant J as JWT Auth Guard
+  participant W as WorkspaceGuard
+  participant P as PermissionGuard
+  participant S as Service
+
+  B->>J: 携带 Access Token 请求
+  J->>J: 验证用户身份
+  J->>W: 传入 user 与 workspaceId
+  W->>W: 查询 active WorkspaceMember
+  W->>P: 注入 WorkspaceActorContext
+  P->>P: 校验权限矩阵权限点
+  P->>S: 执行包含 workspaceId 的业务查询
+```
+
+`WorkspacesService`、`WorkspaceGuard` 和 `PermissionGuard` 由 `WorkspaceCoreModule` 统一提供。业务服务查询必须包含 `workspaceId`；前端权限控制只用于展示。
+
+## Upload Pipeline (Phase 3)
+
+Uploads are workspace-scoped and quota-reserved. The client hashes a file with SHA-256, creates an upload session, and receives either an instant-upload result or a direct/part PUT URL. Direct mode covers files up to 8 MiB; multipart mode uses 8 MiB chunks with three exponential-backoff retries. Upload completion is guarded by a Redis merge lock, validated against storage object size, and committed with file/version records and quota confirmation. BullMQ generates image thumbnails in a separate worker so thumbnail failure never fails the upload. MinIO and Qiniu are isolated behind `StorageService`.

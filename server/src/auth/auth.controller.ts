@@ -272,14 +272,8 @@ export class AuthController {
     return !code || !state || !this.readCookie(req, `oauth_state_${provider}`);
   }
 
-  private redirectSuccess(
-    res: Response,
-    result: { access_token: string; refresh_token: string },
-  ) {
-    const frontendUrl = this.configService.get<string>(
-      'app.frontendUrl',
-      'http://localhost:3001',
-    );
+  private redirectSuccess(res: Response, result: { access_token: string; refresh_token: string }) {
+    const frontendUrl = this.configService.get<string>('app.frontendUrl', 'http://localhost:3001');
     return res.redirect(
       `${frontendUrl}/auth/callback?access_token=${encodeURIComponent(
         result.access_token,
@@ -288,11 +282,7 @@ export class AuthController {
   }
 
   private redirectError(res: Response, errorCode: string) {
-    const frontendUrl = this.configService.get<string>(
-      'app.frontendUrl',
-      'http://localhost:3001',
-    );
+    const frontendUrl = this.configService.get<string>('app.frontendUrl', 'http://localhost:3001');
     return res.redirect(`${frontendUrl}/auth/callback?error=${errorCode}`);
   }
 }
-

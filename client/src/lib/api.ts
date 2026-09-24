@@ -1,9 +1,8 @@
 import axios from 'axios';
 import { getAccessToken, getRefreshToken, setTokens, clearTokens } from './auth';
 
-const API_BASE = typeof window === 'undefined'
-  ? (process.env.BACKEND_URL || 'http://localhost:3000')
-  : '';
+const API_BASE =
+  typeof window === 'undefined' ? process.env.BACKEND_URL || 'http://localhost:3000' : '';
 
 const api = axios.create({
   baseURL: `${API_BASE}/api`,
@@ -28,14 +27,14 @@ api.interceptors.request.use(
 
 let isRefreshing = false;
 let failedQueue: Array<{
-  resolve: (value: any) => void;
-  reject: (reason?: any) => void;
+  resolve: (token: string) => void;
+  reject: (reason?: unknown) => void;
 }> = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
+    if (error || !token) {
+      prom.reject(error ?? new Error('Token refresh failed'));
     } else {
       prom.resolve(token);
     }
@@ -44,9 +43,25 @@ const processQueue = (error: any, token: string | null = null) => {
 };
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const body = response.data;
+    if (body && typeof body === 'object' && 'success' in body && 'data' in body) {
+      response.data = body.data;
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
+    if (typeof window !== 'undefined') {
+      console.error('[api] request failed', {
+        method: originalRequest?.method?.toUpperCase(),
+        url: originalRequest?.url,
+        status: error.response?.status,
+        code: error.response?.data?.code,
+        message: error.response?.data?.message,
+        requestId: error.response?.data?.requestId,
+      });
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {

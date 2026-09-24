@@ -1,26 +1,27 @@
-# 云存储文件分享平台 - 生产环境部署
-# 与 portfolio 项目共用 nginx-proxy，通过域名分流
+name: cloud-storage
 
+# 濞存粍鍨甸悺銊╁磼閵婏附鐎ù鐘烘硾閸ㄥ孩绂嶉銏ゆ尙闁?- 闁汇垻鍠嶆鍥偝椤栨凹鏆旈梺顔哄妿鐠?# 濞?portfolio 濡炪倕婀卞ú浼村礂鏉堚晜鏆?nginx-proxy闁挎稑鐭傞埀顒佷亢缁诲啴宕洪悢閿嬪€抽柛鎺戞缁?
 services:
-  # ── PostgreSQL ──
+  # 闁冲厜鍋撻柍鍏夊亾 PostgreSQL 闁冲厜鍋撻柍鍏夊亾
   postgres:
     image: docker.1ms.run/library/postgres:16
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-cloud_storage}
       POSTGRES_USER: ${POSTGRES_USER:-csp_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请在.env中设置POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?閻犲洤鍢插﹢?env濞戞搩鍙€椤旀洜绱旈悽鍦TGRES_PASSWORD}
     volumes:
       - csp_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-csp_user} -d ${POSTGRES_DB:-cloud_storage}']
+      test:
+        ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-csp_user} -d ${POSTGRES_DB:-cloud_storage}']
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
       - app-net
 
-  # ── Redis ──
+  # 闁冲厜鍋撻柍鍏夊亾 Redis 闁冲厜鍋撻柍鍏夊亾
   redis:
     image: docker.1ms.run/library/redis:7-alpine
     restart: unless-stopped
@@ -35,9 +36,9 @@ services:
     networks:
       - app-net
 
-  # ── NestJS 后端 API ──
+  # 闁冲厜鍋撻柍鍏夊亾 NestJS 闁告艾娴烽?API 闁冲厜鍋撻柍鍏夊亾
   nestjs:
-    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v5
+    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v9
     restart: unless-stopped
     expose:
       - '3000'
@@ -49,8 +50,6 @@ services:
       redis:
         condition: service_healthy
     environment:
-      - VIRTUAL_HOST=api.kxpwty.cn
-      - LETSENCRYPT_HOST=api.kxpwty.cn
       - VIRTUAL_PORT=3000
       - DATABASE_URL=postgresql://${POSTGRES_USER:-csp_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cloud_storage}?schema=public
       - REDIS_HOST=redis
@@ -59,15 +58,35 @@ services:
       - app-net
       - shared-proxy
 
-  # ── Next.js 前端 ──
+  # 闁冲厜鍋撻柍鍏夊亾 Next.js 闁告挸绉堕?闁冲厜鍋撻柍鍏夊亾
+  server-worker:
+    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v9
+    restart: unless-stopped
+    command: ['node', 'dist/worker.js']
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nestjs:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-csp_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-cloud_storage}?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    networks:
+      - app-net
+
   nextjs:
-    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/client:v3
+    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/client:v6
     restart: unless-stopped
     expose:
       - '3001'
     environment:
-      - VIRTUAL_HOST=kxpwty.cn
-      - LETSENCRYPT_HOST=kxpwty.cn
+      - VIRTUAL_HOST=cloudstore.kxpwty.cn
+      - LETSENCRYPT_HOST=cloudstore.kxpwty.cn
       - VIRTUAL_PORT=3001
       - BACKEND_URL=http://nestjs:3000
       - NEXT_PUBLIC_API_URL=http://nestjs:3000

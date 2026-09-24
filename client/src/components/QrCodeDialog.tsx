@@ -31,11 +31,7 @@ export default function QrCodeDialog({ url, isOpen, onClose }: QrCodeDialogProps
     >
       <div className="rounded-lg bg-white p-6 text-center shadow-lg dark:bg-gray-900">
         <h3 className="text-lg font-medium text-gray-900 dark:text-white">分享二维码</h3>
-        <img
-          src={qrCodeUrl}
-          alt="QR Code"
-          className="mx-auto mt-4 h-48 w-48"
-        />
+        <img src={qrCodeUrl} alt="QR Code" className="mx-auto mt-4 h-48 w-48" />
         <p className="mt-2 break-all text-xs text-gray-500 dark:text-gray-400">{url}</p>
         <button
           onClick={onClose}

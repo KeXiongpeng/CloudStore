@@ -44,7 +44,10 @@ export default function PreviewToolbar({
     <>
       <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2 dark:border-gray-700 dark:bg-gray-900">
         <div className="flex items-center gap-3">
-          <p className="truncate text-sm font-medium text-gray-900 dark:text-white" title={fileName}>
+          <p
+            className="truncate text-sm font-medium text-gray-900 dark:text-white"
+            title={fileName}
+          >
             {fileName}
           </p>
           <span className="text-xs text-gray-400">
@@ -94,11 +97,7 @@ export default function PreviewToolbar({
         </div>
       )}
 
-      <QrCodeDialog
-        url={fileUrl}
-        isOpen={showQr}
-        onClose={() => setShowQr(false)}
-      />
+      <QrCodeDialog url={fileUrl} isOpen={showQr} onClose={() => setShowQr(false)} />
     </>
   );
 }

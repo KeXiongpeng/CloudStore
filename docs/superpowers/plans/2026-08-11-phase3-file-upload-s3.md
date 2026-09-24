@@ -56,11 +56,13 @@ server/src/
 ### Task 1: S3 模块 — 封装七牛云 S3 操作
 
 **Files:**
+
 - Modify: `server/package.json`（新增 @aws-sdk 依赖）
 - Create: `server/src/s3/s3.module.ts`
 - Create: `server/src/s3/s3.service.ts`
 
 **Interfaces:**
+
 - Consumes: `configuration.ts` 中的 `qiniu` 配置（accessKey, secretKey, bucket, endpoint）
 - Produces: `S3Service.generatePresignedPutUrl(key, contentType, ttl)` — 生成直传 URL
 - Produces: `S3Service.createMultipartUpload(key, contentType)` — 初始化分片上传
@@ -133,10 +135,7 @@ export class S3Service {
     return getSignedUrl(this.client, command, { expiresIn: ttlSeconds });
   }
 
-  async generatePresignedGetUrl(
-    key: string,
-    ttlSeconds: number = 3600,
-  ): Promise<string> {
+  async generatePresignedGetUrl(key: string, ttlSeconds: number = 3600): Promise<string> {
     const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: key,
@@ -155,12 +154,7 @@ export class S3Service {
     return this.client.send(command);
   }
 
-  async uploadPart(
-    key: string,
-    uploadId: string,
-    partNumber: number,
-    body: Buffer,
-  ) {
+  async uploadPart(key: string, uploadId: string, partNumber: number, body: Buffer) {
     const command = new UploadPartCommand({
       Bucket: this.bucket,
       Key: key,
@@ -251,6 +245,7 @@ git commit -m "feat: add S3Module with Qiniu S3 operations (presign, multipart, 
 ### Task 2: FilesModule — 小文件前端直传（Presigned URL + Callback）
 
 **Files:**
+
 - Create: `server/src/files/dto/presign-upload.dto.ts`
 - Create: `server/src/files/dto/upload-callback.dto.ts`
 - Create: `server/src/files/files.module.ts`
@@ -259,6 +254,7 @@ git commit -m "feat: add S3Module with Qiniu S3 operations (presign, multipart, 
 - Modify: `server/src/app.module.ts`（导入 FilesModule + S3Module）
 
 **Interfaces:**
+
 - Consumes: `S3Service`（Task 1）
 - Consumes: `PrismaService`（Phase 2）
 - Consumes: `JwtAuthGuard` + `@CurrentUser()`（Phase 2）
@@ -388,10 +384,7 @@ export class FilesService {
     }
 
     const storageKey = await this.generateStorageKey(userId, dto.filename);
-    const presignedUrl = await this.s3Service.generatePresignedPutUrl(
-      storageKey,
-      dto.contentType,
-    );
+    const presignedUrl = await this.s3Service.generatePresignedPutUrl(storageKey, dto.contentType);
 
     return {
       uploadUrl: presignedUrl,
@@ -600,10 +593,7 @@ export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
   @Post('presign')
-  presignUpload(
-    @CurrentUser('id') userId: string,
-    @Body() dto: PresignUploadDto,
-  ) {
+  presignUpload(@CurrentUser('id') userId: string, @Body() dto: PresignUploadDto) {
     return this.filesService.presignUpload(userId, dto);
   }
 
@@ -613,7 +603,7 @@ export class FilesController {
     @Body() dto: UploadCallbackDto,
     @Req() req: Request,
   ) {
-    const ip = req.ip || req.headers['x-forwarded-for'] as string || 'unknown';
+    const ip = req.ip || (req.headers['x-forwarded-for'] as string) || 'unknown';
     return this.filesService.handleUploadCallback(userId, dto, ip);
   }
 
@@ -632,18 +622,12 @@ export class FilesController {
   }
 
   @Get(':id')
-  getFile(
-    @CurrentUser('id') userId: string,
-    @Param('id') fileId: string,
-  ) {
+  getFile(@CurrentUser('id') userId: string, @Param('id') fileId: string) {
     return this.filesService.getFile(userId, fileId);
   }
 
   @Delete(':id')
-  deleteFile(
-    @CurrentUser('id') userId: string,
-    @Param('id') fileId: string,
-  ) {
+  deleteFile(@CurrentUser('id') userId: string, @Param('id') fileId: string) {
     return this.filesService.deleteFile(userId, fileId);
   }
 }
@@ -692,12 +676,14 @@ git commit -m "feat: add FilesModule with presigned upload, callback, file list,
 ### Task 3: 大文件分片上传（后端中转）
 
 **Files:**
+
 - Create: `server/src/files/dto/init-multipart.dto.ts`
 - Create: `server/src/files/dto/complete-multipart.dto.ts`
 - Modify: `server/src/files/files.service.ts`（新增分片上传方法）
 - Modify: `server/src/files/files.controller.ts`（新增分片上传路由）
 
 **Interfaces:**
+
 - Consumes: `S3Service`（Task 1）
 - Consumes: `RedisService`（Phase 2）— 缓存分片上传状态
 - Produces: `POST /api/files/upload-init` — 初始化分片上传，返回 uploadId
@@ -998,16 +984,19 @@ git commit -m "feat: add multipart upload for large files (>5MB) with backend re
 完成所有 Task 后，执行以下验证：
 
 1. **安装新增依赖：**
+
    ```bash
    cd server && npm install
    ```
 
 2. **启动服务：**
+
    ```bash
    cd server && npm run start:dev
    ```
 
 3. **验证小文件直传凭证生成（需登录获取 token）：**
+
    ```bash
    # 先注册/登录获取 token
    TOKEN=<access_token>
@@ -1017,36 +1006,45 @@ git commit -m "feat: add multipart upload for large files (>5MB) with backend re
      -H "Content-Type: application/json" \
      -d '{"filename":"test.jpg","contentType":"image/jpeg","fileSize":102400}'
    ```
+
    预期：返回 `{ uploadUrl: "https://...", storageKey: "..." }`
 
 4. **验证直传回调：**
+
    ```bash
    curl -X POST http://localhost:3000/api/files/callback \
      -H "Authorization: Bearer $TOKEN" \
      -H "Content-Type: application/json" \
      -d '{"filename":"test.jpg","contentType":"image/jpeg","fileSize":102400,"storageKey":"<storageKey>"}'
    ```
+
    预期：返回文件元数据 `{ id, originalName, urlKey, fileSize, mimeType, createdAt }`
 
 5. **验证文件列表：**
+
    ```bash
    curl http://localhost:3000/api/files?page=1&limit=10 \
      -H "Authorization: Bearer $TOKEN"
    ```
+
    预期：返回 `{ items: [...], total, page, limit, totalPages }`
 
 6. **验证文件统计：**
+
    ```bash
    curl http://localhost:3000/api/files/stats \
      -H "Authorization: Bearer $TOKEN"
    ```
+
    预期：返回 `{ totalFiles, totalViews, totalDownloads, totalSize }`
 
 7. **验证文件删除：**
+
    ```bash
    curl -X DELETE http://localhost:3000/api/files/<fileId> \
      -H "Authorization: Bearer $TOKEN"
    ```
+
    预期：返回 `{ message: "文件已删除" }`
 
 8. **验证分片上传初始化：**

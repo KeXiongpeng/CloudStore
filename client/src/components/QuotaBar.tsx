@@ -14,12 +14,7 @@ export default function QuotaBar({ used, limit }: QuotaBarProps) {
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
   };
 
-  const barColor =
-    percent >= 90
-      ? 'bg-red-500'
-      : percent >= 70
-      ? 'bg-yellow-500'
-      : 'bg-blue-500';
+  const barColor = percent >= 90 ? 'bg-red-500' : percent >= 70 ? 'bg-yellow-500' : 'bg-blue-500';
 
   return (
     <div>
@@ -27,9 +22,7 @@ export default function QuotaBar({ used, limit }: QuotaBarProps) {
         <span className="text-gray-600 dark:text-gray-400">
           {formatSize(used)} / {formatSize(limit)}
         </span>
-        <span className="font-medium text-gray-900 dark:text-white">
-          {percent.toFixed(1)}%
-        </span>
+        <span className="font-medium text-gray-900 dark:text-white">{percent.toFixed(1)}%</span>
       </div>
       <div className="mt-2 h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
         <div

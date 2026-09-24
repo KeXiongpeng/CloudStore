@@ -81,33 +81,33 @@ client/src/features/upload
 
 使用固定系统角色，第一阶段不实现自定义角色：
 
-| 角色 | 定位 |
-| --- | --- |
-| `OWNER` | 工作区创建者，可删除工作区、转让所有权 |
-| `ADMIN` | 管理成员、权限、配额、审计日志 |
-| `EDITOR` | 查看、上传、下载、重命名、删除自己或被授权内容 |
-| `VIEWER` | 查看、下载 |
-| `GUEST` | 临时受限访问，默认仅查看指定资源，本次仅预留模型 |
+| 角色     | 定位                                             |
+| -------- | ------------------------------------------------ |
+| `OWNER`  | 工作区创建者，可删除工作区、转让所有权           |
+| `ADMIN`  | 管理成员、权限、配额、审计日志                   |
+| `EDITOR` | 查看、上传、下载、重命名、删除自己或被授权内容   |
+| `VIEWER` | 查看、下载                                       |
+| `GUEST`  | 临时受限访问，默认仅查看指定资源，本次仅预留模型 |
 
 ### 3.2 权限点
 
-| 权限 | OWNER | ADMIN | EDITOR | VIEWER | GUEST |
-| --- | --- | --- | --- | --- | --- |
-| `workspace:view` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `workspace:update` | ✅ | ✅ | ❌ | ❌ | ❌ |
-| `workspace:delete` | ✅ | ❌ | ❌ | ❌ | ❌ |
-| `member:read` | ✅ | ✅ | ❌ | ❌ | ❌ |
-| `member:invite` | ✅ | ✅ | ❌ | ❌ | ❌ |
-| `member:update_role` | ✅ | ✅ | ❌ | ❌ | ❌ |
-| `member:remove` | ✅ | ✅ | ❌ | ❌ | ❌ |
-| `audit:read` | ✅ | ✅ | ❌ | ❌ | ❌ |
-| `file:view` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `file:upload` | ✅ | ✅ | ✅ | ❌ | ❌ |
-| `file:download` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `file:update` | ✅ | ✅ | ✅ | ❌ | ❌ |
-| `file:delete` | ✅ | ✅ | ✅ | ❌ | ❌ |
-| `quota:read` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `quota:update` | ✅ | ✅ | ❌ | ❌ | ❌ |
+| 权限                 | OWNER | ADMIN | EDITOR | VIEWER | GUEST |
+| -------------------- | ----- | ----- | ------ | ------ | ----- |
+| `workspace:view`     | ✅    | ✅    | ✅     | ✅     | ✅    |
+| `workspace:update`   | ✅    | ✅    | ❌     | ❌     | ❌    |
+| `workspace:delete`   | ✅    | ❌    | ❌     | ❌     | ❌    |
+| `member:read`        | ✅    | ✅    | ❌     | ❌     | ❌    |
+| `member:invite`      | ✅    | ✅    | ❌     | ❌     | ❌    |
+| `member:update_role` | ✅    | ✅    | ❌     | ❌     | ❌    |
+| `member:remove`      | ✅    | ✅    | ❌     | ❌     | ❌    |
+| `audit:read`         | ✅    | ✅    | ❌     | ❌     | ❌    |
+| `file:view`          | ✅    | ✅    | ✅     | ✅     | ✅    |
+| `file:upload`        | ✅    | ✅    | ✅     | ❌     | ❌    |
+| `file:download`      | ✅    | ✅    | ✅     | ✅     | ✅    |
+| `file:update`        | ✅    | ✅    | ✅     | ❌     | ❌    |
+| `file:delete`        | ✅    | ✅    | ✅     | ❌     | ❌    |
+| `quota:read`         | ✅    | ✅    | ✅     | ✅     | ✅    |
+| `quota:update`       | ✅    | ✅    | ❌     | ❌     | ❌    |
 
 约束：
 
@@ -122,43 +122,43 @@ client/src/features/upload
 
 #### workspaces
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `id` | uuid PK | 工作区 ID |
-| `name` | varchar(128) | 名称 |
-| `slug` | varchar(64) unique | URL 标识 |
-| `owner_id` | uuid FK users | 所有者 |
-| `storage_driver` | varchar(32) | 本地默认 `minio`，生产可为 `qiniu` / `s3` |
-| `status` | enum | `active` / `suspended` |
-| `created_at` / `updated_at` | timestamp | 通用时间字段 |
+| 字段                        | 类型               | 说明                                      |
+| --------------------------- | ------------------ | ----------------------------------------- |
+| `id`                        | uuid PK            | 工作区 ID                                 |
+| `name`                      | varchar(128)       | 名称                                      |
+| `slug`                      | varchar(64) unique | URL 标识                                  |
+| `owner_id`                  | uuid FK users      | 所有者                                    |
+| `storage_driver`            | varchar(32)        | 本地默认 `minio`，生产可为 `qiniu` / `s3` |
+| `status`                    | enum               | `active` / `suspended`                    |
+| `created_at` / `updated_at` | timestamp          | 通用时间字段                              |
 
 #### workspace_members
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `id` | uuid PK | 成员记录 ID |
-| `workspace_id` | uuid FK | 工作区 |
-| `user_id` | uuid FK | 用户 |
-| `role` | enum | `OWNER` / `ADMIN` / `EDITOR` / `VIEWER` / `GUEST` |
-| `status` | enum | `active` / `disabled` |
-| `joined_at` | timestamp | 加入时间 |
-| `updated_at` | timestamp | 更新时间 |
+| 字段           | 类型      | 说明                                              |
+| -------------- | --------- | ------------------------------------------------- |
+| `id`           | uuid PK   | 成员记录 ID                                       |
+| `workspace_id` | uuid FK   | 工作区                                            |
+| `user_id`      | uuid FK   | 用户                                              |
+| `role`         | enum      | `OWNER` / `ADMIN` / `EDITOR` / `VIEWER` / `GUEST` |
+| `status`       | enum      | `active` / `disabled`                             |
+| `joined_at`    | timestamp | 加入时间                                          |
+| `updated_at`   | timestamp | 更新时间                                          |
 
 唯一索引：`unique(workspace_id, user_id)`。
 
 #### workspace_invitations
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `id` | uuid PK | 邀请 ID |
-| `workspace_id` | uuid FK | 工作区 |
-| `email` | varchar(254) | 被邀请邮箱 |
-| `role` | enum | 授予角色 |
-| `token_hash` | varchar(128) unique | 邀请令牌哈希 |
-| `invited_by` | uuid FK users | 邀请人 |
-| `status` | enum | `pending` / `accepted` / `revoked` / `expired` |
-| `expires_at` | timestamp | 过期时间 |
-| `accepted_at` | timestamp nullable | 接受时间 |
+| 字段           | 类型                | 说明                                           |
+| -------------- | ------------------- | ---------------------------------------------- |
+| `id`           | uuid PK             | 邀请 ID                                        |
+| `workspace_id` | uuid FK             | 工作区                                         |
+| `email`        | varchar(254)        | 被邀请邮箱                                     |
+| `role`         | enum                | 授予角色                                       |
+| `token_hash`   | varchar(128) unique | 邀请令牌哈希                                   |
+| `invited_by`   | uuid FK users       | 邀请人                                         |
+| `status`       | enum                | `pending` / `accepted` / `revoked` / `expired` |
+| `expires_at`   | timestamp           | 过期时间                                       |
+| `accepted_at`  | timestamp nullable  | 接受时间                                       |
 
 #### permissions / role_permissions
 
@@ -166,20 +166,20 @@ client/src/features/upload
 
 #### audit_logs
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `id` | bigint/uuid PK | 日志 ID |
-| `workspace_id` | uuid nullable FK | 工作区上下文 |
-| `actor_id` | uuid nullable FK users | 操作者 |
-| `action` | varchar(64) | 如 `member.invited`、`file.uploaded` |
-| `resource_type` | varchar(32) | `workspace` / `member` / `file` / `upload` |
-| `resource_id` | varchar(64) | 资源 ID |
-| `ip` | varchar(64) | 来源 IP |
-| `user_agent` | varchar(512) | UA |
-| `request_id` | varchar(64) | 请求追踪 ID |
-| `before` | jsonb nullable | 变更前 |
-| `after` | jsonb nullable | 变更后 |
-| `created_at` | timestamp | 时间 |
+| 字段            | 类型                   | 说明                                       |
+| --------------- | ---------------------- | ------------------------------------------ |
+| `id`            | bigint/uuid PK         | 日志 ID                                    |
+| `workspace_id`  | uuid nullable FK       | 工作区上下文                               |
+| `actor_id`      | uuid nullable FK users | 操作者                                     |
+| `action`        | varchar(64)            | 如 `member.invited`、`file.uploaded`       |
+| `resource_type` | varchar(32)            | `workspace` / `member` / `file` / `upload` |
+| `resource_id`   | varchar(64)            | 资源 ID                                    |
+| `ip`            | varchar(64)            | 来源 IP                                    |
+| `user_agent`    | varchar(512)           | UA                                         |
+| `request_id`    | varchar(64)            | 请求追踪 ID                                |
+| `before`        | jsonb nullable         | 变更前                                     |
+| `after`         | jsonb nullable         | 变更后                                     |
+| `created_at`    | timestamp              | 时间                                       |
 
 索引：`index(workspace_id, created_at)`、`index(workspace_id, actor_id, created_at)`。
 
@@ -189,15 +189,15 @@ client/src/features/upload
 
 本次引入逻辑文件夹，用于文件夹上传和后续文件树。
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `id` | uuid PK | 文件夹 ID |
-| `workspace_id` | uuid FK | 工作区 |
-| `parent_id` | uuid nullable self FK | 父文件夹 |
-| `name` | varchar(255) | 名称 |
-| `path` | varchar(1024) | 规范化路径，用于去重和查询 |
-| `created_by` | uuid FK users | 创建人 |
-| `created_at` / `updated_at` | timestamp | 通用字段 |
+| 字段                        | 类型                  | 说明                       |
+| --------------------------- | --------------------- | -------------------------- |
+| `id`                        | uuid PK               | 文件夹 ID                  |
+| `workspace_id`              | uuid FK               | 工作区                     |
+| `parent_id`                 | uuid nullable self FK | 父文件夹                   |
+| `name`                      | varchar(255)          | 名称                       |
+| `path`                      | varchar(1024)         | 规范化路径，用于去重和查询 |
+| `created_by`                | uuid FK users         | 创建人                     |
+| `created_at` / `updated_at` | timestamp             | 通用字段                   |
 
 唯一索引：`unique(workspace_id, parent_id, name)`。
 
@@ -205,23 +205,23 @@ client/src/features/upload
 
 将现有个人文件模型演进为工作区模型：
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `id` | uuid PK | 文件 ID |
-| `workspace_id` | uuid FK | 租户 ID |
-| `folder_id` | uuid nullable FK | 所在文件夹 |
-| `created_by` / `updated_by` | uuid FK users | 业务归属人 |
-| `name` | varchar(255) | 当前文件名 |
-| `mime_type` | varchar(255) | MIME |
-| `extension` | varchar(32) | 扩展名 |
-| `size` | bigint | 当前版本大小 |
-| `hash` | varchar(128) | 当前版本内容哈希 |
-| `hash_algorithm` | varchar(16) | 默认 `sha256` |
-| `current_version_id` | uuid nullable | 当前版本 |
-| `url_key` | varchar(64) unique | 保留旧公开访问兼容字段 |
-| `visibility` | enum | `private` / `public` |
-| `deleted_at` | timestamp nullable | 软删除 |
-| `created_at` / `updated_at` | timestamp | 通用字段 |
+| 字段                        | 类型               | 说明                   |
+| --------------------------- | ------------------ | ---------------------- |
+| `id`                        | uuid PK            | 文件 ID                |
+| `workspace_id`              | uuid FK            | 租户 ID                |
+| `folder_id`                 | uuid nullable FK   | 所在文件夹             |
+| `created_by` / `updated_by` | uuid FK users      | 业务归属人             |
+| `name`                      | varchar(255)       | 当前文件名             |
+| `mime_type`                 | varchar(255)       | MIME                   |
+| `extension`                 | varchar(32)        | 扩展名                 |
+| `size`                      | bigint             | 当前版本大小           |
+| `hash`                      | varchar(128)       | 当前版本内容哈希       |
+| `hash_algorithm`            | varchar(16)        | 默认 `sha256`          |
+| `current_version_id`        | uuid nullable      | 当前版本               |
+| `url_key`                   | varchar(64) unique | 保留旧公开访问兼容字段 |
+| `visibility`                | enum               | `private` / `public`   |
+| `deleted_at`                | timestamp nullable | 软删除                 |
+| `created_at` / `updated_at` | timestamp          | 通用字段               |
 
 约束：
 
@@ -231,64 +231,64 @@ client/src/features/upload
 
 #### file_versions
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `id` | uuid PK | 版本 ID |
-| `file_id` | uuid FK | 文件 |
-| `version_no` | int | 从 1 递增 |
-| `storage_key` | varchar(1024) | 对象存储 key |
-| `size` | bigint | 字节数 |
-| `hash` | varchar(128) | 内容哈希 |
-| `hash_algorithm` | varchar(16) | 默认 `sha256` |
-| `mime_type` | varchar(255) | MIME |
-| `metadata` | jsonb nullable | 元数据 |
-| `thumbnail_key` | varchar(1024) nullable | 缩略图对象 key |
-| `thumbnail_status` | enum | `none` / `pending` / `processing` / `done` / `failed` |
-| `created_by` | uuid FK users | 上传人 |
-| `created_at` | timestamp | 时间 |
+| 字段               | 类型                   | 说明                                                  |
+| ------------------ | ---------------------- | ----------------------------------------------------- |
+| `id`               | uuid PK                | 版本 ID                                               |
+| `file_id`          | uuid FK                | 文件                                                  |
+| `version_no`       | int                    | 从 1 递增                                             |
+| `storage_key`      | varchar(1024)          | 对象存储 key                                          |
+| `size`             | bigint                 | 字节数                                                |
+| `hash`             | varchar(128)           | 内容哈希                                              |
+| `hash_algorithm`   | varchar(16)            | 默认 `sha256`                                         |
+| `mime_type`        | varchar(255)           | MIME                                                  |
+| `metadata`         | jsonb nullable         | 元数据                                                |
+| `thumbnail_key`    | varchar(1024) nullable | 缩略图对象 key                                        |
+| `thumbnail_status` | enum                   | `none` / `pending` / `processing` / `done` / `failed` |
+| `created_by`       | uuid FK users          | 上传人                                                |
+| `created_at`       | timestamp              | 时间                                                  |
 
 唯一索引：`unique(file_id, version_no)`。
 
 #### upload_sessions
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `id` | uuid PK | 客户端与后端共用的上传 ID |
-| `client_upload_id` | varchar(64) unique | 客户端幂等 ID |
-| `workspace_id` | uuid FK | 工作区 |
-| `folder_id` | uuid nullable FK | 目标文件夹 |
-| `created_by` | uuid FK users | 上传人 |
-| `filename` | varchar(255) | 文件名 |
-| `mime_type` | varchar(255) | MIME |
-| `size` | bigint | 总大小 |
-| `hash` | varchar(128) nullable | 客户端提供或完成时校验 |
-| `hash_algorithm` | varchar(16) | 默认 `sha256` |
-| `chunk_size` | int | 分片大小 |
-| `total_chunks` | int | 分片总数 |
-| `uploaded_chunks` | int | 成功分片数 |
-| `mode` | enum | `direct` / `multipart` |
-| `strategy` | enum | `normal` / `instant` |
-| `status` | enum | `pending` / `uploading` / `merging` / `completed` / `failed` / `canceled` / `expired` |
-| `storage_key` | varchar(1024) | 目标对象 key |
-| `provider_upload_id` | varchar(255) nullable | S3 multipart upload ID |
-| `quota_reserved` | bigint | 预留配额 |
-| `expires_at` | timestamp | 过期时间 |
-| `completed_at` | timestamp nullable | 完成时间 |
-| `failure_reason` | varchar(1024) nullable | 失败原因 |
-| `created_at` / `updated_at` | timestamp | 通用字段 |
+| 字段                        | 类型                   | 说明                                                                                  |
+| --------------------------- | ---------------------- | ------------------------------------------------------------------------------------- |
+| `id`                        | uuid PK                | 客户端与后端共用的上传 ID                                                             |
+| `client_upload_id`          | varchar(64) unique     | 客户端幂等 ID                                                                         |
+| `workspace_id`              | uuid FK                | 工作区                                                                                |
+| `folder_id`                 | uuid nullable FK       | 目标文件夹                                                                            |
+| `created_by`                | uuid FK users          | 上传人                                                                                |
+| `filename`                  | varchar(255)           | 文件名                                                                                |
+| `mime_type`                 | varchar(255)           | MIME                                                                                  |
+| `size`                      | bigint                 | 总大小                                                                                |
+| `hash`                      | varchar(128) nullable  | 客户端提供或完成时校验                                                                |
+| `hash_algorithm`            | varchar(16)            | 默认 `sha256`                                                                         |
+| `chunk_size`                | int                    | 分片大小                                                                              |
+| `total_chunks`              | int                    | 分片总数                                                                              |
+| `uploaded_chunks`           | int                    | 成功分片数                                                                            |
+| `mode`                      | enum                   | `direct` / `multipart`                                                                |
+| `strategy`                  | enum                   | `normal` / `instant`                                                                  |
+| `status`                    | enum                   | `pending` / `uploading` / `merging` / `completed` / `failed` / `canceled` / `expired` |
+| `storage_key`               | varchar(1024)          | 目标对象 key                                                                          |
+| `provider_upload_id`        | varchar(255) nullable  | S3 multipart upload ID                                                                |
+| `quota_reserved`            | bigint                 | 预留配额                                                                              |
+| `expires_at`                | timestamp              | 过期时间                                                                              |
+| `completed_at`              | timestamp nullable     | 完成时间                                                                              |
+| `failure_reason`            | varchar(1024) nullable | 失败原因                                                                              |
+| `created_at` / `updated_at` | timestamp              | 通用字段                                                                              |
 
 #### upload_chunks
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `id` | uuid PK | 分片 ID |
-| `upload_session_id` | uuid FK | 所属上传会话 |
-| `chunk_index` | int | 从 1 开始 |
-| `size` | bigint | 分片大小 |
-| `etag` | varchar(255) nullable | S3 ETag |
-| `status` | enum | `pending` / `uploaded` / `failed` |
-| `attempt_count` | int | 尝试次数 |
-| `uploaded_at` | timestamp nullable | 成功时间 |
+| 字段                | 类型                  | 说明                              |
+| ------------------- | --------------------- | --------------------------------- |
+| `id`                | uuid PK               | 分片 ID                           |
+| `upload_session_id` | uuid FK               | 所属上传会话                      |
+| `chunk_index`       | int                   | 从 1 开始                         |
+| `size`              | bigint                | 分片大小                          |
+| `etag`              | varchar(255) nullable | S3 ETag                           |
+| `status`            | enum                  | `pending` / `uploaded` / `failed` |
+| `attempt_count`     | int                   | 尝试次数                          |
+| `uploaded_at`       | timestamp nullable    | 成功时间                          |
 
 唯一索引：`unique(upload_session_id, chunk_index)`。
 
@@ -296,18 +296,18 @@ client/src/features/upload
 
 去重对象元数据表，支持秒传和多文件引用同一物理对象。
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `id` | uuid PK | 对象记录 ID |
-| `hash_algorithm` | varchar(16) | 默认 `sha256` |
-| `hash` | varchar(128) | 内容哈希 |
-| `size` | bigint | 字节数 |
-| `storage_driver` | varchar(32) | 存储驱动 |
-| `storage_key` | varchar(1024) | 物理 key |
-| `reference_count` | int | 引用计数 |
-| `status` | enum | `available` / `pending_delete` / `deleted` |
-| `created_at` | timestamp | 时间 |
-| `updated_at` | timestamp | 时间 |
+| 字段              | 类型          | 说明                                       |
+| ----------------- | ------------- | ------------------------------------------ |
+| `id`              | uuid PK       | 对象记录 ID                                |
+| `hash_algorithm`  | varchar(16)   | 默认 `sha256`                              |
+| `hash`            | varchar(128)  | 内容哈希                                   |
+| `size`            | bigint        | 字节数                                     |
+| `storage_driver`  | varchar(32)   | 存储驱动                                   |
+| `storage_key`     | varchar(1024) | 物理 key                                   |
+| `reference_count` | int           | 引用计数                                   |
+| `status`          | enum          | `available` / `pending_delete` / `deleted` |
+| `created_at`      | timestamp     | 时间                                       |
+| `updated_at`      | timestamp     | 时间                                       |
 
 唯一索引：`unique(storage_driver, hash_algorithm, hash)`。
 
@@ -315,16 +315,16 @@ client/src/features/upload
 
 使用工作区配额为主，用户配额可后续扩展：
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `id` | uuid PK | 配额 ID |
-| `workspace_id` | uuid unique FK | 工作区 |
-| `total_size` | bigint | 总容量 |
-| `used_size` | bigint | 正式占用 |
-| `reserved_size` | bigint | 上传中预留 |
-| `max_file_size` | bigint | 单文件上限 |
-| `max_file_count` | int | 文件数上限 |
-| `updated_at` | timestamp | 更新时间 |
+| 字段             | 类型           | 说明       |
+| ---------------- | -------------- | ---------- |
+| `id`             | uuid PK        | 配额 ID    |
+| `workspace_id`   | uuid unique FK | 工作区     |
+| `total_size`     | bigint         | 总容量     |
+| `used_size`      | bigint         | 正式占用   |
+| `reserved_size`  | bigint         | 上传中预留 |
+| `max_file_size`  | bigint         | 单文件上限 |
+| `max_file_count` | int            | 文件数上限 |
+| `updated_at`     | timestamp      | 更新时间   |
 
 约束：`used_size + reserved_size <= total_size` 由服务层事务校验，并在关键路径使用行级锁或条件更新防止并发超额。
 
@@ -435,7 +435,7 @@ POST /api/workspaces/:workspaceId/upload/sessions/:uploadSessionId/chunk-urls
 请求：
 
 ```json
-{ "chunkIndexes": [1,2,3,4,5,6] }
+{ "chunkIndexes": [1, 2, 3, 4, 5, 6] }
 ```
 
 响应中每个分片有独立 PUT URL 和过期时间。
@@ -513,36 +513,36 @@ POST /api/workspaces/:workspaceId/upload/sessions/:uploadSessionId/complete
 
 ### Workspace
 
-| 方法 | 路径 | 权限 |
-| --- | --- | --- |
-| `POST` | `/workspaces` | 登录用户 |
-| `GET` | `/workspaces` | 登录用户 |
-| `GET` | `/workspaces/:workspaceId` | `workspace:view` |
-| `PATCH` | `/workspaces/:workspaceId` | `workspace:update` |
-| `DELETE` | `/workspaces/:workspaceId` | `workspace:delete` |
-| `GET` | `/workspaces/:workspaceId/members` | `member:read` |
-| `PATCH` | `/workspaces/:workspaceId/members/:memberId` | `member:update_role` |
-| `DELETE` | `/workspaces/:workspaceId/members/:memberId` | `member:remove` |
-| `POST` | `/workspaces/:workspaceId/invitations` | `member:invite` |
-| `GET` | `/workspaces/:workspaceId/invitations` | `member:read` |
-| `POST` | `/invitations/accept` | 登录用户 |
-| `GET` | `/workspaces/:workspaceId/audit-logs` | `audit:read` |
+| 方法     | 路径                                         | 权限                 |
+| -------- | -------------------------------------------- | -------------------- |
+| `POST`   | `/workspaces`                                | 登录用户             |
+| `GET`    | `/workspaces`                                | 登录用户             |
+| `GET`    | `/workspaces/:workspaceId`                   | `workspace:view`     |
+| `PATCH`  | `/workspaces/:workspaceId`                   | `workspace:update`   |
+| `DELETE` | `/workspaces/:workspaceId`                   | `workspace:delete`   |
+| `GET`    | `/workspaces/:workspaceId/members`           | `member:read`        |
+| `PATCH`  | `/workspaces/:workspaceId/members/:memberId` | `member:update_role` |
+| `DELETE` | `/workspaces/:workspaceId/members/:memberId` | `member:remove`      |
+| `POST`   | `/workspaces/:workspaceId/invitations`       | `member:invite`      |
+| `GET`    | `/workspaces/:workspaceId/invitations`       | `member:read`        |
+| `POST`   | `/invitations/accept`                        | 登录用户             |
+| `GET`    | `/workspaces/:workspaceId/audit-logs`        | `audit:read`         |
 
 ### Upload
 
-| 方法 | 路径 | 权限 |
-| --- | --- | --- |
-| `POST` | `/workspaces/:workspaceId/upload/sessions` | `file:upload` |
-| `GET` | `/workspaces/:workspaceId/upload/sessions/:id` | 会话创建人或 `file:view` |
-| `POST` | `.../direct-url` | `file:upload` |
-| `POST` | `.../chunk-urls` | `file:upload` |
-| `POST` | `.../chunks/:chunkIndex/complete` | `file:upload` |
-| `POST` | `.../complete` | `file:upload` |
-| `POST` | `.../instant` | `file:upload` |
-| `DELETE` | `.../cancel` | 会话创建人或 `file:delete` |
-| `GET` | `/workspaces/:workspaceId/files` | `file:view` |
-| `GET` | `/workspaces/:workspaceId/files/:fileId` | `file:view` |
-| `DELETE` | `/workspaces/:workspaceId/files/:fileId` | `file:delete` |
+| 方法     | 路径                                           | 权限                       |
+| -------- | ---------------------------------------------- | -------------------------- |
+| `POST`   | `/workspaces/:workspaceId/upload/sessions`     | `file:upload`              |
+| `GET`    | `/workspaces/:workspaceId/upload/sessions/:id` | 会话创建人或 `file:view`   |
+| `POST`   | `.../direct-url`                               | `file:upload`              |
+| `POST`   | `.../chunk-urls`                               | `file:upload`              |
+| `POST`   | `.../chunks/:chunkIndex/complete`              | `file:upload`              |
+| `POST`   | `.../complete`                                 | `file:upload`              |
+| `POST`   | `.../instant`                                  | `file:upload`              |
+| `DELETE` | `.../cancel`                                   | 会话创建人或 `file:delete` |
+| `GET`    | `/workspaces/:workspaceId/files`               | `file:view`                |
+| `GET`    | `/workspaces/:workspaceId/files/:fileId`       | `file:view`                |
+| `DELETE` | `/workspaces/:workspaceId/files/:fileId`       | `file:delete`              |
 
 ### 统一响应
 
@@ -572,22 +572,22 @@ POST /api/workspaces/:workspaceId/upload/sessions/:uploadSessionId/complete
 
 核心错误码：
 
-| HTTP | code | 场景 |
-| --- | --- | --- |
-| 400 | `VALIDATION_ERROR` | DTO 校验失败 |
-| 401 | `UNAUTHENTICATED` | 未登录 |
-| 403 | `WORKSPACE_PERMISSION_DENIED` | 无权限点 |
-| 403 | `WORKSPACE_MEMBER_INACTIVE` | 成员被禁用 |
-| 404 | `WORKSPACE_NOT_FOUND` | 工作区不存在或不可见 |
-| 404 | `UPLOAD_SESSION_NOT_FOUND` | 会话不存在 |
-| 409 | `UPLOAD_SESSION_ALREADY_COMPLETED` | 重复完成 |
-| 409 | `UPLOAD_CHUNK_INVALID` | 分片状态错误 |
-| 410 | `UPLOAD_SESSION_EXPIRED` | 会话过期 |
-| 413 | `FILE_TOO_LARGE` | 超过单文件或配额限制 |
-| 413 | `WORKSPACE_QUOTA_EXCEEDED` | 空间不足 |
-| 415 | `FILE_TYPE_NOT_ALLOWED` | 类型禁止 |
-| 429 | `UPLOAD_RATE_LIMITED` | 上传频率受限 |
-| 500 | `INTERNAL_ERROR` | 服务端异常 |
+| HTTP | code                               | 场景                 |
+| ---- | ---------------------------------- | -------------------- |
+| 400  | `VALIDATION_ERROR`                 | DTO 校验失败         |
+| 401  | `UNAUTHENTICATED`                  | 未登录               |
+| 403  | `WORKSPACE_PERMISSION_DENIED`      | 无权限点             |
+| 403  | `WORKSPACE_MEMBER_INACTIVE`        | 成员被禁用           |
+| 404  | `WORKSPACE_NOT_FOUND`              | 工作区不存在或不可见 |
+| 404  | `UPLOAD_SESSION_NOT_FOUND`         | 会话不存在           |
+| 409  | `UPLOAD_SESSION_ALREADY_COMPLETED` | 重复完成             |
+| 409  | `UPLOAD_CHUNK_INVALID`             | 分片状态错误         |
+| 410  | `UPLOAD_SESSION_EXPIRED`           | 会话过期             |
+| 413  | `FILE_TOO_LARGE`                   | 超过单文件或配额限制 |
+| 413  | `WORKSPACE_QUOTA_EXCEEDED`         | 空间不足             |
+| 415  | `FILE_TYPE_NOT_ALLOWED`            | 类型禁止             |
+| 429  | `UPLOAD_RATE_LIMITED`              | 上传频率受限         |
+| 500  | `INTERNAL_ERROR`                   | 服务端异常           |
 
 ## 7. 前端设计
 
@@ -606,15 +606,15 @@ POST /api/workspaces/:workspaceId/upload/sessions/:uploadSessionId/complete
 
 ### 7.2 页面与交互
 
-| 路由 | 能力 |
-| --- | --- |
-| `/dashboard` | 工作区概览、配额、最近文件 |
-| `/files` | 当前工作区文件列表、虚拟滚动、上传入口 |
-| `/workspaces/new` | 创建工作区 |
-| `/workspaces/[workspaceId]/members` | 成员列表、角色修改、移除 |
-| `/workspaces/[workspaceId]/invitations` | 邀请成员、撤销邀请 |
-| `/invitations/accept` | 登录用户接受邀请 |
-| `/admin/audit` | 管理员查看审计日志 |
+| 路由                                    | 能力                                   |
+| --------------------------------------- | -------------------------------------- |
+| `/dashboard`                            | 工作区概览、配额、最近文件             |
+| `/files`                                | 当前工作区文件列表、虚拟滚动、上传入口 |
+| `/workspaces/new`                       | 创建工作区                             |
+| `/workspaces/[workspaceId]/members`     | 成员列表、角色修改、移除               |
+| `/workspaces/[workspaceId]/invitations` | 邀请成员、撤销邀请                     |
+| `/invitations/accept`                   | 登录用户接受邀请                       |
+| `/admin/audit`                          | 管理员查看审计日志                     |
 
 ### 7.3 上传队列
 
@@ -942,16 +942,16 @@ CI：
 
 ## 13. 风险与决策
 
-| 风险 | 影响 | 决策 |
-| --- | --- | --- |
-| 旧数据缺少哈希 | 无法秒传 | 迁移时标记 legacy，后续异步回填 |
-| 对象存储哈希校验成本高 | 合并变慢 | 默认大小校验；服务端 SHA-256 异步或按配置开启 |
-| S3 provider 对 multipart 行为不一致 | 合并失败 | 存储适配器封装并分别适配 MinIO/七牛 |
-| 前端大文件 SHA-256 卡 UI | 体验差 | 使用 Web Worker，不阻塞渲染 |
-| 配额并发竞态 | 超卖 | 事务 + 行锁/条件更新 + 预留配额 |
-| 权限漂移 | 越权 | 权限矩阵单源 + 后端 Guard 全量校验 |
-| 一次性改动过大 | 回归风险 | 里程碑 M0-M9 分支合并，每个里程碑可验证 |
-| MinIO 与生产七牛差异 | 本地通过但线上失败 | 上传和合并集成测试在两个驱动下跑核心路径 |
+| 风险                                | 影响               | 决策                                          |
+| ----------------------------------- | ------------------ | --------------------------------------------- |
+| 旧数据缺少哈希                      | 无法秒传           | 迁移时标记 legacy，后续异步回填               |
+| 对象存储哈希校验成本高              | 合并变慢           | 默认大小校验；服务端 SHA-256 异步或按配置开启 |
+| S3 provider 对 multipart 行为不一致 | 合并失败           | 存储适配器封装并分别适配 MinIO/七牛           |
+| 前端大文件 SHA-256 卡 UI            | 体验差             | 使用 Web Worker，不阻塞渲染                   |
+| 配额并发竞态                        | 超卖               | 事务 + 行锁/条件更新 + 预留配额               |
+| 权限漂移                            | 越权               | 权限矩阵单源 + 后端 Guard 全量校验            |
+| 一次性改动过大                      | 回归风险           | 里程碑 M0-M9 分支合并，每个里程碑可验证       |
+| MinIO 与生产七牛差异                | 本地通过但线上失败 | 上传和合并集成测试在两个驱动下跑核心路径      |
 
 ## 14. 已确认决策
 
@@ -979,5 +979,3 @@ CI：
 ### 14.5 生产存储演进
 
 生产暂不切换到 MinIO；后续若需要私有化部署或降低云存储成本，可基于存储驱动抽象另行评估。
-
-

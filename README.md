@@ -16,13 +16,13 @@ CloudShare 是一款云存储与文件分享产品，提供安全上传、大文
 
 ## 技术栈
 
-| 层级 | 技术 |
-| --- | --- |
-| 前端 | Next.js 14 App Router、React 18、TypeScript、Tailwind CSS |
-| 后端 | NestJS 10、Passport / JWT、class-validator |
-| 数据层 | PostgreSQL 16、Prisma ORM、Redis 7 |
-| 对象存储 | 七牛云 S3 兼容存储、AWS SDK v3 |
-| 基础设施 | Docker Compose、Nginx、standalone Next.js |
+| 层级     | 技术                                                      |
+| -------- | --------------------------------------------------------- |
+| 前端     | Next.js 14 App Router、React 18、TypeScript、Tailwind CSS |
+| 后端     | NestJS 10、Passport / JWT、class-validator                |
+| 数据层   | PostgreSQL 16、Prisma ORM、Redis 7                        |
+| 对象存储 | 七牛云 S3 兼容存储、AWS SDK v3                            |
+| 基础设施 | Docker Compose、Nginx、standalone Next.js                 |
 
 ## 架构总览
 
@@ -97,10 +97,10 @@ npm run dev
 
 以下账号仅用于本地开发和演示环境，生产环境必须通过环境变量修改：
 
-| 角色 | 邮箱 | 密码 |
-| --- | --- | --- |
-| 管理员 | `admin@example.com` | `admin123456` |
-| 普通演示用户 | `demo@example.com` | `demo123456` |
+| 角色         | 邮箱                | 密码          |
+| ------------ | ------------------- | ------------- |
+| 管理员       | `admin@example.com` | `admin123456` |
+| 普通演示用户 | `demo@example.com`  | `demo123456`  |
 
 管理员可访问 `/admin`。
 
@@ -114,11 +114,11 @@ GET /api/auth/providers
 
 ### 本地回调地址
 
-| Provider | Authorization URL | Callback URL |
-| --- | --- | --- |
-| GitHub | `http://localhost:3001/api/auth/github` | `http://localhost:3001/api/auth/github/callback` |
-| Google | `http://localhost:3001/api/auth/google` | `http://localhost:3001/api/auth/google/callback` |
-| WeChat | `http://localhost:3001/api/auth/wechat` | `http://localhost:3001/api/auth/wechat/callback` |
+| Provider | Authorization URL                       | Callback URL                                     |
+| -------- | --------------------------------------- | ------------------------------------------------ |
+| GitHub   | `http://localhost:3001/api/auth/github` | `http://localhost:3001/api/auth/github/callback` |
+| Google   | `http://localhost:3001/api/auth/google` | `http://localhost:3001/api/auth/google/callback` |
+| WeChat   | `http://localhost:3001/api/auth/wechat` | `http://localhost:3001/api/auth/wechat/callback` |
 
 ### 生产回调地址
 
@@ -168,3 +168,14 @@ docs/         架构、数据库、接口、部署文档
 - 生产环境必须替换所有示例密码。
 - OAuth `state` 使用 HttpOnly Cookie 校验，防止 CSRF。
 - 对象存储访问使用预签名 URL，不直接暴露长期凭证。
+
+## Phase 3 Upload Pipeline
+
+Local storage uses MinIO:
+
+- API console: <http://localhost:9001>
+- S3 endpoint: <http://localhost:9000>
+- Default credentials: `minioadmin` / `minioadmin`
+- Start dependencies: `docker compose -f docker-compose.dev.yml up -d`
+
+Upload features: direct upload, 8 MiB multipart, resume, SHA-256 instant upload, reference-counted deduplication, retry/backoff, quota reservation, session expiry, and BullMQ thumbnails. Backend tests: `cd server && npm test`. Frontend tests: `cd client && npm test`.

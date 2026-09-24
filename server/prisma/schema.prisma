@@ -4,7 +4,8 @@ datasource db {
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 enum Role {
@@ -39,10 +40,11 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  oauthAccounts OAuthAccount[]
-  files         File[]
-  quota         UserQuota?
-  apiKeys       ApiKey[]
+  oauthAccounts        OAuthAccount[]
+  quota                UserQuota?
+  apiKeys              ApiKey[]
+  ownedWorkspaces      Workspace[]       @relation("WorkspaceOwner")
+  workspaceMemberships WorkspaceMember[] @relation("WorkspaceMemberships")
 
   @@map("users")
 }
@@ -60,25 +62,206 @@ model OAuthAccount {
   @@map("oauth_accounts")
 }
 
+enum UploadMode {
+  direct
+  multipart
+}
+
+enum UploadStrategy {
+  normal
+  instant
+}
+
+enum UploadSessionStatus {
+  pending
+  uploading
+  merging
+  completed
+  failed
+  canceled
+  expired
+}
+
+enum UploadChunkStatus {
+  pending
+  uploaded
+  failed
+}
+
+enum ThumbnailStatus {
+  none
+  pending
+  processing
+  done
+  failed
+}
+
+enum StorageObjectStatus {
+  available
+  pending_delete
+  deleted
+}
+
+model Folder {
+  id          String   @id @default(uuid())
+  workspaceId String   @map("workspace_id")
+  parentId    String?  @map("parent_id")
+  name        String   @db.VarChar(255)
+  path        String   @db.VarChar(1024)
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace     Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent        Folder?         @relation("FolderTree", fields: [parentId], references: [id])
+  children      Folder[]        @relation("FolderTree")
+  files         File[]
+  UploadSession UploadSession[]
+
+  @@unique([workspaceId, parentId, name])
+  @@index([workspaceId, path])
+  @@map("folders")
+}
+
 model File {
-  id            String    @id @default(uuid())
-  userId        String    @map("user_id")
-  originalName  String    @map("original_name")
-  storageKey    String    @unique @map("storage_key")
-  urlKey        String    @unique @map("url_key")
-  fileSize      BigInt    @map("file_size")
-  mimeType      String    @map("mime_type")
-  isPrivate     Boolean   @default(false) @map("is_private")
-  viewCount     Int       @default(0) @map("view_count")
-  downloadCount Int       @default(0) @map("download_count")
-  uploadIp      String?   @map("upload_ip")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  deletedAt     DateTime? @map("deleted_at")
+  id               String    @id @default(uuid())
+  workspaceId      String    @map("workspace_id")
+  folderId         String?   @map("folder_id")
+  createdBy        String    @map("created_by")
+  updatedBy        String    @map("updated_by")
+  name             String    @db.VarChar(255)
+  mimeType         String    @map("mime_type") @db.VarChar(255)
+  extension        String?   @db.VarChar(32)
+  size             BigInt
+  hash             String?   @db.VarChar(128)
+  hashAlgorithm    String    @default("sha256") @map("hash_algorithm") @db.VarChar(16)
+  currentVersionId String?   @unique @map("current_version_id")
+  uploadSessionId  String?   @unique @map("upload_session_id")
+  urlKey           String    @unique @map("url_key")
+  visibility       String    @default("private")
+  deletedAt        DateTime? @map("deleted_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accessLogs AccessLog[]
+  workspace      Workspace      @relation(fields: [workspaceId], references: [id])
+  folder         Folder?        @relation(fields: [folderId], references: [id])
+  versions       FileVersion[]
+  currentVersion FileVersion?   @relation("CurrentFileVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  uploadSession  UploadSession? @relation(fields: [uploadSessionId], references: [id], onDelete: SetNull)
+  accessLogs     AccessLog[]
 
+  @@index([workspaceId, deletedAt, createdAt])
+  @@index([workspaceId, folderId, name])
   @@map("files")
+}
+
+model FileVersion {
+  id              String          @id @default(uuid())
+  fileId          String          @map("file_id")
+  versionNo       Int             @map("version_no")
+  storageKey      String          @map("storage_key") @db.VarChar(1024)
+  size            BigInt
+  hash            String?         @db.VarChar(128)
+  hashAlgorithm   String          @default("sha256") @map("hash_algorithm") @db.VarChar(16)
+  mimeType        String          @map("mime_type") @db.VarChar(255)
+  metadata        Json?
+  thumbnailKey    String?         @map("thumbnail_key") @db.VarChar(1024)
+  thumbnailStatus ThumbnailStatus @default(none) @map("thumbnail_status")
+  createdBy       String          @map("created_by")
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  file          File  @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  currentOfFile File? @relation("CurrentFileVersion")
+
+  @@unique([fileId, versionNo])
+  @@index([hash])
+  @@map("file_versions")
+}
+
+model StorageObject {
+  id             String              @id @default(uuid())
+  hashAlgorithm  String              @map("hash_algorithm") @db.VarChar(16)
+  hash           String              @db.VarChar(128)
+  size           BigInt
+  storageDriver  String              @map("storage_driver") @db.VarChar(32)
+  storageKey     String              @map("storage_key") @db.VarChar(1024)
+  referenceCount Int                 @default(0) @map("reference_count")
+  status         StorageObjectStatus @default(available)
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+
+  @@unique([storageDriver, hashAlgorithm, hash])
+  @@index([storageDriver, status])
+  @@map("storage_objects")
+}
+
+model UploadSession {
+  id               String              @id @default(uuid())
+  clientUploadId   String              @unique @map("client_upload_id")
+  workspaceId      String              @map("workspace_id")
+  folderId         String?             @map("folder_id")
+  createdBy        String              @map("created_by")
+  filename         String              @db.VarChar(255)
+  mimeType         String              @map("mime_type") @db.VarChar(255)
+  size             BigInt
+  hash             String?             @db.VarChar(128)
+  hashAlgorithm    String              @default("sha256") @map("hash_algorithm") @db.VarChar(16)
+  chunkSize        Int                 @map("chunk_size")
+  totalChunks      Int                 @map("total_chunks")
+  uploadedChunks   Int                 @default(0) @map("uploaded_chunks")
+  mode             UploadMode
+  strategy         UploadStrategy      @default(normal)
+  status           UploadSessionStatus @default(pending)
+  storageKey       String              @map("storage_key") @db.VarChar(1024)
+  providerUploadId String?             @map("provider_upload_id") @db.VarChar(255)
+  quotaReserved    BigInt              @default(0) @map("quota_reserved")
+  expiresAt        DateTime            @map("expires_at")
+  completedAt      DateTime?           @map("completed_at")
+  failureReason    String?             @map("failure_reason") @db.VarChar(1024)
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+
+  workspace Workspace     @relation(fields: [workspaceId], references: [id])
+  folder    Folder?       @relation(fields: [folderId], references: [id])
+  chunks    UploadChunk[]
+  file      File?
+
+  @@index([workspaceId, createdBy, status])
+  @@index([status, expiresAt])
+  @@map("upload_sessions")
+}
+
+model UploadChunk {
+  id              String            @id @default(uuid())
+  uploadSessionId String            @map("upload_session_id")
+  chunkIndex      Int               @map("chunk_index")
+  size            BigInt
+  etag            String?           @db.VarChar(255)
+  status          UploadChunkStatus @default(pending)
+  attemptCount    Int               @default(0) @map("attempt_count")
+  uploadedAt      DateTime?         @map("uploaded_at")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  session UploadSession @relation(fields: [uploadSessionId], references: [id], onDelete: Cascade)
+
+  @@unique([uploadSessionId, chunkIndex])
+  @@map("upload_chunks")
+}
+
+model WorkspaceQuota {
+  id           String   @id @default(uuid())
+  workspaceId  String   @unique @map("workspace_id")
+  totalSize    BigInt   @map("total_size")
+  usedSize     BigInt   @default(0) @map("used_size")
+  reservedSize BigInt   @default(0) @map("reserved_size")
+  maxFileSize  BigInt   @map("max_file_size")
+  maxFileCount Int      @default(100000) @map("max_file_count")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("workspace_quotas")
 }
 
 model UserQuota {
@@ -117,4 +300,110 @@ model AccessLog {
   file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
 
   @@map("access_logs")
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+  GUEST
+}
+
+enum WorkspaceStatus {
+  active
+  suspended
+}
+
+enum WorkspaceMemberStatus {
+  active
+  disabled
+}
+
+enum InvitationStatus {
+  pending
+  accepted
+  revoked
+  expired
+}
+
+model Workspace {
+  id            String          @id @default(uuid())
+  name          String          @db.VarChar(128)
+  slug          String          @unique @db.VarChar(64)
+  ownerId       String          @map("owner_id")
+  storageDriver String          @default("qiniu") @map("storage_driver") @db.VarChar(32)
+  status        WorkspaceStatus @default(active)
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  owner          User                  @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  members        WorkspaceMember[]
+  invitations    WorkspaceInvitation[]
+  auditLogs      AuditLog[]
+  files          File[]
+  folders        Folder[]
+  uploadSessions UploadSession[]
+  quota          WorkspaceQuota?
+
+  @@index([ownerId])
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String                @id @default(uuid())
+  workspaceId String                @map("workspace_id")
+  userId      String                @map("user_id")
+  role        WorkspaceRole
+  status      WorkspaceMemberStatus @default(active)
+  joinedAt    DateTime              @default(now()) @map("joined_at")
+  updatedAt   DateTime              @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation("WorkspaceMemberships", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+  @@map("workspace_members")
+}
+
+model WorkspaceInvitation {
+  id          String           @id @default(uuid())
+  workspaceId String           @map("workspace_id")
+  email       String           @db.VarChar(254)
+  role        WorkspaceRole
+  tokenHash   String           @unique @map("token_hash")
+  invitedBy   String           @map("invited_by")
+  status      InvitationStatus @default(pending)
+  expiresAt   DateTime         @map("expires_at")
+  acceptedAt  DateTime?        @map("accepted_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, email, status])
+  @@index([email])
+  @@map("workspace_invitations")
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  workspaceId  String?  @map("workspace_id")
+  actorId      String?  @map("actor_id")
+  action       String   @db.VarChar(64)
+  resourceType String   @map("resource_type") @db.VarChar(32)
+  resourceId   String   @map("resource_id") @db.VarChar(64)
+  ip           String?  @db.VarChar(64)
+  userAgent    String?  @map("user_agent") @db.VarChar(512)
+  requestId    String?  @map("request_id") @db.VarChar(64)
+  before       Json?
+  after        Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@index([workspaceId, actorId, createdAt])
+  @@index([workspaceId, resourceType, resourceId])
+  @@map("audit_logs")
 }
