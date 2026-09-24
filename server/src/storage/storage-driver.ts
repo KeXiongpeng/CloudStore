@@ -44,7 +44,7 @@ export interface StorageDriver {
     responseContentDisposition?: string,
     responseContentType?: string,
   ): Promise<string>;
-  getObject(key: string): Promise<GetObjectCommandOutput>;
+  getObject(key: string, range?: string): Promise<GetObjectCommandOutput>;
   getObjectForProcessing(key: string): Promise<Buffer>;
   putProcessedObject(key: string, body: Buffer, contentType: string): Promise<void>;
   createDirectPutUrl(input: DirectPutUrlInput): Promise<string>;

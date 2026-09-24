@@ -39,8 +39,8 @@ export class StorageService {
     );
   }
 
-  getObject(key: string): Promise<GetObjectCommandOutput> {
-    return this.driver.getObject(key);
+  getObject(key: string, range?: string): Promise<GetObjectCommandOutput> {
+    return this.driver.getObject(key, range);
   }
 
   headObject(key: string) {

@@ -92,8 +92,10 @@ export abstract class BaseS3StorageDriver implements StorageDriver {
     );
   }
 
-  async getObject(key: string): Promise<GetObjectCommandOutput> {
-    return this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+  async getObject(key: string, range?: string): Promise<GetObjectCommandOutput> {
+    return this.client.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key, ...(range ? { Range: range } : {}) }),
+    );
   }
 
   async headObject(key: string): Promise<HeadObjectResult | null> {

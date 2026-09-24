@@ -5,6 +5,7 @@ import {
   Param,
   Query,
   Req,
+  Res,
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
@@ -14,7 +15,7 @@ import { PermissionGuard, WorkspaceGuard } from '../workspaces';
 import { RequirePermission } from '../workspaces/decorators/require-permission.decorator';
 import { WorkspaceActor } from '../workspaces/decorators/workspace-actor.decorator';
 import { WorkspaceActorContext } from '../workspaces/types';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 
 @Controller('workspaces/:workspaceId/files')
 @UseGuards(JwtAuthGuard, WorkspaceGuard)
@@ -56,6 +57,23 @@ export class WorkspaceFilesController {
       fileId,
       mode === 'download' ? 'download' : 'preview',
       req.ip || (req.headers['x-forwarded-for'] as string) || 'unknown',
+    );
+  }
+
+  @Get(':fileId/content')
+  @UseGuards(PermissionGuard)
+  @RequirePermission('file:view')
+  content(
+    @WorkspaceActor() actor: WorkspaceActorContext,
+    @Param('fileId') fileId: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    return this.fileAccessService.streamContent(
+      actor,
+      fileId,
+      res,
+      req.headers.range as string | undefined,
     );
   }
 

@@ -1,4 +1,5 @@
-﻿import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { WorkspaceActorContext } from '../workspaces/types';
@@ -126,6 +127,34 @@ export class WorkspaceFilesService {
 
 export type WorkspaceFileAccessMode = 'preview' | 'download';
 
+function parseByteRange(
+  header: string | undefined,
+  size: number,
+): { start: number; end: number } | null {
+  if (!header || size <= 0) return null;
+  const match = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
+  if (!match) return null;
+  const [, rawStart, rawEnd] = match;
+  if (!rawStart && !rawEnd) return null;
+
+  let start: number;
+  let end: number;
+  if (!rawStart) {
+    const suffix = Number(rawEnd);
+    if (!suffix || suffix <= 0) return null;
+    start = Math.max(0, size - suffix);
+    end = size - 1;
+  } else {
+    start = Number(rawStart);
+    end = rawEnd ? Math.min(Number(rawEnd), size - 1) : size - 1;
+  }
+
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start > end || start >= size) {
+    return null;
+  }
+  return { start, end };
+}
+
 @Injectable()
 export class WorkspaceFileAccessService {
   constructor(
@@ -178,5 +207,49 @@ export class WorkspaceFileAccessService {
       size: Number(file.size),
       disposition: dispositionType,
     };
+  }
+
+  async streamContent(
+    actor: WorkspaceActorContext,
+    fileId: string,
+    res: Response,
+    rangeHeader?: string,
+  ) {
+    const file = await this.prisma.file.findFirst({
+      where: { id: fileId, workspaceId: actor.workspaceId, deletedAt: null },
+      include: { currentVersion: true },
+    });
+
+    if (!file?.currentVersion) throw new NotFoundException('FILE_NOT_FOUND');
+
+    const isTextLike =
+      file.mimeType.startsWith('text/') ||
+      ['application/json', 'application/xml', 'application/javascript'].some((type) =>
+        file.mimeType.startsWith(type),
+      );
+    const contentType = isTextLike ? `${file.mimeType}; charset=utf-8` : file.mimeType;
+    const range = parseByteRange(rangeHeader, Number(file.size));
+    const object = await this.storageService.getObject(
+      file.currentVersion.storageKey,
+      range ? `bytes=${range.start}-${range.end}` : undefined,
+    );
+
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Content-Type', contentType || 'application/octet-stream');
+    res.setHeader(
+      'Content-Disposition',
+      `inline; filename*=UTF-8''${encodeURIComponent(file.name)}`,
+    );
+
+    if (range && object.ContentRange) {
+      res.status(206);
+      res.setHeader('Content-Range', object.ContentRange);
+      res.setHeader('Content-Length', String(object.ContentLength ?? 0));
+    } else if (object.ContentLength !== undefined) {
+      res.setHeader('Content-Length', String(object.ContentLength));
+    }
+
+    const stream = object.Body as NodeJS.ReadableStream;
+    stream.pipe(res);
   }
 }

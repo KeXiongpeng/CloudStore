@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -25,7 +25,13 @@ export default function FilesPage() {
   const limit = 100;
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const blobUrlRef = useRef<string | null>(null);
+
   const closePreview = useCallback(() => {
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
+    }
     setPreviewFile(null);
     setPreviewUrl(null);
     setPreviewError(null);
@@ -39,10 +45,12 @@ export default function FilesPage() {
       setPreviewError(null);
       setPreviewLoading(true);
       try {
-        const response = await api.get(`/workspaces/${workspace.id}/files/${file.id}/access-url`, {
-          params: { mode: 'preview' },
+        const response = await api.get(`/workspaces/${workspace.id}/files/${file.id}/content`, {
+          responseType: 'blob',
         });
-        setPreviewUrl(response.data.url);
+        const blobUrl = URL.createObjectURL(response.data);
+        blobUrlRef.current = blobUrl;
+        setPreviewUrl(blobUrl);
       } catch (error) {
         console.error('\u83b7\u53d6\u9884\u89c8\u5931\u8d25:', error);
         setPreviewError('\u9884\u89c8\u52a0\u8f7d\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5');
@@ -309,7 +317,7 @@ export default function FilesPage() {
                   <div className="flex justify-center">
                     <button
                       type="button"
-                      onClick={() => window.open(previewUrl, '_blank', 'noopener,noreferrer')}
+                      onClick={() => previewFile && handleDownload(previewFile)}
                       className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700"
                     >
                       &#19979;&#36733;&#25991;&#20214;
