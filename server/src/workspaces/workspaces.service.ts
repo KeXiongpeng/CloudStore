@@ -5,9 +5,14 @@
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { WorkspaceActorContext } from './types';
 import { CreateWorkspaceDto, UpdateWorkspaceDto } from './dto/create-workspace.dto';
+
+const DEFAULT_WORKSPACE_NAME = '我的工作区';
+const DEFAULT_WORKSPACE_TOTAL_SIZE = BigInt(10 * 1024 * 1024 * 1024);
 
 @Injectable()
 export class WorkspacesService {
@@ -52,36 +57,69 @@ export class WorkspacesService {
       const slug = index === 0 ? baseSlug : `${baseSlug}-${index + 1}`;
       if (await this.prisma.workspace.findUnique({ where: { slug } })) continue;
 
-      return this.prisma.$transaction(async (tx) => {
-        const workspace = await tx.workspace.create({
-          data: { name: dto.name, slug, ownerId: userId, storageDriver: 'qiniu' },
-        });
-        await tx.workspaceMember.create({
-          data: { workspaceId: workspace.id, userId, role: 'OWNER' },
-        });
-        await tx.workspaceQuota.create({
-          data: {
-            workspaceId: workspace.id,
-            totalSize: BigInt(10 * 1024 * 1024 * 1024),
-            usedSize: BigInt(0),
-            reservedSize: BigInt(0),
-            maxFileSize: BigInt(10 * 1024 * 1024 * 1024),
-            maxFileCount: 100000,
-          },
-        });
-        return workspace;
-      });
+      return this.prisma.$transaction((tx) =>
+        this.createWorkspaceRecord(tx, userId, dto.name, slug),
+      );
     }
 
     throw new ConflictException('WORKSPACE_SLUG_EXHAUSTED');
   }
 
   async listWorkspaces(userId: string) {
-    return this.prisma.workspaceMember.findMany({
+    const listMemberships = () =>
+      this.prisma.workspaceMember.findMany({
+        where: { userId, status: 'active', workspace: { status: 'active' } },
+        include: { workspace: true },
+        orderBy: { joinedAt: 'asc' },
+      });
+
+    const memberships = await listMemberships();
+    if (memberships.length > 0) return memberships;
+
+    await this.ensureDefaultWorkspace(userId);
+    return listMemberships();
+  }
+
+  async ensureDefaultWorkspace(userId: string): Promise<void> {
+    const existing = await this.prisma.workspaceMember.findFirst({
       where: { userId, status: 'active', workspace: { status: 'active' } },
-      include: { workspace: true },
-      orderBy: { joinedAt: 'asc' },
     });
+    if (existing) return;
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const slug = `ws-${randomBytes(3).toString('hex')}`;
+      if (await this.prisma.workspace.findUnique({ where: { slug } })) continue;
+
+      await this.prisma.$transaction((tx) =>
+        this.createWorkspaceRecord(tx, userId, DEFAULT_WORKSPACE_NAME, slug),
+      );
+      return;
+    }
+  }
+
+  private async createWorkspaceRecord(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    name: string,
+    slug: string,
+  ) {
+    const workspace = await tx.workspace.create({
+      data: { name, slug, ownerId: userId, storageDriver: 'qiniu' },
+    });
+    await tx.workspaceMember.create({
+      data: { workspaceId: workspace.id, userId, role: 'OWNER' },
+    });
+    await tx.workspaceQuota.create({
+      data: {
+        workspaceId: workspace.id,
+        totalSize: DEFAULT_WORKSPACE_TOTAL_SIZE,
+        usedSize: BigInt(0),
+        reservedSize: BigInt(0),
+        maxFileSize: DEFAULT_WORKSPACE_TOTAL_SIZE,
+        maxFileCount: 100000,
+      },
+    });
+    return workspace;
   }
 
   async getWorkspace(actor: WorkspaceActorContext) {

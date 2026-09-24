@@ -1,9 +1,10 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
+import { WorkspacesService } from '../workspaces/workspaces.service';
 import { RedisService } from '../redis/redis.service';
 import * as bcrypt from 'bcryptjs';
 import { RegisterDto } from './dto/register.dto';
@@ -32,7 +33,10 @@ export class AuthService {
     private configService: ConfigService,
     private redisService: RedisService,
     private httpService: HttpService,
+    private readonly workspacesService: WorkspacesService,
   ) {}
+
+  private readonly logger = new Logger(AuthService.name);
 
   async register(dto: RegisterDto) {
     const existingUser = await this.prisma.user.findUnique({
@@ -58,6 +62,8 @@ export class AuthService {
         tier: 'free',
       },
     });
+
+    await this.bootstrapDefaultWorkspace(user.id);
 
     const tokens = await this.generateTokens(user.id, user.email, user.role);
     await this.storeRefreshToken(user.id, tokens.refresh_token);
@@ -273,6 +279,16 @@ export class AuthService {
     return { access_token, refresh_token };
   }
 
+  private async bootstrapDefaultWorkspace(userId: string) {
+    try {
+      await this.workspacesService.ensureDefaultWorkspace(userId);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to create default workspace for user ${userId}: ${(error as Error).message}`,
+      );
+    }
+  }
+
   private async storeRefreshToken(userId: string, refreshToken: string) {
     const refreshTokenTtl = this.configService.get<number>('jwt.refreshTokenTtl', 604800);
     await this.redisService.set(`user:${userId}:refresh`, refreshToken, refreshTokenTtl);
@@ -360,6 +376,8 @@ export class AuthService {
           tier: 'free',
         },
       });
+
+      await this.bootstrapDefaultWorkspace(newUser.id);
 
       userId = newUser.id;
     }

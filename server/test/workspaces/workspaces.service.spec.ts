@@ -104,3 +104,70 @@ describe('WorkspacesService.createWorkspace quota bootstrap', () => {
     );
   });
 });
+
+describe('WorkspacesService.ensureDefaultWorkspace', () => {
+  function buildService() {
+    const prisma: any = {
+      workspace: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({ id: 'workspace-1', slug: 'ws-abc123' }),
+      },
+      workspaceMember: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        findMany: jest.fn().mockResolvedValue([]),
+        create: jest.fn().mockResolvedValue({ id: 'member-1' }),
+      },
+      workspaceQuota: { create: jest.fn().mockResolvedValue({ id: 'quota-1' }) },
+      $transaction: jest.fn((fn: any) => fn(prisma)),
+    };
+    const moduleRef = Test.createTestingModule({
+      providers: [WorkspacesService, { provide: PrismaService, useValue: prisma }],
+    });
+    return moduleRef.compile().then((moduleRef) => ({
+      service: moduleRef.get(WorkspacesService) as WorkspacesService,
+      prisma,
+    }));
+  }
+
+  it('creates a default owned workspace for users without one', async () => {
+    const { service, prisma } = await buildService();
+
+    await service.ensureDefaultWorkspace('user-1');
+
+    expect(prisma.workspace.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        name: '我的工作区',
+        ownerId: 'user-1',
+        slug: expect.stringMatching(/^ws-[0-9a-f]{6}$/),
+      }),
+    });
+    expect(prisma.workspaceMember.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ userId: 'user-1', role: 'OWNER' }),
+    });
+    expect(prisma.workspaceQuota.create).toHaveBeenCalled();
+  });
+
+  it('is a no-op when the user already has an active workspace', async () => {
+    const { service, prisma } = await buildService();
+    prisma.workspaceMember.findFirst.mockResolvedValue({ id: 'member-1' });
+
+    await service.ensureDefaultWorkspace('user-1');
+
+    expect(prisma.workspace.create).not.toHaveBeenCalled();
+  });
+
+  it('bootstraps a default workspace from listWorkspaces when empty', async () => {
+    const { service, prisma } = await buildService();
+    prisma.workspaceMember.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        { id: 'member-2', role: 'OWNER', workspace: { id: 'workspace-1', status: 'active' } },
+      ]);
+
+    const result = await service.listWorkspaces('user-1');
+
+    expect(prisma.workspace.create).toHaveBeenCalled();
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ id: 'member-2', role: 'OWNER' });
+  });
+});
