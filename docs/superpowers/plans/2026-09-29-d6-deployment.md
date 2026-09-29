@@ -1,4 +1,4 @@
-# D6 部署上线实施计划
+﻿# D6 部署上线实施计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -36,7 +36,7 @@
 - [x] Run client tests, typecheck, and build.
 - [x] Scan staged changes for real secret patterns.
 - [x] Commit D1-D5 source, migrations, evaluation assets, and compose changes.
-- [ ] Push `feat/workspace-upload-pipeline` to `github.com/kexiongpeng/cloudstore`.
+- [x] Push `feat/workspace-upload-pipeline` to `github.com/kexiongpeng/cloudstore`.
 
 ### Task 2: Update product documentation
 
