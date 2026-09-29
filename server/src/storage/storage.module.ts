@@ -14,6 +14,7 @@ import { StorageService } from './storage.service';
       useFactory: (configService: ConfigService) => {
         const minio = new MinioStorageDriver({
           endpoint: configService.getOrThrow<string>('minio.endpoint'),
+          publicEndpoint: configService.get<string>('minio.publicEndpoint'),
           region: configService.get<string>('minio.region', 'us-east-1'),
           accessKey: configService.getOrThrow<string>('minio.accessKey'),
           secretKey: configService.getOrThrow<string>('minio.secretKey'),

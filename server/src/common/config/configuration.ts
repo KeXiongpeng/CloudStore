@@ -26,6 +26,7 @@ export const configuration = () => ({
   },
   minio: {
     endpoint: process.env.MINIO_ENDPOINT || 'http://localhost:9000',
+    publicEndpoint: process.env.MINIO_PUBLIC_ENDPOINT,
     region: process.env.MINIO_REGION || 'us-east-1',
     accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
     secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
@@ -99,6 +100,7 @@ export const configValidationSchema = Joi.object({
   QINIU_ENDPOINT: Joi.string().optional().default('https://s3.cn-east-1.qiniucs.com'),
   QINIU_CDN_DOMAIN: Joi.string().optional(),
   STORAGE_DRIVER: Joi.string().valid('minio', 'qiniu').required(),
+  MINIO_PUBLIC_ENDPOINT: Joi.string().uri().optional(),
   MINIO_ENDPOINT: Joi.string().uri().when('STORAGE_DRIVER', {
     is: 'minio',
     then: Joi.required(),

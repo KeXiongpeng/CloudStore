@@ -1,4 +1,4 @@
-﻿# D6 部署上线实施计划
+# D6 部署上线实施计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -57,7 +57,7 @@
 - [x] Update architecture document with pgvector, worker, RAG graph, SSE contract, and evaluation loop.
 - [x] Update deployment document with RAG env vars, backup-first migration, smoke tests, and rollback.
 - [x] Add D6 deployment design and implementation plan.
-- [ ] Commit documentation update.
+- [x] Commit documentation update.
 
 ### Task 3: Add local production rehearsal compose
 
@@ -74,12 +74,12 @@
 - Produces: optional API endpoint at `http://localhost:3200`
 - Produces: internal services `nestjs:3000`, `postgres:5432`, `redis:6379`, `minio:9000`
 
-- [ ] Define isolated project name and volumes.
-- [ ] Build server/client from local Dockerfiles.
-- [ ] Run API and `server-worker` together.
-- [ ] Map only rehearsal ports; do not attach production shared proxy.
-- [ ] Provide MinIO bucket initialization.
-- [ ] Validate `docker compose config`.
+- [x] Define isolated project name and volumes.
+- [x] Build server/client from local Dockerfiles.
+- [x] Run API and `server-worker` together.
+- [x] Map only rehearsal ports; do not attach production shared proxy.
+- [x] Provide MinIO bucket initialization.
+- [x] Validate `docker compose config`.
 
 ### Task 4: Local production build and rehearsal
 
@@ -92,17 +92,17 @@
 - Consumes: `docker-compose.prod-local.yml`
 - Produces: verified local production stack
 
-- [ ] Copy `.env.prod-local.example` to a local untracked rehearsal env.
-- [ ] Build server and client production images.
-- [ ] Start the prod-local stack.
-- [ ] Run `prisma migrate deploy`.
-- [ ] Confirm API, worker, frontend, PostgreSQL, Redis, and MinIO health.
-- [ ] Upload a small Markdown file and wait for `indexed`.
-- [ ] Ask a relevant question and verify SSE `sources → delta → done`.
-- [ ] Verify citation numbers are within sources.
-- [ ] Ask an irrelevant question and verify fallback without citations.
-- [ ] Ask in an empty workspace and verify zero sources / fallback.
-- [ ] Fix any production-only issue and repeat until smoke passes.
+- [x] Copy `.env.prod-local.example` to a local untracked rehearsal env.
+- [x] Build server and client production images.
+- [x] Start the prod-local stack.
+- [x] Run `prisma migrate deploy`.
+- [x] Confirm API, worker, frontend, PostgreSQL, Redis, and MinIO health.
+- [x] Upload a small Markdown file and wait for `indexed`.
+- [x] Ask a relevant question and verify SSE `sources → delta → done`.
+- [x] Verify citation numbers are within sources.
+- [x] Ask an irrelevant question and verify fallback without citations.
+- [x] Ask in an empty workspace and verify zero sources / fallback.
+- [x] Fix any production-only issue and repeat until smoke passes.
 
 ### Task 5: Publish incremented release images
 
@@ -197,3 +197,31 @@
 - [ ] Ensure architecture diagram reflects pgvector/RAG/worker topology.
 - [ ] Ensure deployment runbook includes backup, migration, rollback, and smoke tests.
 - [ ] Record any known issues or follow-up hardening tasks.
+
+### Local Production Rehearsal Evidence
+
+Date: 2026-09-29
+Compose: `docker-compose.prod-local.yml`
+Frontend: `http://localhost:3101`
+Optional API: `http://localhost:3200`
+
+Validation:
+
+- `docker compose config` passed。
+- 7 个 Prisma migrations 全部 applied。
+- `prisma migrate status` 显示 schema up to date。
+- Frontend returned 200，`/api/auth/providers` 通过 Next rewrite 返回 JSON。
+- API healthcheck 通过后，worker 才启动。
+- 上传 2 篇 Markdown 后均变为 indexed。
+- RAG SSE 顺序为 `sources → delta... → done`。
+- 多源检索返回 4 sources / 2 documents。
+- citations `4,2,1,3` 均在 source range 内。
+- 无关问题输出固定兜底。
+- 空 workspace sources 为 0 且输出兜底。
+- API-level smoke result: `pass=11/11 failures=0`。
+
+Production-only issues found and fixed:
+
+1. Production runner image omitted `tsconfig.json`, so `prisma:seed` failed. Added it to the server runner stage.
+2. MinIO direct-upload URLs used the container-internal hostname. Added `MINIO_PUBLIC_ENDPOINT` for browser-reachable signed URLs while keeping `MINIO_ENDPOINT` for server-side S3 operations.
+3. `GET /workspaces/:workspaceId/files` rejected omitted pagination query params. Replaced optional `ParseIntPipe` usage with explicit positive-integer validation and defaults.

@@ -27,14 +27,15 @@ export abstract class BaseS3StorageDriver implements StorageDriver {
   protected constructor(
     protected readonly client: S3Client,
     protected readonly bucket: string,
+    protected readonly presignClient: S3Client = client,
   ) {}
 
   protected presignPut(command: PutObjectCommand, expiresInSeconds: number) {
-    return getSignedUrl(this.client, command, { expiresIn: expiresInSeconds });
+    return getSignedUrl(this.presignClient, command, { expiresIn: expiresInSeconds });
   }
 
   protected presignUploadPart(command: UploadPartCommand, expiresInSeconds: number) {
-    return getSignedUrl(this.client, command, { expiresIn: expiresInSeconds });
+    return getSignedUrl(this.presignClient, command, { expiresIn: expiresInSeconds });
   }
 
   async createDirectPutUrl(input: DirectPutUrlInput): Promise<string> {

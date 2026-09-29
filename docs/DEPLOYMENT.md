@@ -1,4 +1,4 @@
-﻿# 部署说明
+# 部署说明
 
 ## 环境变量
 
@@ -66,6 +66,9 @@ MINIO_REGION=us-east-1
 MINIO_ACCESS_KEY=change-me
 MINIO_SECRET_KEY=change-me
 MINIO_BUCKET=cloudstore-prod
+# Browser-reachable endpoint used to sign direct upload / preview URLs.
+# Required when MINIO_ENDPOINT is only reachable inside the container network.
+MINIO_PUBLIC_ENDPOINT=https://minio.example.com
 ```
 
 `SILICONFLOW_API_KEY` 只用于 Embedding；`DEEPSEEK_API_KEY` 只用于 Chat / judge / rewrite，两者不能混用。

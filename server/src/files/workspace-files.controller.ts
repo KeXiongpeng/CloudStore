@@ -8,7 +8,7 @@ import {
   Req,
   Res,
   UseGuards,
-  ParseIntPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { WorkspaceFileAccessService, WorkspaceFilesService } from './workspace-files.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -31,10 +31,25 @@ export class WorkspaceFilesController {
   @RequirePermission('file:view')
   list(
     @WorkspaceActor() actor: WorkspaceActorContext,
-    @Query('page', new ParseIntPipe({ optional: true })) page: number = 1,
-    @Query('limit', new ParseIntPipe({ optional: true })) limit: number = 20,
+    @Query('page') pageInput: string | undefined = '1',
+    @Query('limit') limitInput: string | undefined = '20',
   ) {
+    const page = this.parsePositiveInteger(pageInput, 'page', 1);
+    const limit = this.parsePositiveInteger(limitInput, 'limit', 20);
     return this.filesService.list(actor, page, limit);
+  }
+
+  private parsePositiveInteger(
+    value: string | undefined,
+    name: string,
+    defaultValue: number,
+  ): number {
+    if (value === undefined || value === '') return defaultValue;
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      throw new BadRequestException(`${name} must be a positive integer`);
+    }
+    return parsed;
   }
 
   @Get('stats')
