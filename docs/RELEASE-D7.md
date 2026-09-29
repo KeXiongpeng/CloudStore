@@ -10,4 +10,6 @@
 - Client image ID: sha256:f0c501e14eb8ae6c426a7c7799a0afa5281e400dce29be8c7412801d2de558a7
 - Client ACR digest: sha256:f0c501e14eb8ae6c426a7c7799a0afa5281e400dce29be8c7412801d2de558a7
 - ACR status: client:v8 pushed; server:v11 push blocked by local Docker proxy outage
-- Deployment safety: production deploy not started; requires explicit user approval
+- Production deployment: completed 2026-09-29
+- Server image deployed via signed release tar because ACR push was blocked by local proxy
+- Production rollback images: server:v10 / client:v7

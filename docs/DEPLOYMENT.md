@@ -337,3 +337,20 @@ docker compose -f docker-compose.prod.yml exec -T postgres \
 7. 空知识库引导返回 action cards，且事件中不暴露 `workspaceId`。
 
 生产部署前仍必须重新备份生产数据库；本次改动只完成本地 prod-like，不包含生产发布。
+
+## Production D7 deployment record (2026-09-29)
+
+- Branch: `feat/d7-contextual-rag-ux`
+- Runtime commit: `c037a60`
+- Compose/config commit: `88773a3`
+- Images: `server:v11` / `client:v8`
+- Rollback images: `server:v10` / `client:v7`
+- Pre-deploy database backup: `backups/postgres-cloud_storage-pre-d7-20260929210241.sql`
+- Backup SHA256: `6677a24f594f305c67aa5e99c24261b0caf6bd94503fe09391252696c1dc6981`
+- Migration `20260929160000_chat_sessions`: applied successfully
+- Prisma migration status: database schema up to date
+- Frontend: `https://cloudstore.kxpwty.cn` returned HTTP 200
+- API: `/api/auth/providers` returned HTTP 200
+- Authenticated knowledge stats: HTTP 200
+- Production RAG SSE event order: `session → sources → actions → delta → done`
+- SSE payload did not expose `workspaceId`
