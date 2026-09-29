@@ -157,3 +157,11 @@ erDiagram
 ## Upload Pipeline Data Model
 
 Core entities: `WorkspaceQuota`, `Folder`, `UploadSession`, `UploadChunk`, `StorageObject`, `File`, and `FileVersion`. A session reserves quota before upload; completion moves reserved bytes to used bytes, while cancellation/expiry releases them. Chunks start at index 1 and retain ETag/status for resume. Files point to their current version; versions point to immutable storage keys. Deduplication is keyed by storage driver, algorithm, and lowercase SHA-256 hash. Session state flows through pending ? uploading ? merging ? completed/failed/canceled/expired.
+
+## D7 Chat History Data Model
+
+- `chat_sessions`：服务端会话事实源，绑定 `workspace_id + user_id`，索引 `(workspace_id, user_id, updated_at)`。
+- `chat_messages`：保存 `user/assistant` 纯文本正文；assistant 的 `sources` 写入 JSONB；索引 `(session_id, created_at)`。
+- 前端 localStorage 只做缓存；切 workspace 不复用其他 workspace 的 `serverSessionId`。
+- 加载 history 时只取最近 8-10 条并截断，不把 sources、HTML 或二进制内容塞回 prompt。
+- Migration: `20260929160000_chat_sessions`。

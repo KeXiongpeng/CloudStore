@@ -1,6 +1,6 @@
 import { AsyncEventQueue } from '../chat/rag/async-event-queue';
 import type { ChatStreamEvent } from '../chat/chat.service';
-import type { RagGraphState } from '../chat/rag/rag-state';
+import type { RagGraphStateData } from '../chat/rag/rag-state';
 import type { RagGraphService } from '../chat/rag/rag-graph.service';
 import type { TraceableSearchResult } from '../documents/documents.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -61,7 +61,7 @@ function createPrisma(options: {
   };
 }
 
-function createState(): RagGraphState {
+function createState(): RagGraphStateData {
   return {
     originalQuestion: 'question',
     currentQuery: 'question',
@@ -81,12 +81,15 @@ function createState(): RagGraphState {
 
 function createGraphService(
   script: Array<
-    (state: RagGraphState, queue: AsyncEventQueue<ChatStreamEvent>) => Promise<RagGraphState>
+    (
+      state: RagGraphStateData,
+      queue: AsyncEventQueue<ChatStreamEvent>,
+    ) => Promise<RagGraphStateData>
   >,
 ) {
   let call = 0;
   return {
-    run: jest.fn(async (state: RagGraphState, queue: AsyncEventQueue<ChatStreamEvent>) => {
+    run: jest.fn(async (state: RagGraphStateData, queue: AsyncEventQueue<ChatStreamEvent>) => {
       const action = script[Math.min(call, script.length - 1)]!;
       call += 1;
       const finalState = await action(state, queue);

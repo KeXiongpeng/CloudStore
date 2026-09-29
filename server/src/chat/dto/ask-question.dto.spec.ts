@@ -41,3 +41,23 @@ describe('AskQuestionDto', () => {
     expect(errors.some((error) => error.property === 'prompt')).toBe(true);
   });
 });
+describe('AskQuestionDto D7 session', () => {
+  it('accepts an optional server sessionId and keeps existing payload compatible', async () => {
+    const dto = plainToInstance(AskQuestionDto, {
+      question: '有多少问题',
+      sessionId: '0ea2f07b-5ff4-465d-a9e5-45d46cd672ef',
+      limit: 5,
+    });
+    const errors = await validate(dto);
+
+    expect(errors).toHaveLength(0);
+    expect(dto.sessionId).toBe('0ea2f07b-5ff4-465d-a9e5-45d46cd672ef');
+  });
+
+  it('rejects a malformed sessionId', async () => {
+    const dto = plainToInstance(AskQuestionDto, { question: '问题', sessionId: '../../session' });
+    const errors = await validate(dto);
+
+    expect(errors.some((error) => error.property === 'sessionId')).toBe(true);
+  });
+});

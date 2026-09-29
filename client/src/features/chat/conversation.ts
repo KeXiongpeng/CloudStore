@@ -1,10 +1,11 @@
-import type { ChatMessage, ChatSource } from './types';
+import type { ChatAction, ChatMessage, ChatSource } from './types';
 
 /** 一次回答在气泡里的生命周期。 */
 export type ChatMessageStatus = 'searching' | 'generating' | 'done' | 'error' | 'stopped';
 
 export type ChatConversationState = {
   messages: ChatMessage[];
+  sessionId?: string | null;
   /** 只保留正在请求的助手消息；done/error/stop 后清除。 */
   activeAssistantId: string | null;
 };
@@ -15,6 +16,8 @@ export type ChatConversationAction =
       userMessage: ChatMessage;
       assistantMessage: ChatMessage;
     }
+  | { type: 'session'; sessionId: string; title?: string }
+  | { type: 'actions'; messageId: string; actions: ChatAction[] }
   | { type: 'sources'; messageId: string; sources: ChatSource[] }
   | { type: 'delta'; messageId: string; content: string }
   | { type: 'done'; messageId: string }
@@ -24,7 +27,7 @@ export type ChatConversationAction =
   | { type: 'replace'; messages: ChatMessage[] };
 
 export function createInitialConversation(): ChatConversationState {
-  return { messages: [], activeAssistantId: null };
+  return { messages: [], activeAssistantId: null, sessionId: null };
 }
 
 function updateAssistantMessage(
@@ -50,9 +53,19 @@ export function conversationReducer(
   switch (action.type) {
     case 'askStart':
       return {
+        ...state,
         messages: [...state.messages, action.userMessage, action.assistantMessage],
         activeAssistantId: action.assistantMessage.id,
       };
+
+    case 'session':
+      return { ...state, sessionId: action.sessionId };
+
+    case 'actions':
+      return updateAssistantMessage(state, action.messageId, (message) => ({
+        ...message,
+        actions: action.actions,
+      }));
 
     case 'sources':
       return updateAssistantMessage(state, action.messageId, (message) => ({

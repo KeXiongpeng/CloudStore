@@ -325,3 +325,15 @@ docker compose -f docker-compose.prod.yml exec -T postgres \
 - [ ] 无关问题兜底；
 - [ ] 空 workspace 不泄露数据；
 - [ ] 旧镜像 tag 仍可用于回滚。
+
+## D7 prod-like rehearsal record (2026-09-29)
+
+1. 备份本地 prod-like 数据库：`backups/prod-local-pre-d7-chat-session.sql`。
+2. 重建本地 prod-like server/client 镜像。
+3. 执行 migration：`20260929160000_chat_sessions`。
+4. `GET /api/workspaces/:id/knowledge/stats` 未授权返回 401，授权返回 indexed/processing/failed/pending 统计。
+5. SSE 首问顺序：`session → sources → actions → delta → done`。
+6. 携带返回 `sessionId` 追问，最新 session 共 4 条消息（2 user + 2 assistant），确认第二轮复用同一 session。
+7. 空知识库引导返回 action cards，且事件中不暴露 `workspaceId`。
+
+生产部署前仍必须重新备份生产数据库；本次改动只完成本地 prod-like，不包含生产发布。

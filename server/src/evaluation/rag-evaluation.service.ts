@@ -4,7 +4,7 @@ import { AsyncEventQueue } from '../chat/rag/async-event-queue';
 import type { ChatStreamEvent } from '../chat/chat.service';
 import { NO_RELEVANT_SOURCE_FALLBACK } from '../chat/rag/rag-graph.factory';
 import { RagGraphService } from '../chat/rag/rag-graph.service';
-import type { RagGraphState } from '../chat/rag/rag-state';
+import type { RagGraphStateData } from '../chat/rag/rag-state';
 import { PrismaService } from '../prisma/prisma.service';
 import { calculateCaseMetrics, extractCitations } from './source-metrics';
 import { RagAnswerJudgeService } from './rag-answer-judge.service';
@@ -147,7 +147,7 @@ export class RagEvaluationService {
     evaluationCase: RagEvaluationCase,
     workspaceId: string,
   ): Promise<RagCaseRawResult> {
-    const initialState: RagGraphState = {
+    const initialState: RagGraphStateData = {
       originalQuestion: evaluationCase.question,
       currentQuery: evaluationCase.question,
       workspaceId,
@@ -161,13 +161,15 @@ export class RagEvaluationService {
       errorMessage: undefined,
       lastRewrittenQuery: undefined,
       answer: undefined,
+      toolCall: undefined,
+      fallbackKind: undefined,
     };
 
     const startedAt = performance.now();
     const queue = new AsyncEventQueue<ChatStreamEvent>();
     const runPromise = this.ragGraphService.run(initialState, queue);
     let answer = '';
-    let sources: RagGraphState['sources'] = [];
+    let sources: RagGraphStateData['sources'] = [];
     const eventOrder: string[] = [];
     let errorMessage: string | undefined;
 
@@ -188,7 +190,11 @@ export class RagEvaluationService {
 
     const finalState = await runPromise.catch(() => undefined);
     let behavior: RawCaseBehavior = errorMessage ? 'error' : 'answer';
-    if (!errorMessage && this.normalize(answer) === this.normalize(NO_RELEVANT_SOURCE_FALLBACK)) {
+    if (
+      !errorMessage &&
+      (finalState?.fallbackKind ||
+        this.normalize(answer) === this.normalize(NO_RELEVANT_SOURCE_FALLBACK))
+    ) {
       behavior = 'fallback';
     }
 

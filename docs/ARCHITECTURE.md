@@ -1,4 +1,4 @@
-﻿# 架构说明
+# 架构说明
 
 ## 总体架构
 
@@ -48,25 +48,25 @@ flowchart TB
 
 ## 模块职责
 
-| 模块                         | 职责                                                     |
-| ---------------------------- | -------------------------------------------------------- |
-| `client/src/app`             | 页面路由、SSR、公开预览、认证页、workspace 页面          |
-| `client/src/features/upload` | SHA-256、会话创建、直传/分片、重试、队列状态             |
-| `client/src/features/chat`   | POST SSE 解析、会话状态、引用展示、停止与重试            |
-| `client/src/lib/api.ts`      | Axios 实例、JWT 请求头、401 自动刷新                     |
-| `server/src/auth`            | 注册、登录、刷新令牌、OAuth、JWT 签发                    |
-| `server/src/users`           | 当前用户、昵称、密码、配额查询                           |
-| `server/src/files`           | workspace 文件列表、删除、reindex、内容访问、统计        |
-| `server/src/upload`          | 上传会话、秒传、分片、合并锁、配额确认                   |
-| `server/src/storage`         | MinIO / 七牛云驱动抽象和预签名 URL                       |
-| `server/src/queue`           | BullMQ 队列封装和幂等 job 管理                           |
-| `server/src/documents`       | 文本抽取、切块、Embedding、pgvector 检索、异步索引       |
-| `server/src/chat`            | SSE 契约、LangGraph RAG、相关性判断、query rewrite、兜底 |
-| `server/src/evaluation`      | 20 题评估集、answer judge、指标、JSON/Markdown 报告      |
-| `server/src/workspaces`      | workspace、成员、邀请、RBAC、审计上下文                  |
-| `server/src/public`          | 公开文件元信息、内容流、浏览 / 下载统计                  |
-| `server/src/admin`           | 用户管理、套餐调整、平台统计                             |
-| `server/prisma`              | 数据模型、迁移、seed                                     |
+| 模块                         | 职责                                                            |
+| ---------------------------- | --------------------------------------------------------------- |
+| `client/src/app`             | 页面路由、SSR、公开预览、认证页、workspace 页面                 |
+| `client/src/features/upload` | SHA-256、会话创建、直传/分片、重试、队列状态                    |
+| `client/src/features/chat`   | POST SSE 解析、会话状态、引用展示、停止与重试                   |
+| `client/src/lib/api.ts`      | Axios 实例、JWT 请求头、401 自动刷新                            |
+| `server/src/auth`            | 注册、登录、刷新令牌、OAuth、JWT 签发                           |
+| `server/src/users`           | 当前用户、昵称、密码、配额查询                                  |
+| `server/src/files`           | workspace 文件列表、删除、reindex、内容访问、统计               |
+| `server/src/upload`          | 上传会话、秒传、分片、合并锁、配额确认                          |
+| `server/src/storage`         | MinIO / 七牛云驱动抽象和预签名 URL                              |
+| `server/src/queue`           | BullMQ 队列封装和幂等 job 管理                                  |
+| `server/src/documents`       | 文本抽取、切块、Embedding、pgvector 检索、异步索引              |
+| `server/src/chat`            | 会话持久化、上下文改写、检索工具化、SSE/action、guided fallback |
+| `server/src/evaluation`      | 20 题评估集、answer judge、指标、JSON/Markdown 报告             |
+| `server/src/workspaces`      | workspace、成员、邀请、RBAC、审计上下文                         |
+| `server/src/public`          | 公开文件元信息、内容流、浏览 / 下载统计                         |
+| `server/src/admin`           | 用户管理、套餐调整、平台统计                                    |
+| `server/prisma`              | 数据模型、迁移、seed                                            |
 
 ## 知识库索引链路
 
@@ -100,25 +100,27 @@ sequenceDiagram
 - 同一 file version 内容哈希一致时跳过重复 Embedding。
 - 文件删除会同步删除 Document 与 chunks，避免已删除文件继续命中。
 
-## RAG 问答链路
+## RAG 问答链路（D7）
 
 ```mermaid
 flowchart TB
   B[浏览器提问] --> N[Next.js /api rewrite]
   N --> C[NestJS ChatController]
-  C --> G[WorkspaceGuard + PermissionGuard]
+  C --> O[ChatSession ownership 校验/写入]
   C --> R[RagGraphService]
   R --> S[StateGraph]
 
-  S --> RET[retrieve<br/>workspaceId 过滤 pgvector]
-  RET --> J[judge relevance]
-  J -->|relevant| GEN[generate]
+  S --> CO[condenseQuestion<br/>history → standalone query]
+  CO --> P[planToolUse<br/>search_knowledge_base]
+  P --> RET[searchKnowledgeBase<br/>服务端注入 workspaceId]
+  RET --> J[judge relevance + history summary]
+  J -->|relevant| GEN[generate + history]
   J -->|irrelevant + rewrite budget| RW[rewriteQuery]
   RW --> RET
-  J -->|irrelevant + no budget| FB[fallback]
+  J -->|irrelevant + no budget| FB[guided fallback + actions]
   RW -->|rewrite failed| FB
 
-  GEN --> SSE[SSE sources / delta / done]
+  GEN --> SSE[SSE sources / delta / actions / done]
   FB --> SSE
   RET -->|检索失败| ERR[SSE error]
 ```
@@ -126,19 +128,22 @@ flowchart TB
 ### 事件契约
 
 ```text
-正常回答：sources → delta... → done
-无资料兜底：sources → delta(固定兜底) → done
+多轮正常回答：session → sources → delta... → actions → done
+无资料兜底：session → sources → actions → delta(引导文案) → done
 检索失败：error
 生成失败：sources → 可能 delta → error
 ```
 
+D7 向后兼容：旧事件 `sources/delta/done/error` 的名称与载荷不变；`session` 和 `actions` 是追加事件，旧前端应忽略未知事件。
+
 约束：
 
-- SSE named event 固定为 `sources`、`delta`、`done`、`error`。
+- `ChatSession` 同时绑定 `workspaceId + userId`；跨 workspace/user 的 session 按不存在处理。
+- `workspaceId` 只由服务端注入检索工具，不进入 LLM tool 参数或生成 prompt。
+- 模型不生成可点击 `href`；action 由后端按知识库状态推导，前端只允许站内 `/...` 路径。
 - final sources、prompt `[1][2][3]`、前端引用列表使用同一数组顺序。
 - `maxRewrites = 1`，最多两次向量检索，避免无限循环。
-- workspaceId 为空时直接拒绝检索，不进入 pgvector。
-- LLM 只基于资料回答；资料不足时输出固定兜底。
+- history 只保留最近 8-10 条纯文本，单条最多 2000 字符，不保存 sources 到 history prompt。
 - 上游错误会转成用户可读错误，不暴露 API Key 或完整响应。
 
 ## 认证流程

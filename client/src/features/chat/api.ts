@@ -1,10 +1,11 @@
 import { getAccessToken } from '../../lib/auth';
 import { parseSseStream } from './sse';
-import type { ChatSseEvent } from './types';
+import type { ChatKnowledgeStats, ChatSseEvent } from './types';
 
 export type AskOptions = {
   workspaceId: string;
   question: string;
+  sessionId?: string;
   limit?: number;
   signal?: AbortSignal;
   onEvent: (event: ChatSseEvent) => void;
@@ -17,6 +18,7 @@ export type AskOptions = {
 export async function askKnowledgeBase({
   workspaceId,
   question,
+  sessionId,
   limit = 5,
   signal,
   onEvent,
@@ -30,7 +32,7 @@ export async function askKnowledgeBase({
       Accept: 'text/event-stream',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify({ question, limit }),
+    body: JSON.stringify(sessionId ? { question, limit, sessionId } : { question, limit }),
     signal,
   });
 
@@ -57,4 +59,13 @@ async function toReadableError(response: Response): Promise<string> {
     // 后端可能返回纯文本；落到通用错误即可。
   }
   return '请求失败，请稍后重试';
+}
+
+export async function fetchKnowledgeStats(workspaceId: string): Promise<ChatKnowledgeStats> {
+  const token = getAccessToken();
+  const response = await fetch(`/api/workspaces/${workspaceId}/knowledge/stats`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  if (!response.ok) throw new Error('知识库状态加载失败');
+  return (await response.json()) as ChatKnowledgeStats;
 }

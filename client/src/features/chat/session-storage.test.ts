@@ -3,6 +3,7 @@ import {
   clearActiveChatSession,
   loadChatSessions,
   saveChatSessions,
+  setActiveChatServerSession,
   upsertActiveChatSession,
 } from './session-storage';
 import type { ChatMessage } from './types';
@@ -21,7 +22,7 @@ describe('chat session storage', () => {
     vi.stubGlobal('localStorage', { getItem });
 
     expect(loadChatSessions('user-1')).toEqual({
-      version: 1,
+      version: 2,
       activeSessionId: null,
       sessions: [],
     });
@@ -84,5 +85,41 @@ describe('chat session storage', () => {
     expect(next.sessions).toEqual([]);
     expect(next.activeSessionId).toBeNull();
     expect(saveChatSessions('user-1', next)).toBeUndefined();
+  });
+});
+
+describe('chat session storage D7', () => {
+  it('preserves serverSessionId and workspace scope', () => {
+    const storage = {
+      version: 2 as const,
+      activeSessionId: 'local-1',
+      sessions: [
+        {
+          id: 'local-1',
+          title: 'SEO',
+          workspaceId: 'workspace-1',
+          serverSessionId: 'server-1',
+          createdAt: '',
+          updatedAt: '',
+          messages: [],
+        },
+      ],
+    };
+    vi.stubGlobal('localStorage', { getItem: vi.fn().mockReturnValue(JSON.stringify(storage)) });
+
+    expect(loadChatSessions('user-1', 'workspace-1')).toEqual(storage);
+    expect(loadChatSessions('user-1', 'workspace-2').sessions).toEqual([]);
+  });
+
+  it('stores a returned server session on the active local session', () => {
+    const storage = {
+      version: 2 as const,
+      activeSessionId: 'local-1',
+      sessions: [{ id: 'local-1', title: '当前', createdAt: '', updatedAt: '', messages: [] }],
+    };
+    const next = setActiveChatServerSession(storage, 'local-1', 'server-9');
+
+    expect(next.version).toBe(2);
+    expect(next.sessions[0]?.serverSessionId).toBe('server-9');
   });
 });

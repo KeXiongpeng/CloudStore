@@ -1,6 +1,6 @@
 import { AsyncEventQueue } from './async-event-queue';
 import { RagGraphService } from './rag-graph.service';
-import { type RagGraphState } from './rag-state';
+import { type RagGraphStateData } from './rag-state';
 import { type TraceableSearchResult } from '../../documents/documents.service';
 import type { ChatMessage } from '../llm.service';
 import type { ChatStreamEvent } from '../chat.service';
@@ -54,7 +54,7 @@ describe('RagGraphService final state telemetry', () => {
       dependencies.llmService as never,
     );
     const queue = new AsyncEventQueue<ChatStreamEvent>();
-    const initialState: RagGraphState = {
+    const initialState: RagGraphStateData = {
       originalQuestion: '问题',
       currentQuery: '问题',
       workspaceId: 'workspace-1',
@@ -93,7 +93,7 @@ describe('RagGraphService final state telemetry', () => {
       dependencies.llmService as never,
     );
     const queue = new AsyncEventQueue<ChatStreamEvent>();
-    const initialState: RagGraphState = {
+    const initialState: RagGraphStateData = {
       originalQuestion: '口语化问题',
       currentQuery: '口语化问题',
       workspaceId: 'workspace-1',

@@ -3,13 +3,15 @@ import type { ChatMessage } from './types';
 export type ChatSession = {
   id: string;
   title: string;
+  workspaceId?: string;
+  serverSessionId?: string;
   createdAt: string;
   updatedAt: string;
   messages: ChatMessage[];
 };
 
 export type ChatSessionStorage = {
-  version: 1;
+  version: 2;
   activeSessionId: string | null;
   sessions: ChatSession[];
 };
@@ -49,25 +51,35 @@ function deriveTitle(messages: ChatMessage[]): string {
   return title.length > 40 ? `${title.slice(0, 40)}...` : title;
 }
 
-export function loadChatSessions(userId: string): ChatSessionStorage {
+export function loadChatSessions(userId: string, workspaceId?: string): ChatSessionStorage {
   if (typeof localStorage === 'undefined') {
-    return { version: 1, activeSessionId: null, sessions: [] };
+    return { version: 2, activeSessionId: null, sessions: [] };
   }
 
   try {
     const raw = localStorage.getItem(chatStorageKey(userId));
-    if (!raw) return { version: 1, activeSessionId: null, sessions: [] };
+    if (!raw) return { version: 2, activeSessionId: null, sessions: [] };
 
-    const parsed = JSON.parse(raw) as Partial<ChatSessionStorage>;
-    if (parsed.version !== 1 || !Array.isArray(parsed.sessions)) {
-      return { version: 1, activeSessionId: null, sessions: [] };
+    const parsed = JSON.parse(raw) as {
+      version?: number;
+      activeSessionId?: unknown;
+      sessions?: unknown;
+    };
+    if ((parsed.version !== 1 && parsed.version !== 2) || !Array.isArray(parsed.sessions)) {
+      return { version: 2, activeSessionId: null, sessions: [] };
     }
 
     const sessions = parsed.sessions
       .filter((session): session is ChatSession => !!session && typeof session.id === 'string')
+      .filter(
+        (session) => !workspaceId || !session.workspaceId || session.workspaceId === workspaceId,
+      )
       .map((session) => ({
         id: session.id,
         title: typeof session.title === 'string' && session.title ? session.title : DEFAULT_TITLE,
+        workspaceId: typeof session.workspaceId === 'string' ? session.workspaceId : undefined,
+        serverSessionId:
+          typeof session.serverSessionId === 'string' ? session.serverSessionId : undefined,
         createdAt:
           typeof session.createdAt === 'string' ? session.createdAt : new Date().toISOString(),
         updatedAt:
@@ -82,10 +94,10 @@ export function loadChatSessions(userId: string): ChatSessionStorage {
         ? parsed.activeSessionId
         : null;
 
-    return { version: 1, activeSessionId, sessions };
+    return { version: 2, activeSessionId, sessions };
   } catch (error) {
     console.warn('[chat] failed to load chat sessions', error);
-    return { version: 1, activeSessionId: null, sessions: [] };
+    return { version: 2, activeSessionId: null, sessions: [] };
   }
 }
 
@@ -98,6 +110,7 @@ export function upsertActiveChatSession(
   storage: ChatSessionStorage,
   conversation: { messages: ChatMessage[] },
   activeSessionId: string,
+  workspaceId?: string,
 ): ChatSessionStorage {
   if (conversation.messages.length === 0) return storage;
 
@@ -106,6 +119,8 @@ export function upsertActiveChatSession(
   const session: ChatSession = {
     id: activeSessionId,
     title: deriveTitle(conversation.messages),
+    workspaceId: workspaceId ?? existing?.workspaceId,
+    serverSessionId: existing?.serverSessionId,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
     messages: conversation.messages,
@@ -113,8 +128,23 @@ export function upsertActiveChatSession(
 
   return {
     ...storage,
+    version: 2,
     activeSessionId,
     sessions: [session, ...storage.sessions.filter((session) => session.id !== activeSessionId)],
+  };
+}
+
+export function setActiveChatServerSession(
+  storage: ChatSessionStorage,
+  activeSessionId: string,
+  serverSessionId: string,
+): ChatSessionStorage {
+  return {
+    ...storage,
+    version: 2,
+    sessions: storage.sessions.map((session) =>
+      session.id === activeSessionId ? { ...session, serverSessionId } : session,
+    ),
   };
 }
 
@@ -124,6 +154,7 @@ export function clearActiveChatSession(
 ): ChatSessionStorage {
   return {
     ...storage,
+    version: 2,
     activeSessionId: null,
     sessions: storage.sessions.filter((session) => session.id !== sessionId),
   };

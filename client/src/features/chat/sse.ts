@@ -2,7 +2,7 @@ import type { ChatSseEvent } from './types';
 
 export type { ChatSseEvent };
 
-const SUPPORTED_EVENTS = new Set(['sources', 'delta', 'done', 'error']);
+const SUPPORTED_EVENTS = new Set(['session', 'sources', 'delta', 'actions', 'done', 'error']);
 
 /**
  * 解析后端 SSE 流。

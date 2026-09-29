@@ -114,6 +114,10 @@ describe('ChatService D4 StateGraph', () => {
       { type: 'sources', sources: finalSources },
       { type: 'delta', content: '第一段' },
       { type: 'delta', content: '，第二段' },
+      {
+        type: 'actions',
+        actions: [{ id: 'open-sources', type: 'openSources', label: '查看来源' }],
+      },
       { type: 'done', done: true },
     ]);
   });
@@ -133,11 +137,8 @@ describe('ChatService D4 StateGraph', () => {
 
     expect(events).toEqual([
       { type: 'sources', sources },
-      {
-        type: 'delta',
-        content:
-          '知识库中没有找到足够相关的资料，暂时无法回答这个问题。你可以换个说法，或先导入相关 Markdown 文档。',
-      },
+      { type: 'actions', actions: expect.any(Array) },
+      { type: 'delta', content: expect.stringContaining('相关片段') },
       { type: 'done', done: true },
     ]);
     expect(llmService.judgeRelevance).toHaveBeenCalledTimes(2);
@@ -173,7 +174,8 @@ describe('ChatService D4 StateGraph', () => {
     expect(llmService.judgeRelevance).toHaveBeenCalledTimes(1);
     expect(events).toEqual([
       { type: 'sources', sources },
-      expect.objectContaining({ type: 'delta' }),
+      { type: 'actions', actions: expect.any(Array) },
+      { type: 'delta', content: expect.stringContaining('相关片段') },
       { type: 'done', done: true },
     ]);
     expect(llmService.streamChat).not.toHaveBeenCalled();

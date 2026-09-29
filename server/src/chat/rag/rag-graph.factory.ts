@@ -4,11 +4,11 @@ import {
   type DocumentsService,
   type TraceableSearchResult,
 } from '../../documents/documents.service';
-import { type LlmService } from '../llm.service';
-import { type ChatStreamEvent } from '../chat.service';
-import { RagGraphState, type RagGraphStateUpdate } from './rag-state';
+import { type ChatHistoryMessage, type LlmService } from '../llm.service';
+import { type ChatAction, type ChatStreamEvent } from '../chat.service';
+import { type KnowledgeService } from '../knowledge.service';
+import { RagGraphState, type FallbackKind, type RagGraphStateUpdate } from './rag-state';
 
-/** 用户可见的固定兜底；和 D3 保持同一句话，避免前端文案回退。 */
 export const NO_RELEVANT_SOURCE_FALLBACK =
   '知识库中没有找到足够相关的资料，暂时无法回答这个问题。你可以换个说法，或先导入相关 Markdown 文档。';
 
@@ -17,26 +17,36 @@ const GENERATION_SYSTEM_PROMPT = [
   '',
   '规则：',
   '1. 只使用用户提供的资料回答问题。',
-  '2. 如果资料不足以回答，直接说明知识库中没有足够相关信息。',
-  '3. 回答使用简体中文。',
-  '4. 回答要简洁、准确、可执行。',
-  '5. 引用资料时使用 [1]、[2] 这样的编号。',
-  '6. 不要编造资料中不存在的内容。',
+  '2. 用户最新问题可能是对上一轮内容的追问；结合对话上下文理解意图，但答案仍必须来自资料。',
+  '3. 如果资料不足以回答，直接说明知识库中没有足够相关信息。',
+  '4. 回答使用简体中文。',
+  '5. 回答要简洁、准确、可执行。',
+  '6. 引用资料时使用 [1]、[2] 这样的编号。',
+  '7. 不要编造资料中不存在的内容。',
 ].join('\n');
 
-/**
- * 依赖对象是“图和外部世界”的边界。
- * documentsService/llmService 是能力，onEvent 是 SSE 副作用出口。
- * 这些依赖刻意不放进 RagGraphState，State 必须保持可序列化。
- */
 export type RagGraphDependencies = {
   documentsService: DocumentsService;
   llmService: LlmService;
+  knowledgeService?: KnowledgeService;
   onEvent: (event: ChatStreamEvent) => void;
 };
 
-/** 把 [1]/[2] 编号固定在 final sources 的数组顺序上；三个消费端共用这一个顺序。 */
-function buildGenerationMessages(question: string, sources: TraceableSearchResult[]) {
+function historySummary(history: ChatHistoryMessage[]): string {
+  return history
+    .slice(-6)
+    .map(
+      (message) => `${message.role === 'user' ? '用户' : '助手'}: ${message.content.slice(0, 500)}`,
+    )
+    .join('\n');
+}
+
+function buildGenerationMessages(
+  question: string,
+  query: string,
+  sources: TraceableSearchResult[],
+  history: ChatHistoryMessage[],
+) {
   const context = sources
     .map((source, index) => {
       const headingPath = Array.isArray(source.headingPath) ? source.headingPath.join(' > ') : '';
@@ -51,17 +61,24 @@ function buildGenerationMessages(question: string, sources: TraceableSearchResul
       ].join('\n');
     })
     .join('\n\n');
+  const priorConversation = historySummary(history);
 
   return [
     { role: 'system' as const, content: GENERATION_SYSTEM_PROMPT },
     {
       role: 'user' as const,
-      content: `知识库资料：\n\n${context}\n\n用户问题：\n${question}`,
+      content: [
+        priorConversation ? `对话上下文：\n${priorConversation}` : '',
+        `知识库资料：\n\n${context}`,
+        `用户最新问题：\n${question}`,
+        `检索 query：\n${query}`,
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
     },
   ];
 }
 
-/** 检索上游异常只映射为稳定、可操作的用户文案；不泄漏 Axios body 或 key。 */
 function toRetrievalErrorMessage(error: unknown): string {
   const status = (error as { response?: { status?: number } })?.response?.status;
   if (status === 402) return 'Embedding 服务余额不足，请充值或更换可用 API Key 后重试';
@@ -70,28 +87,121 @@ function toRetrievalErrorMessage(error: unknown): string {
   return '知识库检索失败，请稍后重试';
 }
 
-/**
- * 创建一次请求专属的 compiled graph。
- *
- * StateGraph 心智模型：
- * - State：所有节点共享的数据黑板；
- * - Node：接收 State、执行副作用/计算、返回 partial State；
- * - Edge：固定走向；Conditional Edge：读取 State 后动态选择下一个 Node。
- *
- * 这里没有给 compile() 传 checkpointer，所以图只在本次请求内存中执行。
- * Checkpoint 可以保存每个 super-step 后的 State，用于恢复/时间旅行/人工审批；
- * 当前聊天是短请求且前端已有 localStorage，引入持久化会增加租户隔离、清理和并发复杂度。
- */
+function fallbackContent(kind: FallbackKind, question: string, sourceCount: number): string {
+  if (kind === 'no_files') {
+    return '当前工作区还没有可问答的知识库文件。请先上传 Markdown、txt 或 PDF 文件，索引完成后再提问。';
+  }
+  if (kind === 'weak_sources') {
+    return `我在知识库里找到了 ${sourceCount} 个相关片段，但还不足以完整回答「${question}」。你可以查看来源确认线索；如果你能补充文件名、时间、产品名或章节名，我可以继续帮你整理。`;
+  }
+  return `我在当前知识库里没有找到与「${question}」直接相关的资料。你可以尝试：\n1. 补充文件名、时间、产品名或章节名；\n2. 上传包含该信息的文档；\n3. 换成更具体的问题。`;
+}
+
+function buildFallbackActions(
+  kind: FallbackKind,
+  hasSources: boolean,
+  stats?: { processing: number; failed: number },
+): ChatAction[] {
+  if (kind === 'no_files') {
+    return [
+      {
+        id: 'upload-knowledge',
+        type: 'navigate',
+        label: '上传知识库文件',
+        href: '/files?upload=1',
+      },
+      { id: 'open-files', type: 'navigate', label: '查看文件管理', href: '/files' },
+    ];
+  }
+  if (kind === 'weak_sources') {
+    return [
+      { id: 'open-sources', type: 'openSources', label: '查看来源' },
+      { id: 'upload-more', type: 'navigate', label: '上传补充资料', href: '/files?upload=1' },
+    ];
+  }
+  const actions: ChatAction[] = [
+    { id: 'open-files', type: 'navigate', label: '查看已索引文件', href: '/files' },
+  ];
+  if (stats && stats.processing > 0) {
+    actions.push({
+      id: 'view-processing',
+      type: 'navigate',
+      label: '查看索引进度',
+      href: '/files',
+    });
+  }
+  if (stats && stats.failed > 0) {
+    actions.push({
+      id: 'view-failed',
+      type: 'navigate',
+      label: '查看失败索引',
+      href: '/files?status=failed',
+    });
+  }
+  if (hasSources)
+    actions.unshift({ id: 'open-sources', type: 'openSources', label: '查看参考片段' });
+  actions.push({
+    id: 'upload-more',
+    type: 'navigate',
+    label: '上传补充资料',
+    href: '/files?upload=1',
+  });
+  return actions;
+}
+
+function normalizeSearchPlan(
+  plan: { action: string; query?: string; limit?: number },
+  question: string,
+): { query: string; limit: number } {
+  if (typeof plan.query !== 'string' || !plan.query.trim()) {
+    return { query: question, limit: 5 };
+  }
+  const rawLimit = typeof plan.limit === 'number' ? Math.trunc(plan.limit) : 5;
+  return { query: plan.query.trim().slice(0, 1000), limit: Math.min(10, Math.max(1, rawLimit)) };
+}
+
 export function createRagGraph(deps: RagGraphDependencies) {
   const logger = new Logger('RagGraph');
-  const { documentsService, llmService, onEvent } = deps;
+  const { documentsService, llmService, knowledgeService, onEvent } = deps;
 
-  /**
-   * retrieve：唯一允许访问 pgvector 的节点。
-   * workspaceId 显式传入，不依赖“别的模块可能已经查过权限”的隐式约定。
-   */
-  const retrieve = async (state: typeof RagGraphState.State): Promise<RagGraphStateUpdate> => {
-    // 防御空 workspace：上层 Guard 是权限边界，这里是数据隔离的最后一道闸。
+  const condenseQuestion = async (
+    state: typeof RagGraphState.State,
+  ): Promise<RagGraphStateUpdate> => {
+    if (state.history.length === 0) return {};
+    try {
+      const query = await llmService.condenseQuestion(state.history, state.originalQuestion);
+      return { currentQuery: query };
+    } catch (error) {
+      logger.warn(
+        `上下文问题改写失败，已保留原问题: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return {};
+    }
+  };
+
+  const planToolUse = async (state: typeof RagGraphState.State): Promise<RagGraphStateUpdate> => {
+    try {
+      const plan = await llmService.planSearchTool(state.originalQuestion, state.history);
+      if (plan.action !== 'search') return {};
+      const normalized = normalizeSearchPlan(plan, state.originalQuestion);
+      return {
+        currentQuery: normalized.query,
+        limit: normalized.limit,
+        toolCall: { name: 'search_knowledge_base', arguments: normalized },
+      };
+    } catch {
+      return {
+        toolCall: {
+          name: 'search_knowledge_base',
+          arguments: { query: state.originalQuestion, limit: state.limit },
+        },
+      };
+    }
+  };
+
+  const searchKnowledgeBase = async (
+    state: typeof RagGraphState.State,
+  ): Promise<RagGraphStateUpdate> => {
     if (!state.workspaceId.trim()) {
       const message = '知识库检索失败，请稍后重试';
       onEvent({ type: 'error', message });
@@ -104,7 +214,6 @@ export function createRagGraph(deps: RagGraphDependencies) {
         state.limit,
         state.workspaceId,
       );
-      // 每次检索都整体覆盖 sources。这样 final prompt、sources SSE、前端引用一定从同一数组重新编号。
       return { sources, errorMessage: undefined, retrieveCount: state.retrieveCount + 1 };
     } catch (error) {
       const message = toRetrievalErrorMessage(error);
@@ -117,34 +226,27 @@ export function createRagGraph(deps: RagGraphDependencies) {
     }
   };
 
-  /**
-   * judge：用非流式 LLM 做语义判断。
-   * Top K 相似不等于语义相关，所以即使 sources 非空也可能被判 irrelevant。
-   * judge 解析失败时安全降级：有资料按 D3 行为继续生成；没资料进入重写/兜底。
-   */
   const judge = async (state: typeof RagGraphState.State): Promise<RagGraphStateUpdate> => {
+    const summary = historySummary(state.history);
     if (state.sources.length === 0) {
       const judgeResult = await llmService
-        .judgeRelevance(state.originalQuestion, state.sources)
+        .judgeRelevance(state.originalQuestion, state.sources, summary)
         .catch(() => ({ relevance: 'irrelevant' as const, reason: '相关性判断失败' }));
       return judgeResult;
     }
 
     try {
-      const judgeResult = await llmService.judgeRelevance(state.originalQuestion, state.sources);
-      return {
-        relevance: judgeResult.relevance,
-        relevanceReason: judgeResult.reason,
-      };
+      const judgeResult = await llmService.judgeRelevance(
+        state.originalQuestion,
+        state.sources,
+        summary,
+      );
+      return { relevance: judgeResult.relevance, relevanceReason: judgeResult.reason };
     } catch {
-      return {
-        relevance: 'relevant',
-        relevanceReason: '相关性判断失败，按 D3 行为基于已有资料回答',
-      };
+      return { relevance: 'relevant', relevanceReason: '相关性判断失败，基于已有资料回答' };
     }
   };
 
-  /** judge 之后的三分支：相关生成；无关且预算未耗尽重写；否则兜底。 */
   const routeAfterJudge = (
     state: typeof RagGraphState.State,
   ): 'generate' | 'rewriteQuery' | 'fallback' => {
@@ -153,48 +255,46 @@ export function createRagGraph(deps: RagGraphDependencies) {
     return 'fallback';
   };
 
-  /** rewrite 后需要单独路由：失败时不能盲目用旧 query 再检索一次。 */
-  const routeAfterRewrite = (state: typeof RagGraphState.State): 'retrieve' | 'fallback' =>
-    state.lastRewrittenQuery ? 'retrieve' : 'fallback';
+  const routeAfterRewrite = (
+    state: typeof RagGraphState.State,
+  ): 'searchKnowledgeBase' | 'fallback' =>
+    state.lastRewrittenQuery ? 'searchKnowledgeBase' : 'fallback';
 
-  /**
-   * rewrite：成功则更新 currentQuery 并消耗预算；失败则不更新 lastRewrittenQuery。
-   * 后续 conditional edge 会读取 lastRewrittenQuery，决定进入 retrieve 还是 fallback。
-   */
   const rewriteQuery = async (state: typeof RagGraphState.State): Promise<RagGraphStateUpdate> => {
     const nextCount = state.rewriteCount + 1;
     try {
       const query = await llmService.rewriteQuery(state.originalQuestion, state.currentQuery);
-      return {
-        currentQuery: query,
-        rewriteCount: nextCount,
-        lastRewrittenQuery: query,
-      };
+      return { currentQuery: query, rewriteCount: nextCount, lastRewrittenQuery: query };
     } catch {
-      // 重写失败不要再用同一个 query 反复检索；直接耗尽预算，让条件路由进入 fallback。
-      return {
-        rewriteCount: state.maxRewrites,
-        relevanceReason: '查询重写失败，安全降级为兜底',
-      };
+      return { rewriteCount: state.maxRewrites, relevanceReason: '查询重写失败，安全降级为兜底' };
     }
   };
 
-  /**
-   * generate：图内仍然流式。
-   * 先发 final sources，再逐个转发 LLM delta，保证前端先渲染引用再接收正文。
-   */
+  const emitAnswerActions = (state: typeof RagGraphState.State): void => {
+    if (state.sources.length === 0) return;
+    onEvent({
+      type: 'actions',
+      actions: [{ id: 'open-sources', type: 'openSources', label: '查看来源' }],
+    });
+  };
+
   const generate = async (state: typeof RagGraphState.State): Promise<RagGraphStateUpdate> => {
     onEvent({ type: 'sources', sources: state.sources });
-    // answer 不用于等待整段返回，只是 State 中保留这次流式的完整结果，便于测试/调试。
     let answer = '';
 
     try {
       for await (const content of llmService.streamChat(
-        buildGenerationMessages(state.originalQuestion, state.sources),
+        buildGenerationMessages(
+          state.originalQuestion,
+          state.currentQuery,
+          state.sources,
+          state.history,
+        ),
       )) {
         answer += content;
         onEvent({ type: 'delta', content });
       }
+      emitAnswerActions(state);
       onEvent({ type: 'done', done: true });
       return { answer };
     } catch (error) {
@@ -202,7 +302,6 @@ export function createRagGraph(deps: RagGraphDependencies) {
         `LLM 生成失败: ${error instanceof Error ? error.message : String(error)}`,
         error instanceof Error ? error.stack : undefined,
       );
-      // 已经发出的 delta 可以保留；error 后不补 done，D3 前端会把状态切换为可重试。
       onEvent({
         type: 'error',
         message: error instanceof Error ? error.message : '生成失败，请稍后重试',
@@ -211,31 +310,46 @@ export function createRagGraph(deps: RagGraphDependencies) {
     }
   };
 
-  /**
-   * fallback：不调用生成模型，避免无证据编造。
-   * 如果二次检索拿到了相似但被 judge 判为无关的片段，仍把该片段作为 final sources 发出，方便用户检查判断依据。
-   */
   const fallback = async (state: typeof RagGraphState.State): Promise<RagGraphStateUpdate> => {
+    let stats: Awaited<ReturnType<KnowledgeService['getStats']>> | undefined;
+    try {
+      stats = await knowledgeService?.getStats({ workspaceId: state.workspaceId });
+    } catch (error) {
+      logger.warn(`获取知识库状态失败: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    const kind: FallbackKind =
+      state.sources.length > 0
+        ? 'weak_sources'
+        : !stats || stats.indexableFiles === 0
+          ? 'no_files'
+          : 'no_result';
+    const content = fallbackContent(kind, state.originalQuestion, state.sources.length);
     onEvent({ type: 'sources', sources: state.sources });
-    onEvent({ type: 'delta', content: NO_RELEVANT_SOURCE_FALLBACK });
+    onEvent({
+      type: 'actions',
+      actions: buildFallbackActions(kind, state.sources.length > 0, stats),
+    });
+    onEvent({ type: 'delta', content });
     onEvent({ type: 'done', done: true });
-    return { answer: NO_RELEVANT_SOURCE_FALLBACK };
+    return { answer: content, fallbackKind: kind };
   };
 
-  return (
-    new StateGraph(RagGraphState)
-      .addNode('retrieve', retrieve)
-      .addNode('judge', judge)
-      .addNode('rewriteQuery', rewriteQuery)
-      .addNode('generate', generate)
-      .addNode('fallback', fallback)
-      .addEdge(START, 'retrieve')
-      // retrieve 失败时直接结束，已经发过 error，绝不能继续 judge/generate。
-      .addConditionalEdges('retrieve', (state) => (state.errorMessage ? END : 'judge'))
-      .addConditionalEdges('judge', routeAfterJudge)
-      .addConditionalEdges('rewriteQuery', routeAfterRewrite)
-      .addEdge('generate', END)
-      .addEdge('fallback', END)
-      .compile()
-  );
+  return new StateGraph(RagGraphState)
+    .addNode('condenseQuestion', condenseQuestion)
+    .addNode('planToolUse', planToolUse)
+    .addNode('searchKnowledgeBase', searchKnowledgeBase)
+    .addNode('judge', judge)
+    .addNode('rewriteQuery', rewriteQuery)
+    .addNode('generate', generate)
+    .addNode('fallback', fallback)
+    .addEdge(START, 'condenseQuestion')
+    .addEdge('condenseQuestion', 'planToolUse')
+    .addEdge('planToolUse', 'searchKnowledgeBase')
+    .addConditionalEdges('searchKnowledgeBase', (state) => (state.errorMessage ? END : 'judge'))
+    .addConditionalEdges('judge', routeAfterJudge)
+    .addConditionalEdges('rewriteQuery', routeAfterRewrite)
+    .addEdge('generate', END)
+    .addEdge('fallback', END)
+    .compile();
 }

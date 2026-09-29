@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useWorkspaceStore } from '@/features/workspace/store';
-import { askKnowledgeBase } from './api';
+import { askKnowledgeBase, fetchKnowledgeStats } from './api';
 import {
   conversationReducer,
   createInitialConversation,
@@ -14,13 +15,15 @@ import {
   clearActiveChatSession,
   loadChatSessions,
   saveChatSessions,
+  setActiveChatServerSession,
   upsertActiveChatSession,
   type ChatSession,
 } from './session-storage';
-import type { ChatMessage } from './types';
+import type { ChatAction, ChatKnowledgeStats, ChatMessage } from './types';
+import { useUploadQueue } from '@/features/upload/store';
 
 const STATUS_TEXT: Record<ChatMessageStatus, string> = {
-  searching: '正在向量化并检索知识库...',
+  searching: '正在规划检索并查询知识库...',
   generating: '正在生成回答...',
   done: '回答完成',
   error: '回答失败',
@@ -32,6 +35,10 @@ let idSeed = 0;
 function createId(prefix: 'user' | 'assistant' | 'session') {
   idSeed += 1;
   return `${prefix}-${Date.now()}-${idSeed}`;
+}
+
+function isSafeInternalHref(href: string | undefined): href is string {
+  return typeof href === 'string' && href.startsWith('/') && !href.startsWith('//');
 }
 
 function ThinkingDots({ label }: { label: string }) {
@@ -59,9 +66,88 @@ function AssistantAvatar() {
   );
 }
 
+function KnowledgeStatusBar({
+  workspaceName,
+  stats,
+  error,
+  onRefresh,
+}: {
+  workspaceName?: string;
+  stats: ChatKnowledgeStats | null;
+  error: string | null;
+  onRefresh: () => void;
+}) {
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+      <div className="min-w-0 text-sm">
+        <div className="font-medium text-gray-900 dark:text-white">
+          知识库状态{workspaceName ? ` · ${workspaceName}` : ''}
+        </div>
+        {error ? (
+          <div className="mt-1 text-xs text-amber-600 dark:text-amber-300">{error}</div>
+        ) : !stats ? (
+          <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">正在加载...</div>
+        ) : (
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-600 dark:text-gray-300">
+            <span>{stats.indexed} indexed</span>
+            <span>{stats.processing} processing</span>
+            <span>{stats.failed} failed</span>
+            <span>{stats.pending} pending</span>
+            <span>{stats.unsupported} 个文件不进入知识库</span>
+            {stats.totalFiles === 0 && <span className="text-blue-600">还没有可问答文件</span>}
+          </div>
+        )}
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          onClick={onRefresh}
+          className="rounded-xl border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+        >
+          刷新
+        </button>
+
+        <a
+          href="/files"
+          className="rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+        >
+          文件与知识库
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function AssistantActions({
+  actions,
+  onAction,
+}: {
+  actions: ChatAction[] | undefined;
+  onAction: (action: ChatAction) => void;
+}) {
+  if (!actions?.length) return null;
+
+  return (
+    <div className="mt-4 flex flex-wrap gap-2">
+      {actions.map((action) => (
+        <button
+          key={action.id}
+          type="button"
+          onClick={() => onAction(action)}
+          className="rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200 dark:hover:bg-blue-900"
+        >
+          {action.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export default function ChatPanel() {
   const { user, loading: authLoading } = useAuth();
   const workspace = useWorkspaceStore((state) => state.currentWorkspace);
+  const workspaceId = workspace?.id;
+  const router = useRouter();
 
   const [conversation, dispatch] = useReducer(
     conversationReducer,
@@ -70,8 +156,11 @@ export default function ChatPanel() {
   );
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string>('');
+  const [serverSessionId, setServerSessionId] = useState<string>('');
   const [sessionsLoaded, setSessionsLoaded] = useState(false);
   const [question, setQuestion] = useState('');
+  const [stats, setStats] = useState<ChatKnowledgeStats | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const outputRef = useRef<HTMLDivElement | null>(null);
 
@@ -82,51 +171,86 @@ export default function ChatPanel() {
   const isBusy =
     activeAssistant?.status === 'searching' || activeAssistant?.status === 'generating';
 
+  const refreshStats = useCallback(async () => {
+    if (!workspaceId) {
+      setStats(null);
+      setStatsError(null);
+      return;
+    }
+    try {
+      const nextStats = await fetchKnowledgeStats(workspaceId);
+      setStats(nextStats);
+      setStatsError(null);
+    } catch {
+      setStatsError('知识库状态加载失败，请稍后刷新');
+    }
+  }, [workspaceId]);
+
   useEffect(() => {
     outputRef.current?.scrollTo({ top: outputRef.current.scrollHeight });
   }, [messages]);
 
-  // 用户变化时加载该浏览器账号下的本地会话；历史里的进行中请求会被标记为停止。
   useEffect(() => {
     if (authLoading || !user?.id) return;
-    const storage = loadChatSessions(user.id);
+    if (!workspaceId) {
+      setSessions([]);
+      setActiveSessionId('');
+      setServerSessionId('');
+      dispatch({ type: 'reset' });
+      setSessionsLoaded(true);
+      return;
+    }
+
+    const storage = loadChatSessions(user.id, workspaceId);
     const activeId = storage.activeSessionId ?? createId('session');
+    const active = storage.sessions.find((session) => session.id === activeId);
     setSessions(storage.sessions);
     setActiveSessionId(activeId);
-
-    const active = storage.sessions.find((session) => session.id === activeId);
+    setServerSessionId(active?.serverSessionId ?? '');
     dispatch({ type: 'replace', messages: active?.messages ?? [] });
     setSessionsLoaded(true);
-  }, [authLoading, user?.id]);
+  }, [authLoading, user?.id, workspaceId]);
 
-  // 气泡变化时持久化当前会话。仅保存非空会话，避免存一堆空白记录。
   useEffect(() => {
     if (!sessionsLoaded || !user?.id || !activeSessionId) return;
-    const base = loadChatSessions(user.id);
-    const next = upsertActiveChatSession(base, conversation, activeSessionId);
+    const base = loadChatSessions(user.id, workspaceId);
+    const next = upsertActiveChatSession(base, conversation, activeSessionId, workspaceId);
     setSessions(next.sessions);
     saveChatSessions(user.id, next);
-  }, [activeSessionId, conversation, sessionsLoaded, user?.id]);
+  }, [activeSessionId, conversation, sessionsLoaded, user?.id, workspaceId]);
+
+  useEffect(() => {
+    void refreshStats();
+  }, [refreshStats]);
+
+  useEffect(() => {
+    let previousCompleted = 0;
+    return useUploadQueue.subscribe((state) => {
+      const completed = state.items.filter((item) => item.status === 'completed').length;
+      if (completed > previousCompleted) void refreshStats();
+      previousCompleted = completed;
+    });
+  }, [refreshStats]);
 
   const ask = useCallback(
     async (nextQuestion: string) => {
       const normalizedQuestion = nextQuestion.trim();
-      if (!normalizedQuestion || !workspace?.id || activeAssistantId) return;
+      if (!normalizedQuestion || !workspaceId || activeAssistantId) return;
 
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
 
-      const userMessage: ChatMessage = {
+      const userMessage = {
         id: createId('user'),
-        role: 'user',
+        role: 'user' as const,
         content: normalizedQuestion,
       };
-      const assistantMessage: ChatMessage = {
+      const assistantMessage = {
         id: createId('assistant'),
-        role: 'assistant',
+        role: 'assistant' as const,
         content: '',
-        status: 'searching',
+        status: 'searching' as const,
         sources: [],
         retryQuestion: normalizedQuestion,
       };
@@ -139,17 +263,37 @@ export default function ChatPanel() {
 
       try {
         await askKnowledgeBase({
-          workspaceId: workspace.id,
+          workspaceId,
           question: normalizedQuestion,
+          sessionId: serverSessionId || undefined,
           limit: 5,
           signal: controller.signal,
           onEvent: (event) => {
+            if (event.type === 'session') {
+              setServerSessionId(event.session.id);
+              dispatch({
+                type: 'session',
+                sessionId: event.session.id,
+                title: event.session.title,
+              });
+              if (user?.id && activeSessionId) {
+                const base = loadChatSessions(user.id, workspaceId);
+                const next = setActiveChatServerSession(base, activeSessionId, event.session.id);
+                setSessions(next.sessions);
+                saveChatSessions(user.id, next);
+              }
+              return;
+            }
             if (event.type === 'sources') {
               dispatch({ type: 'sources', messageId: assistantId, sources: event.sources });
               return;
             }
             if (event.type === 'delta') {
               dispatch({ type: 'delta', messageId: assistantId, content: event.content });
+              return;
+            }
+            if (event.type === 'actions') {
+              dispatch({ type: 'actions', messageId: assistantId, actions: event.actions });
               return;
             }
             if (event.type === 'done') {
@@ -179,51 +323,80 @@ export default function ChatPanel() {
         });
       } finally {
         if (abortRef.current === controller) abortRef.current = null;
+        if (stats?.processing) void refreshStats();
       }
     },
-    [activeAssistantId, workspace?.id],
+    [
+      activeAssistantId,
+      activeSessionId,
+      refreshStats,
+      serverSessionId,
+      stats?.processing,
+      user?.id,
+      workspaceId,
+    ],
+  );
+
+  const handleAction = useCallback(
+    (action: ChatAction) => {
+      if (action.type === 'openSources') {
+        outputRef.current?.scrollTo({ top: outputRef.current.scrollHeight });
+        return;
+      }
+      if (isSafeInternalHref(action.href)) router.push(action.href);
+    },
+    [router],
   );
 
   const stop = useCallback(() => abortRef.current?.abort(), []);
 
   const startNewSession = useCallback(() => {
     if (isBusy || !user?.id || !activeSessionId) return;
-    let storage = upsertActiveChatSession(loadChatSessions(user.id), conversation, activeSessionId);
+    let storage = upsertActiveChatSession(
+      loadChatSessions(user.id, workspaceId),
+      conversation,
+      activeSessionId,
+      workspaceId,
+    );
     const sessionId = createId('session');
     storage = { ...storage, activeSessionId: sessionId };
     setSessions(storage.sessions);
     setActiveSessionId(sessionId);
+    setServerSessionId('');
     saveChatSessions(user.id, storage);
     dispatch({ type: 'reset' });
-  }, [activeAssistantId, activeSessionId, conversation, isBusy, user?.id]);
+  }, [activeAssistantId, activeSessionId, conversation, isBusy, user?.id, workspaceId]);
 
   const clearActiveSession = useCallback(() => {
     if (isBusy || !user?.id || !activeSessionId) return;
-    const storage = clearActiveChatSession(loadChatSessions(user.id), activeSessionId);
+    const storage = clearActiveChatSession(loadChatSessions(user.id, workspaceId), activeSessionId);
     const sessionId = createId('session');
     const next = { ...storage, activeSessionId: sessionId };
     setSessions(next.sessions);
     setActiveSessionId(sessionId);
+    setServerSessionId('');
     saveChatSessions(user.id, next);
     dispatch({ type: 'reset' });
-  }, [activeAssistantId, activeSessionId, isBusy, user?.id]);
+  }, [activeAssistantId, activeSessionId, isBusy, user?.id, workspaceId]);
 
   const switchSession = useCallback(
     (sessionId: string) => {
       if (isBusy || sessionId === activeSessionId) return;
       let storage = upsertActiveChatSession(
-        loadChatSessions(user?.id ?? ''),
+        loadChatSessions(user?.id ?? '', workspaceId),
         conversation,
         activeSessionId,
+        workspaceId,
       );
       storage = { ...storage, activeSessionId: sessionId };
+      const target = storage.sessions.find((session) => session.id === sessionId);
       setSessions(storage.sessions);
       setActiveSessionId(sessionId);
-      const target = storage.sessions.find((session) => session.id === sessionId);
+      setServerSessionId(target?.serverSessionId ?? '');
       dispatch({ type: 'replace', messages: target?.messages ?? [] });
       if (user?.id) saveChatSessions(user.id, storage);
     },
-    [activeAssistantId, activeSessionId, conversation, isBusy, user?.id],
+    [activeAssistantId, activeSessionId, conversation, isBusy, user?.id, workspaceId],
   );
 
   const submit = () => void ask(question);
@@ -285,6 +458,15 @@ export default function ChatPanel() {
         </div>
       )}
 
+      {workspace && (
+        <KnowledgeStatusBar
+          workspaceName={workspace.name}
+          stats={stats}
+          error={statsError}
+          onRefresh={() => void refreshStats()}
+        />
+      )}
+
       <div
         ref={outputRef}
         className="min-h-0 flex-1 space-y-5 overflow-y-auto py-5"
@@ -329,7 +511,9 @@ export default function ChatPanel() {
                 {(message.sources?.length ?? 0) > 0 && (
                   <section className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950">
                     <h3 className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                      引用来源（{message.sources?.length}）
+                      {message.actions?.some((action) => action.label === '查看参考片段')
+                        ? '参考片段（不足以直接回答）'
+                        : `引用来源（${message.sources?.length}）`}
                     </h3>
                     <ol className="mt-2 space-y-2">
                       {message.sources?.map((source, index) => (
@@ -350,6 +534,8 @@ export default function ChatPanel() {
                     </ol>
                   </section>
                 )}
+
+                <AssistantActions actions={message.actions} onAction={handleAction} />
 
                 {message.status === 'error' && (
                   <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">

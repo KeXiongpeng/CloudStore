@@ -427,3 +427,45 @@ All routes require JWT, workspace membership, and `file:upload`.
 - `POST /api/workspaces/:workspaceId/folders/ensure` ? create nested folder path.
 
 Key errors: `UPLOAD_SESSION_NOT_FOUND`, `UPLOAD_SESSION_EXPIRED`, `UPLOAD_SESSION_ALREADY_COMPLETED`, `UPLOAD_CHUNK_INVALID`, `UPLOAD_INSTANT_NOT_AVAILABLE`, `WORKSPACE_QUOTA_EXCEEDED`.
+
+## D7 Knowledge Chat
+
+### POST /api/workspaces/:workspaceId/chat
+
+请求仍兼容旧字段：
+
+```json
+{ "question": "有多少问题", "limit": 5 }
+```
+
+D7 可选携带服务端会话：
+
+```json
+{ "sessionId": "uuid", "question": "有多少问题", "limit": 5 }
+```
+
+- 不传 `sessionId` 时，后端为当前登录用户创建新会话。
+- `sessionId` 必须同时属于当前用户和当前 workspace。
+- 响应是 POST SSE。旧事件 `sources/delta/done/error` 不变。
+- D7 追加：`session` 返回 `{ id, title }`；`actions` 返回后端推导的站内动作。
+- 正常顺序可为 `session → sources → delta... → actions → done`。
+- 模型输出不会成为 `href`；action 只能是后端硬编码的站内路径或 `openSources`。
+
+### GET /api/workspaces/:workspaceId/knowledge/stats
+
+返回当前 workspace 文件与知识库索引统计：
+
+```json
+{
+  "totalFiles": 12,
+  "indexableFiles": 8,
+  "indexed": 6,
+  "processing": 1,
+  "pending": 0,
+  "failed": 1,
+  "unsupported": 4,
+  "lastIndexedAt": "2026-09-29T07:00:00.000Z"
+}
+```
+
+需要 `file:view` 权限；只统计 `deletedAt IS NULL` 的文件。

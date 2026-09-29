@@ -45,6 +45,7 @@ model User {
   apiKeys              ApiKey[]
   ownedWorkspaces      Workspace[]       @relation("WorkspaceOwner")
   workspaceMemberships WorkspaceMember[] @relation("WorkspaceMemberships")
+  chatSessions         ChatSession[]
 
   @@map("users")
 }
@@ -354,6 +355,7 @@ model Workspace {
   folders        Folder[]
   uploadSessions UploadSession[]
   documents      Document[]
+  chatSessions   ChatSession[]
   quota          WorkspaceQuota?
 
   @@index([ownerId])
@@ -470,4 +472,33 @@ model DocumentChunk {
   @@unique([documentId, chunkIndex])
   @@index([documentId])
   @@map("document_chunks")
+}
+model ChatSession {
+  id          String   @id @default(uuid())
+  workspaceId String   @map("workspace_id")
+  userId      String   @map("user_id")
+  title       String   @default("新会话") @db.VarChar(128)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+
+  @@index([workspaceId, userId, updatedAt])
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  sessionId String   @map("session_id")
+  role      String   @db.VarChar(16)
+  content   String   @db.Text
+  sources   Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+  @@map("chat_messages")
 }

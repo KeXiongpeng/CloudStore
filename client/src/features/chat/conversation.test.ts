@@ -128,7 +128,7 @@ describe('conversation session actions', () => {
     let state = askStart();
     state = conversationReducer(state, { type: 'reset' });
 
-    expect(state).toEqual({ messages: [], activeAssistantId: null });
+    expect(state).toEqual({ messages: [], activeAssistantId: null, sessionId: null });
   });
 
   it('replace 恢复持久化消息并清空活动请求', () => {
@@ -177,5 +177,42 @@ describe('findRetryQuestion', () => {
     ];
 
     expect(findRetryQuestion(messages, messages[1]!)).toBe('真正的原始问题');
+  });
+});
+
+describe('D7 conversation SSE extension', () => {
+  it('stores server session metadata without changing messages', () => {
+    const state = conversationReducer(createInitialConversation(), {
+      type: 'session',
+      sessionId: 'server-session-1',
+      title: 'SEO',
+    });
+
+    expect(state.sessionId).toBe('server-session-1');
+    expect(state.messages).toEqual([]);
+  });
+
+  it('stores backend-derived action cards on the assistant bubble', () => {
+    let state = askStart();
+    state = conversationReducer(state, {
+      type: 'actions',
+      messageId: 'assistant-1',
+      actions: [{ id: 'files', type: 'navigate', label: '查看文件', href: '/files' }],
+    });
+
+    expect(state.messages[1]).toMatchObject({
+      actions: [{ id: 'files', type: 'navigate', label: '查看文件', href: '/files' }],
+    });
+  });
+
+  it('does not crash when an unknown action shape reaches the reducer', () => {
+    let state = askStart();
+    state = conversationReducer(state, {
+      type: 'actions',
+      messageId: 'assistant-1',
+      actions: [{ id: 'bad', type: 'navigate' as never, label: '' }],
+    });
+
+    expect(state.messages[1]?.actions).toHaveLength(1);
   });
 });

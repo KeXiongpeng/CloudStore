@@ -5,10 +5,18 @@ import { firstValueFrom } from 'rxjs';
 import { Readable } from 'stream';
 
 /** OpenAI-compatible 非流式响应中 D4 用到的最小字段。 */
+interface OpenAiToolCall {
+  function?: {
+    name?: unknown;
+    arguments?: unknown;
+  };
+}
+
 interface OpenAiCompletion {
   choices?: Array<{
     message?: {
       content?: unknown;
+      tool_calls?: OpenAiToolCall[];
     };
   }>;
 }
@@ -19,7 +27,17 @@ export type ChatMessage = {
 };
 
 /** 目前只允许 judge 覆盖 temperature；避免评估工具意外改变模型与输出预算。 */
-export type CompleteOptions = { temperature?: number };
+export type CompleteOptions = { temperature?: number; tools?: unknown[]; toolChoice?: string };
+
+export type ChatHistoryMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
+export type SearchToolPlan =
+  | { action: 'search'; query: string; limit: number }
+  | { action: 'answer_from_history' }
+  | { action: 'clarify' };
 
 /**
  * 解析 OpenAI-compatible SSE 文本流。
@@ -105,9 +123,97 @@ export class LlmService {
    * 判断“原始问题 + 当前检索片段”是否足够回答。
    * 要求模型只输出 JSON；解析失败由 RAG 图安全降级，不把模型原样输出发给前端。
    */
+  /** 把最近对话压成可独立理解的向量检索 query；没有历史时不浪费模型调用。 */
+  async condenseQuestion(history: ChatHistoryMessage[], question: string): Promise<string> {
+    const compactHistory = history
+      .slice(-8)
+      .map((message) => ({ role: message.role, content: message.content.slice(0, 2000) }));
+    if (compactHistory.length === 0) return question;
+
+    const messages: ChatMessage[] = [
+      {
+        role: 'system',
+        content: [
+          '你负责把用户最新问题改写成一个不依赖上下文也能理解的 standalone query。',
+          '只输出一行查询。',
+          '如果最新问题已经完整，不要改写。',
+          '不要回答问题，不要补充事实，不要使用 Markdown。',
+        ].join('\n'),
+      },
+      ...compactHistory,
+      { role: 'user', content: `最新问题：${question}` },
+    ];
+    const query = (await this.complete(messages, { temperature: 0.1 }))
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find((line) => line.length > 0);
+    if (!query) throw new Error('上下文查询改写结果为空');
+    return query.slice(0, 1000);
+  }
+
+  /** 第一版只暴露一个检索工具；workspaceId 由服务端注入，永远不会进入模型参数。 */
+  async planSearchTool(question: string, history: ChatHistoryMessage[]): Promise<SearchToolPlan> {
+    const messages: ChatMessage[] = [
+      {
+        role: 'system',
+        content: [
+          '你是知识库问答的检索规划器。',
+          '如果需要当前工作区资料，调用 search_knowledge_base。',
+          '如果上一轮资料已经在对话中足以回答，返回 answer_from_history。',
+          '如果缺少指代且无法改写，返回 clarify。',
+        ].join('\n'),
+      },
+      ...history
+        .slice(-4)
+        .map((message) => ({ role: message.role, content: message.content.slice(0, 1000) })),
+      { role: 'user', content: question },
+    ];
+
+    try {
+      const response = await this.requestComplete(messages, {
+        temperature: 0,
+        tools: [
+          {
+            type: 'function',
+            function: {
+              name: 'search_knowledge_base',
+              description: '在当前工作区知识库中检索资料。',
+              parameters: {
+                type: 'object',
+                properties: {
+                  query: { type: 'string', description: '完整 standalone query' },
+                  limit: { type: 'integer', minimum: 1, maximum: 10, default: 5 },
+                },
+                required: ['query'],
+              },
+            },
+          },
+        ],
+        toolChoice: 'auto',
+      });
+      const toolCall = response.choices?.[0]?.message?.tool_calls?.[0];
+      const name = toolCall?.function?.name;
+      const rawArguments = toolCall?.function?.arguments;
+      if (name !== 'search_knowledge_base' || typeof rawArguments !== 'string') {
+        return { action: 'search', query: question, limit: 5 };
+      }
+      const parsed = JSON.parse(rawArguments) as Record<string, unknown>;
+      if (typeof parsed.workspaceId === 'string' || typeof parsed.query !== 'string') {
+        return { action: 'search', query: question, limit: 5 };
+      }
+      const query = parsed.query.trim().slice(0, 1000);
+      if (!query) return { action: 'search', query: question, limit: 5 };
+      const limit = typeof parsed.limit === 'number' ? Math.trunc(parsed.limit) : 5;
+      return { action: 'search', query, limit: Math.min(10, Math.max(1, limit)) };
+    } catch {
+      return { action: 'search', query: question, limit: 5 };
+    }
+  }
+
   async judgeRelevance(
     question: string,
     sources: Array<{ content: string }>,
+    historySummary?: string,
   ): Promise<{ relevance: 'relevant' | 'irrelevant'; reason: string }> {
     const context = sources
       .map((source, index) => `[${index + 1}]\n${source.content}`)
@@ -121,7 +227,12 @@ export class LlmService {
           '只输出 JSON：{"relevance":"relevant|irrelevant","reason":"简短原因"}。',
         ].join('\n'),
       },
-      { role: 'user', content: `用户问题：\n${question}\n\n检索资料：\n${context}` },
+      {
+        role: 'user',
+        content: historySummary
+          ? `对话上下文摘要：${historySummary}\n\n用户问题：\n${question}\n\n检索资料：\n${context}`
+          : `用户问题：\n${question}\n\n检索资料：\n${context}`,
+      },
     ];
 
     const raw = await this.complete(messages);
@@ -186,7 +297,15 @@ export class LlmService {
       const response = await firstValueFrom(
         this.httpService.post<OpenAiCompletion>(
           apiUrl,
-          { model, messages, stream: false, max_tokens: maxTokens, temperature },
+          {
+            model,
+            messages,
+            stream: false,
+            max_tokens: maxTokens,
+            temperature,
+            ...(options?.tools ? { tools: options.tools } : {}),
+            ...(options?.toolChoice ? { tool_choice: options.toolChoice } : {}),
+          },
           { headers: { Authorization: `Bearer ${apiKey}` } },
         ),
       );

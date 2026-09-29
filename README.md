@@ -1,4 +1,4 @@
-﻿# CloudStore · 云存储与知识库问答平台
+# CloudStore · 云存储与知识库问答平台
 
 CloudStore 是一个 workspace 化的云存储与 AI 知识库平台，支持大文件上传、在线预览、公开分享、权限协作，以及基于 pgvector 的文档语义检索和流式 RAG 问答。
 
@@ -11,7 +11,7 @@ CloudStore 是一个 workspace 化的云存储与 AI 知识库平台，支持大
 - 图片、视频、音频、PDF、文本等类型在线预览
 - 公开分享链接、随机 URL、二维码分享
 - Markdown / TXT / PDF 解析、切块、Embedding、pgvector 入库
-- Workspace 级知识库检索、LangGraph RAG、SSE 流式回答与引用溯源
+- Workspace 级知识库检索、服务端多轮上下文、检索工具化、guided fallback、action cards、SSE 流式回答与引用溯源
 - 20 题 RAG 评估集与可重复执行 evaluation runner
 - 用户存储配额、文件访问统计和管理后台
 
@@ -62,9 +62,10 @@ flowchart LR
 3. worker 下载对象存储文件，抽取文本并切块。
 4. 批量调用 Embedding API 生成向量。
 5. 事务重建 `document_chunks`，等待文档状态变为 `indexed`。
-6. 用户提问时，RAG 图按当前 workspace 检索 pgvector。
-7. LangGraph 执行 `retrieve → judge → rewrite / generate / fallback`。
-8. 前端接收 `sources → delta... → done` SSE 事件，并展示 `[1][2][3]` 引用。
+6. 用户提问时，后端保存服务端 ChatSession/ChatMessage；RAG 图先用 history 改写 standalone query，再调用受 workspaceId 隔离的 `search_knowledge_base` 工具检索 pgvector。
+7. 无证据时按“空知识库 / 无结果 / 相似但不完整”返回引导文案和后端推导 action cards。
+8. LangGraph 执行 `retrieve → judge → rewrite / generate / fallback`。
+9. 前端接收 `sources → delta... → done` SSE 事件，并展示 `[1][2][3]` 引用。
 
 评估集和执行方式见 [server/evaluation/README.md](server/evaluation/README.md)。
 
@@ -204,6 +205,7 @@ https://cloudstore.kxpwty.cn/api/auth/wechat/callback
 - Workspace：`/api/workspaces/*`
 - 知识库：`/api/documents/*`
 - RAG 问答：`/api/workspaces/:workspaceId/chat`
+- 知识库统计：`/api/workspaces/:workspaceId/knowledge/stats`
 - 公开访问：`/api/public/*`
 - 管理后台：`/api/admin/*`
 
@@ -223,7 +225,7 @@ https://cloudstore.kxpwty.cn/api/auth/wechat/callback
 client/                 Next.js 前端
 server/                 NestJS API、worker、Prisma、领域模块
 server/src/documents/   上传索引、解析、切块、pgvector 检索
-server/src/chat/        SSE、LangGraph RAG、相关性判断、引用生成
+server/src/chat/        服务端会话、LangGraph RAG、检索工具、guided fallback、SSE/action
 server/src/evaluation/  20 题评估集、answer judge、指标与报告
 docker/                 PostgreSQL / pgvector 构建辅助
 docs/                   架构、数据库、接口、部署文档

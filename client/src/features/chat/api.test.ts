@@ -81,3 +81,47 @@ describe('askKnowledgeBase', () => {
     ).rejects.toThrow('请先登录后再提问');
   });
 });
+
+describe('askKnowledgeBase D7 session', () => {
+  it('sends optional server sessionId and parses appended session/actions events', async () => {
+    const encoder = new TextEncoder();
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode('event: session\ndata: {"session":{"id":"server-1","title":"SEO"}}\n\n'),
+        );
+        controller.enqueue(
+          encoder.encode(
+            'event: actions\ndata: {"actions":[{"id":"files","type":"navigate","label":"文件","href":"/files"}]}\n\n',
+          ),
+        );
+        controller.enqueue(encoder.encode('event: done\ndata: {"done":true}\n\n'));
+        controller.close();
+      },
+    });
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, body });
+    vi.stubGlobal('fetch', fetchMock);
+    const events: ChatSseEvent[] = [];
+
+    await askKnowledgeBase({
+      workspaceId: 'workspace-123',
+      question: '有多少问题',
+      sessionId: 'server-0',
+      onEvent: (event) => events.push(event),
+    });
+
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)).toEqual({
+      question: '有多少问题',
+      limit: 5,
+      sessionId: 'server-0',
+    });
+    expect(events).toEqual([
+      { type: 'session', session: { id: 'server-1', title: 'SEO' } },
+      {
+        type: 'actions',
+        actions: [{ id: 'files', type: 'navigate', label: '文件', href: '/files' }],
+      },
+      { type: 'done', done: true },
+    ]);
+  });
+});

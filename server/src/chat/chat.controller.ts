@@ -4,6 +4,8 @@ import type { Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionGuard, WorkspaceGuard } from '../workspaces';
 import { RequirePermission } from '../workspaces/decorators/require-permission.decorator';
+import { WorkspaceActor } from '../workspaces/decorators/workspace-actor.decorator';
+import { WorkspaceActorContext } from '../workspaces/types';
 import { AskQuestionDto } from './dto/ask-question.dto';
 import { ChatService, type ChatStreamEvent } from './chat.service';
 
@@ -18,9 +20,10 @@ export class ChatController {
   @UseGuards(PermissionGuard)
   @RequirePermission('file:view')
   @ApiOperation({ summary: '基于当前工作区知识库流式回答问题' })
-  @ApiOkResponse({ description: 'SSE: sources / delta / done / error' })
+  @ApiOkResponse({ description: 'SSE: session/sources/delta/actions/done/error' })
   async chat(
     @Param('workspaceId') workspaceId: string,
+    @WorkspaceActor() actor: WorkspaceActorContext,
     @Body() dto: AskQuestionDto,
     @Res() response: Response,
   ): Promise<void> {
@@ -36,6 +39,8 @@ export class ChatController {
         dto.question,
         workspaceId,
         dto.limit ?? 5,
+        dto.sessionId,
+        actor.userId,
       )) {
         if (event.type === 'error') hasError = true;
         this.writeEvent(response, event);

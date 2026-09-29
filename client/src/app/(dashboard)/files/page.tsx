@@ -10,6 +10,8 @@ import { UI_PERMISSIONS } from '@/features/workspace/types';
 import { UploadDropzone } from '@/features/upload/UploadDropzone';
 import { UploadQueuePanel } from '@/features/upload/UploadQueuePanel';
 import { useUploadQueue } from '@/features/upload/store';
+import { fetchKnowledgeStats } from '@/features/chat/api';
+import type { ChatKnowledgeStats } from '@/features/chat/types';
 
 export default function FilesPage() {
   const workspace = useWorkspaceStore((state) => state.currentWorkspace);
@@ -22,6 +24,8 @@ export default function FilesPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [knowledgeStats, setKnowledgeStats] = useState<ChatKnowledgeStats | null>(null);
+  const [highlightUpload, setHighlightUpload] = useState(false);
   const limit = 100;
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -76,6 +80,28 @@ export default function FilesPage() {
     [workspace],
   );
 
+  const fetchKnowledge = useCallback(async () => {
+    if (!workspace) {
+      setKnowledgeStats(null);
+      return;
+    }
+    try {
+      setKnowledgeStats(await fetchKnowledgeStats(workspace.id));
+    } catch (error) {
+      console.error('获取知识库状态失败:', error);
+    }
+  }, [workspace]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('upload=1')) {
+      setHighlightUpload(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchKnowledge();
+  }, [fetchKnowledge]);
+
   const virtualizer = useVirtualizer({
     count: files.length,
     getScrollElement: () => scrollRef.current,
@@ -114,21 +140,25 @@ export default function FilesPage() {
       try {
         await api.post(`/workspaces/${workspace.id}/files/${file.id}/reindex`);
         await fetchFiles();
+        await fetchKnowledge();
       } catch (error) {
         console.error('重建知识库索引失败:', error);
       }
     },
-    [fetchFiles, workspace],
+    [fetchFiles, fetchKnowledge, workspace],
   );
 
   useEffect(() => {
     let previousCompleted = 0;
     return useUploadQueue.subscribe((state) => {
       const completed = state.items.filter((item) => item.status === 'completed').length;
-      if (completed > previousCompleted) fetchFiles();
+      if (completed > previousCompleted) {
+        fetchFiles();
+        void fetchKnowledge();
+      }
       previousCompleted = completed;
     });
-  }, [fetchFiles]);
+  }, [fetchFiles, fetchKnowledge]);
 
   const handleDelete = async (fileId: string) => {
     if (!workspace) return;
@@ -145,6 +175,7 @@ export default function FilesPage() {
       setFiles(previousFiles);
       setTotal(previousTotal);
     }
+    void fetchKnowledge();
   };
 
   const virtualRows = useMemo(() => virtualizer.getVirtualItems(), [virtualizer]);
@@ -155,18 +186,40 @@ export default function FilesPage() {
     <div className="mx-auto w-full max-w-7xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">文件管理</h1>
+          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">文件与知识库</h1>
           <p className="mt-1 text-sm text-slate-500">
             {workspace ? `当前工作区：${workspace.name}` : '请先选择工作区'}
           </p>
         </div>
-        <span className="rounded-full bg-white px-3 py-1.5 text-sm text-slate-500 shadow-sm">
-          共 {total} 个文件
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          {knowledgeStats && (
+            <>
+              <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-sm text-emerald-700">
+                {knowledgeStats.indexed} indexed
+              </span>
+              {knowledgeStats.processing > 0 && (
+                <span className="rounded-full bg-blue-50 px-3 py-1.5 text-sm text-blue-700">
+                  {knowledgeStats.processing} processing
+                </span>
+              )}
+              {knowledgeStats.failed > 0 && (
+                <span className="rounded-full bg-red-50 px-3 py-1.5 text-sm text-red-700">
+                  {knowledgeStats.failed} failed
+                </span>
+              )}
+            </>
+          )}
+          <span className="rounded-full bg-white px-3 py-1.5 text-sm text-slate-500 shadow-sm">
+            共 {total} 个文件
+          </span>
+        </div>
       </div>
 
       {canUpload && (
-        <div className="mt-6 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+        <div
+          id="upload"
+          className={`mt-6 grid gap-4 rounded-2xl p-1 lg:grid-cols-[1.2fr_1fr] ${highlightUpload ? 'ring-2 ring-blue-500' : ''}`}
+        >
           <UploadDropzone disabled={!canUpload} />
           <UploadQueuePanel />
         </div>

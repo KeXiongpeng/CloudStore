@@ -9,21 +9,44 @@ export type ChatSource = {
   similarity: number;
 };
 
-/** 后端 SSE 载荷类型；event name 本身就是 type，这里用于前端 reducer。 */
+export type ChatActionType = 'navigate' | 'upload' | 'reindex' | 'retry' | 'openSources';
+
+export type ChatAction = {
+  id: string;
+  type: ChatActionType;
+  label: string;
+  /** 只接受同源站内路径；渲染前仍会做一层防御。 */
+  href?: string;
+  payload?: Record<string, unknown>;
+};
+
+export type ChatKnowledgeStats = {
+  totalFiles: number;
+  indexableFiles: number;
+  indexed: number;
+  processing: number;
+  pending: number;
+  failed: number;
+  unsupported: number;
+  lastIndexedAt: string | null;
+};
+
+/** 后端 SSE 载荷类型；session/actions 是 D7 追加事件，旧事件保持不变。 */
 export type ChatSseEvent =
+  | { type: 'session'; session: { id: string; title: string } }
   | { type: 'sources'; sources: ChatSource[] }
   | { type: 'delta'; content: string }
+  | { type: 'actions'; actions: ChatAction[] }
   | { type: 'done'; done: true }
   | { type: 'error'; message: string };
 
-/** 对话气泡；用户消息一步完成，助手消息随 SSE 推进状态。 */
 export type ChatMessage = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   status?: 'searching' | 'generating' | 'done' | 'error' | 'stopped';
   sources?: ChatSource[];
+  actions?: ChatAction[];
   errorMessage?: string;
-  /** 失败/停止后重试用的原始用户问题。 */
   retryQuestion?: string;
 };
