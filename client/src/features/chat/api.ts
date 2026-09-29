@@ -67,5 +67,8 @@ export async function fetchKnowledgeStats(workspaceId: string): Promise<ChatKnow
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
   if (!response.ok) throw new Error('知识库状态加载失败');
-  return (await response.json()) as ChatKnowledgeStats;
+  const payload = (await response.json()) as { data?: ChatKnowledgeStats } | ChatKnowledgeStats;
+  return (
+    payload && typeof payload === 'object' && 'data' in payload ? payload.data : payload
+  ) as ChatKnowledgeStats;
 }

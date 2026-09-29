@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { askKnowledgeBase } from './api';
+import { askKnowledgeBase, fetchKnowledgeStats } from './api';
 import type { ChatSseEvent } from './types';
 
 vi.mock('../../lib/auth', () => ({
@@ -123,5 +123,35 @@ describe('askKnowledgeBase D7 session', () => {
       },
       { type: 'done', done: true },
     ]);
+  });
+});
+
+describe('fetchKnowledgeStats response envelope', () => {
+  it('unwraps backend ApiResponse data', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: {
+              totalFiles: 22,
+              indexableFiles: 22,
+              indexed: 22,
+              processing: 0,
+              pending: 0,
+              failed: 0,
+              unsupported: 0,
+              lastIndexedAt: '2026-09-29T08:53:02.277Z',
+            },
+          }),
+      }),
+    );
+
+    await expect(fetchKnowledgeStats('workspace-123')).resolves.toMatchObject({
+      totalFiles: 22,
+      indexed: 22,
+    });
   });
 });
