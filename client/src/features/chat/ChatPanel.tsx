@@ -93,7 +93,11 @@ function KnowledgeStatusBar({
             <span>{stats.processing} processing</span>
             <span>{stats.failed} failed</span>
             <span>{stats.pending} pending</span>
-            <span>{stats.unsupported} 个文件不进入知识库</span>
+            {stats.unsupported > 0 && (
+              <span className="text-amber-600 dark:text-amber-300">
+                {stats.unsupported} 个文件不是知识库格式
+              </span>
+            )}
             {stats.totalFiles === 0 && <span className="text-blue-600">还没有可问答文件</span>}
           </div>
         )}
