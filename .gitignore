@@ -57,3 +57,6 @@ embedding-pgvector-学习/
 
 # Local rehearsal database dumps and smoke outputs
 backups/
+
+# Browser smoke screenshots and temporary automation
+.tmp/
