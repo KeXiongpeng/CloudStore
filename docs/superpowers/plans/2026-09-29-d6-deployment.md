@@ -116,12 +116,12 @@
 - Produces: pushed server image `v10` or higher
 - Produces: pushed client image `v7` or higher
 
-- [ ] Choose unused server/client tags.
-- [ ] Build server image from release commit.
-- [ ] Build client image with `BACKEND_URL=http://nestjs:3000`.
-- [ ] Push both images to Alibaba Cloud Registry.
-- [ ] Update `docker-compose.prod.yml` image tags.
-- [ ] Commit image tag bump.
+- [x] Choose unused server/client tags.
+- [x] Build server image from release commit.
+- [x] Build client image with `BACKEND_URL=http://nestjs:3000`.
+- [ ] Push both images to Alibaba Cloud Registry (blocked by local Docker proxy; fallback used).
+- [x] Update `docker-compose.prod.yml` image tags.
+- [x] Commit image tag bump.
 
 ### Task 6: Back up and migrate production
 
@@ -135,12 +135,12 @@
 - Produces: timestamped `pg_dump` backup
 - Produces: applied Prisma migrations
 
-- [ ] Verify required RAG/storage/JWT env vars exist without printing secrets.
-- [ ] Stop or quiesce API, worker, and frontend writes as appropriate.
-- [ ] Run `pg_dump` and verify the backup is non-empty.
-- [ ] Store the backup off-host.
-- [ ] Run `prisma migrate deploy`.
-- [ ] Run `prisma migrate status` and ensure no pending migrations.
+- [x] Verify required RAG/storage/JWT env vars exist without printing secrets.
+- [x] Stop or quiesce API, worker, and frontend writes as appropriate.
+- [x] Run `pg_dump` and verify the backup is non-empty.
+- [x] Store the backup off-host (downloaded to `production-backups/`).
+- [x] Run `prisma migrate deploy`.
+- [x] Run `prisma migrate status` and ensure no pending migrations.
 
 ### Task 7: Deploy production services
 
@@ -153,12 +153,12 @@
 - Consumes: pushed images and completed migration
 - Produces: running API, worker, frontend stack
 
-- [ ] Pull new images on the VPS.
-- [ ] Run `docker compose config` validation.
-- [ ] Start PostgreSQL and Redis first.
-- [ ] Start API, worker, and frontend.
-- [ ] Confirm container health / running status.
-- [ ] Inspect API, worker, and frontend logs.
+- [x] Make images available on the VPS via `docker save` / `scp` / `docker load`.
+- [x] Run `docker compose config` validation.
+- [x] Start PostgreSQL and Redis first.
+- [x] Start API, worker, and frontend.
+- [x] Confirm container health / running status.
+- [x] Inspect API, worker, and frontend logs.
 
 ### Task 8: Production smoke and acceptance
 
@@ -171,15 +171,15 @@
 - Consumes: live production stack
 - Produces: release acceptance evidence
 
-- [ ] Verify `https://cloudstore.kxpwty.cn` returns 200.
-- [ ] Verify `/api/auth/providers` returns JSON.
-- [ ] Log in with a production test account.
-- [ ] Upload a smoke Markdown file and wait for `indexed`.
-- [ ] Run relevant RAG question and verify SSE and citations.
-- [ ] Run irrelevant question and verify fallback.
-- [ ] Run empty-workspace isolation question and verify no leakage.
-- [ ] Verify worker logs show completed document-index jobs.
-- [ ] Record release SHA, image tags, backup path, and smoke results.
+- [x] Verify `https://cloudstore.kxpwty.cn` returns 200.
+- [x] Verify `/api/auth/providers` returns JSON.
+- [x] Log in with a production test account.
+- [x] Upload smoke Markdown files and wait for `indexed`.
+- [x] Run relevant RAG question and verify SSE and citations.
+- [x] Run irrelevant question and verify fallback.
+- [x] Run empty-workspace isolation question and verify no leakage.
+- [x] Verify worker logs show completed document-index jobs.
+- [x] Record release SHA, image tags, backup path, and smoke results.
 
 ### Task 9: Complete D6 documentation handoff
 
@@ -225,3 +225,46 @@ Production-only issues found and fixed:
 1. Production runner image omitted `tsconfig.json`, so `prisma:seed` failed. Added it to the server runner stage.
 2. MinIO direct-upload URLs used the container-internal hostname. Added `MINIO_PUBLIC_ENDPOINT` for browser-reachable signed URLs while keeping `MINIO_ENDPOINT` for server-side S3 operations.
 3. `GET /workspaces/:workspaceId/files` rejected omitted pagination query params. Replaced optional `ParseIntPipe` usage with explicit positive-integer validation and defaults.
+
+### Production Deployment Evidence
+
+Date: 2026-09-29  
+Release branch: `feat/workspace-upload-pipeline`  
+Compose release commit: `0a14c38 chore(deploy): release server v10 and client v7`  
+Latest plan commit: deployed tree built from `0a14c38`  
+Images: `server:v10`, `client:v7`
+
+Production transfer note:
+
+- ACR push was attempted three times but blocked by the local Docker proxy closing connections on a large server layer.
+- Fallback used `docker save` → `scp` → `docker load`.
+- Loaded image IDs matched local images for both server and client.
+
+Production files:
+
+- Active directory: `/opt/cloud-storage`
+- Compose backup: `backups/docker-compose.prod.yml.20260929134227.bak`
+- Pre-update env backup: `backups/.env.20260929134227.bak`
+- Database backup on server: `backups/postgres-cloud_storage-20260929134628.sql`
+- Off-host database backup: `production-backups/postgres-cloud_storage-20260929134628.sql`
+
+Migration result:
+
+- PostgreSQL image changed from `postgres:16` to `pgvector/pgvector:pg16`.
+- The first pgvector migration failed because the old image did not contain the vector extension.
+- After switching images, the failed migration was marked rolled back with `prisma migrate resolve --rolled-back 20260925000000_pgvector_text_embeddings`.
+- `prisma migrate deploy` then applied all remaining migrations.
+- Final `prisma migrate status`: database schema is up to date.
+
+Production smoke result:
+
+- Frontend HTTPS: 200。
+- `/api/auth/providers`: 200, JSON。
+- Login: configured production test account passed.
+- Uploads: 2 Markdown files indexed.
+- RAG SSE: `sources → delta... → done`.
+- Multi-source retrieval: 4 sources / 2 documents.
+- Citations: `4,2`, within source range.
+- Irrelevant fallback: passed.
+- Empty workspace: 0 sources, fallback, no leakage.
+- API-level production smoke: `pass=11/11 failures=0`。
