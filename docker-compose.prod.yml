@@ -38,7 +38,7 @@ services:
 
   # 闁冲厜鍋撻柍鍏夊亾 NestJS 闁告艾娴烽?API 闁冲厜鍋撻柍鍏夊亾
   nestjs:
-    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v10
+    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v11
     restart: unless-stopped
     expose:
       - '3000'
@@ -60,7 +60,7 @@ services:
 
   # 闁冲厜鍋撻柍鍏夊亾 Next.js 闁告挸绉堕?闁冲厜鍋撻柍鍏夊亾
   server-worker:
-    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v10
+    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v11
     restart: unless-stopped
     command: ['node', 'dist/worker.js']
     env_file:
@@ -80,7 +80,7 @@ services:
       - app-net
 
   nextjs:
-    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/client:v7
+    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/client:v8
     restart: unless-stopped
     expose:
       - '3001'
