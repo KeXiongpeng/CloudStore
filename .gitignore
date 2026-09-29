@@ -60,3 +60,5 @@ backups/
 
 # Browser smoke screenshots and temporary automation
 .tmp/
+
+release/
