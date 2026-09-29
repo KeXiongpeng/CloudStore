@@ -1,15 +1,29 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
-import FileCard, { FileItem, formatFileDate, formatFileSize, getFileIcon } from '@/components/FileCard';
+import {
+  FileItem,
+  formatFileDate,
+  formatFileSize,
+  getFileIcon,
+  KNOWLEDGE_INDEX_LABEL,
+} from '@/components/FileCard';
 
 interface FileRowProps {
   file: FileItem;
   onDelete: (id: string) => void;
   onPreview: (file: FileItem) => void;
+  onDownload: (file: FileItem) => void;
+  onReindex?: (file: FileItem) => void;
 }
 
-export default function FileRow({ file, onDelete, onPreview }: FileRowProps) {
+export default function FileRow({
+  file,
+  onDelete,
+  onPreview,
+  onDownload,
+  onReindex,
+}: FileRowProps) {
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState('');
 
@@ -24,7 +38,7 @@ export default function FileRow({ file, onDelete, onPreview }: FileRowProps) {
   };
 
   const handleDelete = () => {
-    if (confirm(`确定要删除 ${file.originalName} 吗？`)) {
+    if (confirm(`\u786e\u5b9a\u8981\u5220\u9664 ${file.originalName} \u5417\uff1f`)) {
       onDelete(file.id);
     }
   };
@@ -39,6 +53,27 @@ export default function FileRow({ file, onDelete, onPreview }: FileRowProps) {
               {file.originalName}
             </p>
             <p className="mt-1 truncate text-xs text-slate-500">{file.mimeType}</p>
+            <div className="mt-1 flex items-center gap-2">
+              {file.knowledgeIndex && file.knowledgeIndex.status !== 'not_applicable' && (
+                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700">
+                  {KNOWLEDGE_INDEX_LABEL[file.knowledgeIndex.status] ?? file.knowledgeIndex.status}
+                </span>
+              )}
+              {file.knowledgeIndex?.status === 'failed' && file.knowledgeIndex.error && (
+                <span className="truncate text-red-500">{file.knowledgeIndex.error}</span>
+              )}
+              {onReindex &&
+                ['failed', 'unsupported'].includes(file.knowledgeIndex?.status ?? '') &&
+                /\.(md|txt|pdf)$/i.test(file.originalName) && (
+                  <button
+                    type="button"
+                    onClick={() => onReindex(file)}
+                    className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700 hover:bg-slate-200"
+                  >
+                    重新索引
+                  </button>
+                )}
+            </div>
           </div>
         </div>
       </td>
@@ -54,21 +89,28 @@ export default function FileRow({ file, onDelete, onPreview }: FileRowProps) {
             onClick={() => onPreview(file)}
             className="rounded-lg px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
           >
-            预览
+            &#39044;&#35272;
+          </button>
+          <button
+            type="button"
+            onClick={() => onDownload(file)}
+            className="rounded-lg px-2 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-50"
+          >
+            &#19979;&#36733;
           </button>
           <button
             type="button"
             onClick={handleCopyLink}
             className="rounded-lg px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
           >
-            {copied ? '已复制' : '复制链接'}
+            {copied ? '\u5df2\u590d\u5236' : '\u590d\u5236\u94fe\u63a5'}
           </button>
           <button
             type="button"
             onClick={handleDelete}
             className="rounded-lg px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
           >
-            删除
+            &#21024;&#38500;
           </button>
         </div>
       </td>

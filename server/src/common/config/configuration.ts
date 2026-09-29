@@ -1,4 +1,4 @@
-﻿import * as Joi from 'joi';
+import * as Joi from 'joi';
 
 export const configuration = () => ({
   database: {
@@ -20,6 +20,27 @@ export const configuration = () => ({
     bucket: process.env.QINIU_BUCKET,
     endpoint: process.env.QINIU_ENDPOINT,
     cdnDomain: process.env.QINIU_CDN_DOMAIN,
+  },
+  storage: {
+    driver: process.env.STORAGE_DRIVER || 'qiniu',
+  },
+  minio: {
+    endpoint: process.env.MINIO_ENDPOINT || 'http://localhost:9000',
+    publicEndpoint: process.env.MINIO_PUBLIC_ENDPOINT,
+    region: process.env.MINIO_REGION || 'us-east-1',
+    accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
+    secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
+    bucket: process.env.MINIO_BUCKET || 'clouddrive-local',
+  },
+  upload: {
+    sessionTtlHours: Number(process.env.UPLOAD_SESSION_TTL_HOURS || 24),
+    chunkSizeBytes: Number(process.env.UPLOAD_CHUNK_SIZE_BYTES || 8388608),
+    maxChunkSizeBytes: Number(process.env.UPLOAD_MAX_CHUNK_SIZE_BYTES || 16777216),
+    minChunkSizeBytes: Number(process.env.UPLOAD_MIN_CHUNK_SIZE_BYTES || 5242880),
+    directThresholdBytes: Number(process.env.UPLOAD_DIRECT_THRESHOLD_BYTES || 8388608),
+    partUrlTtlSeconds: Number(process.env.UPLOAD_PART_URL_TTL_SECONDS || 3600),
+    clientMaxActiveFiles: Number(process.env.UPLOAD_CLIENT_MAX_ACTIVE_FILES || 3),
+    thumbnailMaxRetries: Number(process.env.THUMBNAIL_MAX_RETRIES || 5),
   },
   cors: {
     origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
@@ -51,6 +72,20 @@ export const configuration = () => ({
     email: process.env.DEMO_EMAIL || 'demo@example.com',
     password: process.env.DEMO_PASSWORD || 'demo123456',
   },
+  embedding: {
+    apiKey: process.env.SILICONFLOW_API_KEY,
+    apiUrl: process.env.SILICONFLOW_API_URL || 'https://api.siliconflow.cn/v1/embeddings',
+    model: process.env.SILICONFLOW_EMBEDDING_MODEL || 'BAAI/bge-m3',
+    dimensions: Number(process.env.EMBEDDING_DIMENSIONS || 1024),
+  },
+  llm: {
+    // DeepSeek 官方 key 只用于生成；SiliconFlow key 继续用于 Embedding 检索。
+    apiKey: process.env.DEEPSEEK_API_KEY,
+    apiUrl: process.env.LLM_API_URL || 'https://api.siliconflow.cn/v1/chat/completions',
+    model: process.env.LLM_MODEL || 'deepseek-ai/DeepSeek-V3',
+    maxTokens: Number(process.env.LLM_MAX_TOKENS || 1024),
+    temperature: Number(process.env.LLM_TEMPERATURE || 0.2),
+  },
 });
 
 export const configValidationSchema = Joi.object({
@@ -64,6 +99,29 @@ export const configValidationSchema = Joi.object({
   QINIU_BUCKET: Joi.string().optional().default('dev-bucket'),
   QINIU_ENDPOINT: Joi.string().optional().default('https://s3.cn-east-1.qiniucs.com'),
   QINIU_CDN_DOMAIN: Joi.string().optional(),
+  STORAGE_DRIVER: Joi.string().valid('minio', 'qiniu').required(),
+  MINIO_PUBLIC_ENDPOINT: Joi.string().uri().optional(),
+  MINIO_ENDPOINT: Joi.string().uri().when('STORAGE_DRIVER', {
+    is: 'minio',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
+  MINIO_REGION: Joi.string().optional(),
+  MINIO_ACCESS_KEY: Joi.string().when('STORAGE_DRIVER', {
+    is: 'minio',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
+  MINIO_SECRET_KEY: Joi.string().when('STORAGE_DRIVER', {
+    is: 'minio',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
+  MINIO_BUCKET: Joi.string().when('STORAGE_DRIVER', {
+    is: 'minio',
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
   APP_URL: Joi.string().optional(),
   FRONTEND_URL: Joi.string().optional(),
   CORS_ORIGIN: Joi.string().default('http://localhost:3001'),
@@ -80,4 +138,13 @@ export const configValidationSchema = Joi.object({
   ADMIN_PASSWORD: Joi.string().default('admin123456'),
   DEMO_EMAIL: Joi.string().default('demo@example.com'),
   DEMO_PASSWORD: Joi.string().default('demo123456'),
+  SILICONFLOW_API_KEY: Joi.string().optional(),
+  SILICONFLOW_API_URL: Joi.string().uri().optional(),
+  SILICONFLOW_EMBEDDING_MODEL: Joi.string().optional(),
+  EMBEDDING_DIMENSIONS: Joi.number().integer().positive().optional(),
+  DEEPSEEK_API_KEY: Joi.string().optional().allow(''),
+  LLM_API_URL: Joi.string().uri().optional(),
+  LLM_MODEL: Joi.string().optional(),
+  LLM_MAX_TOKENS: Joi.number().integer().positive().optional(),
+  LLM_TEMPERATURE: Joi.number().min(0).max(2).optional(),
 });

@@ -29,6 +29,7 @@
 ### Task 0: Dependency Graph, Code Style, Unified Envelope, and CI
 
 **Files:**
+
 - Create: `.prettierrc`
 - Create: `.prettierignore`
 - Create: `.dependency-cruiser.cjs`
@@ -40,6 +41,7 @@
 - Modify: `server/src/main.ts`
 
 **Interfaces:**
+
 - Consumes: existing Nest bootstrap.
 - Produces:
   - root commands `npm run deps:graph`, `npm run format:check`;
@@ -131,9 +133,7 @@ In root `package.json`, add:
     "format": "prettier --write ."
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx,json,md,yml,yaml}": [
-      "prettier --write"
-    ]
+    "*.{ts,tsx,js,jsx,json,md,yml,yaml}": ["prettier --write"]
   }
 }
 ```
@@ -159,7 +159,7 @@ import { Observable, map } from 'rxjs';
 export class HttpResponseInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     return next.handle().pipe(
-      map(data => ({
+      map((data) => ({
         success: true,
         code: 'OK',
         message: 'ok',
@@ -177,7 +177,12 @@ Create `server/src/common/filters/http-exception.filter.ts`:
 
 ```ts
 import {
-  ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger,
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { Response } from 'express';
@@ -191,14 +196,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const isHttp = exception instanceof HttpException;
     const status = isHttp ? exception.getStatus() : HttpStatus.INTERNAL_ERROR;
     const payload = isHttp ? exception.getResponse() : 'INTERNAL_ERROR';
-    const code = typeof payload === 'string'
-      ? payload
-      : (payload as { code?: string; message?: string | string[] }).code
-        ?? (payload as { message?: string | string[] }).message
-        ?? 'INTERNAL_ERROR';
-    const details = typeof payload === 'object' && 'message' in payload
-      ? (payload as { message?: string | string[] }).message
-      : [];
+    const code =
+      typeof payload === 'string'
+        ? payload
+        : ((payload as { code?: string; message?: string | string[] }).code ??
+          (payload as { message?: string | string[] }).message ??
+          'INTERNAL_ERROR');
+    const details =
+      typeof payload === 'object' && 'message' in payload
+        ? (payload as { message?: string | string[] }).message
+        : [];
 
     if (status >= 500) {
       this.logger.error((exception as Error).stack);
@@ -243,19 +250,14 @@ Modify `client/src/lib/api.ts` so existing pages keep using `response.data` whil
 
 ```ts
 api.interceptors.response.use(
-  response => {
+  (response) => {
     const body = response.data;
-    if (
-      body &&
-      typeof body === 'object' &&
-      'success' in body &&
-      'data' in body
-    ) {
+    if (body && typeof body === 'object' && 'success' in body && 'data' in body) {
       response.data = body.data;
     }
     return response;
   },
-  async error => {
+  async (error) => {
     // existing refresh-token logic remains unchanged
     return Promise.reject(error);
   },
@@ -263,6 +265,7 @@ api.interceptors.response.use(
 ```
 
 The implementation must preserve the existing 401 refresh logic; only the success branch changes.
+
 - [ ] **Step 5: Add CI quality workflow**
 
 Create `.github/workflows/ci.yml`:
@@ -365,15 +368,18 @@ git commit -m "chore(engineering): add dependency graph and api envelope"
 ```
 
 ---
+
 ### Task 1: Backend Test and Strict Type Baseline
 
 **Files:**
+
 - Create: `server/jest.config.js`
 - Modify: `server/package.json`
 - Modify: `server/tsconfig.json`
 - Test: `server/test/oauth-utils.test.ts`
 
 **Interfaces:**
+
 - Consumes: existing `oauth-utils.test.ts`.
 - Produces: `npm run test`, `npm run test:cov`, and `npm run typecheck` in `server/`.
 
@@ -409,7 +415,9 @@ Create `server/test/setup-env.ts`:
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-jwt-secret';
 process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
-process.env.DATABASE_URL = process.env.DATABASE_URL || 'postgresql://csp_user:csp_password_2024@localhost:5433/cloud_storage?schema=public';
+process.env.DATABASE_URL =
+  process.env.DATABASE_URL ||
+  'postgresql://csp_user:csp_password_2024@localhost:5433/cloud_storage?schema=public';
 process.env.REDIS_HOST = process.env.REDIS_HOST || 'localhost';
 process.env.REDIS_PORT = process.env.REDIS_PORT || '6380';
 ```
@@ -461,22 +469,38 @@ git commit -m "test(server): add workspace rbac test baseline"
 ### Task 2: Single-Source Permission Matrix
 
 **Files:**
+
 - Create: `server/src/workspaces/permissions.ts`
 - Create: `server/src/workspaces/types.ts`
 - Test: `server/test/workspaces/permissions.spec.ts`
 
 **Interfaces:**
+
 - Consumes: none.
 - Produces:
 
 ```ts
 export type WorkspaceRole = 'OWNER' | 'ADMIN' | 'EDITOR' | 'VIEWER' | 'GUEST';
 export type WorkspacePermission =
-  | 'workspace:view' | 'workspace:update' | 'workspace:delete'
-  | 'member:read' | 'member:invite' | 'member:update_role' | 'member:remove'
-  | 'audit:read' | 'file:view' | 'file:upload' | 'file:download'
-  | 'file:update' | 'file:delete' | 'quota:read' | 'quota:update';
-export function hasWorkspacePermission(role: WorkspaceRole, permission: WorkspacePermission): boolean;
+  | 'workspace:view'
+  | 'workspace:update'
+  | 'workspace:delete'
+  | 'member:read'
+  | 'member:invite'
+  | 'member:update_role'
+  | 'member:remove'
+  | 'audit:read'
+  | 'file:view'
+  | 'file:upload'
+  | 'file:download'
+  | 'file:update'
+  | 'file:delete'
+  | 'quota:read'
+  | 'quota:update';
+export function hasWorkspacePermission(
+  role: WorkspaceRole,
+  permission: WorkspacePermission,
+): boolean;
 ```
 
 - [ ] **Step 1: Write the failing test**
@@ -484,7 +508,10 @@ export function hasWorkspacePermission(role: WorkspaceRole, permission: Workspac
 Create `server/test/workspaces/permissions.spec.ts`:
 
 ```ts
-import { hasWorkspacePermission, WORKSPACE_ROLE_PERMISSIONS } from '../../src/workspaces/permissions';
+import {
+  hasWorkspacePermission,
+  WORKSPACE_ROLE_PERMISSIONS,
+} from '../../src/workspaces/permissions';
 
 describe('workspace permission matrix', () => {
   it('grants every permission to OWNER', () => {
@@ -531,10 +558,21 @@ Create `server/src/workspaces/types.ts`:
 export type WorkspaceRole = 'OWNER' | 'ADMIN' | 'EDITOR' | 'VIEWER' | 'GUEST';
 
 export type WorkspacePermission =
-  | 'workspace:view' | 'workspace:update' | 'workspace:delete'
-  | 'member:read' | 'member:invite' | 'member:update_role' | 'member:remove'
-  | 'audit:read' | 'file:view' | 'file:upload' | 'file:download'
-  | 'file:update' | 'file:delete' | 'quota:read' | 'quota:update';
+  | 'workspace:view'
+  | 'workspace:update'
+  | 'workspace:delete'
+  | 'member:read'
+  | 'member:invite'
+  | 'member:update_role'
+  | 'member:remove'
+  | 'audit:read'
+  | 'file:view'
+  | 'file:upload'
+  | 'file:download'
+  | 'file:update'
+  | 'file:delete'
+  | 'quota:read'
+  | 'quota:update';
 
 export interface WorkspaceActorContext {
   userId: string;
@@ -549,40 +587,101 @@ Create `server/src/workspaces/permissions.ts`:
 ```ts
 import { WorkspacePermission, WorkspaceRole } from './types';
 
-export const WORKSPACE_ROLE_PERMISSIONS: Record<WorkspaceRole, Record<WorkspacePermission, boolean>> = {
+export const WORKSPACE_ROLE_PERMISSIONS: Record<
+  WorkspaceRole,
+  Record<WorkspacePermission, boolean>
+> = {
   OWNER: {
-    'workspace:view': true, 'workspace:update': true, 'workspace:delete': true,
-    'member:read': true, 'member:invite': true, 'member:update_role': true, 'member:remove': true,
-    'audit:read': true, 'file:view': true, 'file:upload': true, 'file:download': true,
-    'file:update': true, 'file:delete': true, 'quota:read': true, 'quota:update': true,
+    'workspace:view': true,
+    'workspace:update': true,
+    'workspace:delete': true,
+    'member:read': true,
+    'member:invite': true,
+    'member:update_role': true,
+    'member:remove': true,
+    'audit:read': true,
+    'file:view': true,
+    'file:upload': true,
+    'file:download': true,
+    'file:update': true,
+    'file:delete': true,
+    'quota:read': true,
+    'quota:update': true,
   },
   ADMIN: {
-    'workspace:view': true, 'workspace:update': true, 'workspace:delete': false,
-    'member:read': true, 'member:invite': true, 'member:update_role': true, 'member:remove': true,
-    'audit:read': true, 'file:view': true, 'file:upload': true, 'file:download': true,
-    'file:update': true, 'file:delete': true, 'quota:read': true, 'quota:update': true,
+    'workspace:view': true,
+    'workspace:update': true,
+    'workspace:delete': false,
+    'member:read': true,
+    'member:invite': true,
+    'member:update_role': true,
+    'member:remove': true,
+    'audit:read': true,
+    'file:view': true,
+    'file:upload': true,
+    'file:download': true,
+    'file:update': true,
+    'file:delete': true,
+    'quota:read': true,
+    'quota:update': true,
   },
   EDITOR: {
-    'workspace:view': true, 'workspace:update': false, 'workspace:delete': false,
-    'member:read': false, 'member:invite': false, 'member:update_role': false, 'member:remove': false,
-    'audit:read': false, 'file:view': true, 'file:upload': true, 'file:download': true,
-    'file:update': true, 'file:delete': true, 'quota:read': true, 'quota:update': false,
+    'workspace:view': true,
+    'workspace:update': false,
+    'workspace:delete': false,
+    'member:read': false,
+    'member:invite': false,
+    'member:update_role': false,
+    'member:remove': false,
+    'audit:read': false,
+    'file:view': true,
+    'file:upload': true,
+    'file:download': true,
+    'file:update': true,
+    'file:delete': true,
+    'quota:read': true,
+    'quota:update': false,
   },
   VIEWER: {
-    'workspace:view': true, 'workspace:update': false, 'workspace:delete': false,
-    'member:read': false, 'member:invite': false, 'member:update_role': false, 'member:remove': false,
-    'audit:read': false, 'file:view': true, 'file:upload': false, 'file:download': true,
-    'file:update': false, 'file:delete': false, 'quota:read': true, 'quota:update': false,
+    'workspace:view': true,
+    'workspace:update': false,
+    'workspace:delete': false,
+    'member:read': false,
+    'member:invite': false,
+    'member:update_role': false,
+    'member:remove': false,
+    'audit:read': false,
+    'file:view': true,
+    'file:upload': false,
+    'file:download': true,
+    'file:update': false,
+    'file:delete': false,
+    'quota:read': true,
+    'quota:update': false,
   },
   GUEST: {
-    'workspace:view': true, 'workspace:update': false, 'workspace:delete': false,
-    'member:read': false, 'member:invite': false, 'member:update_role': false, 'member:remove': false,
-    'audit:read': false, 'file:view': true, 'file:upload': false, 'file:download': true,
-    'file:update': false, 'file:delete': false, 'quota:read': true, 'quota:update': false,
+    'workspace:view': true,
+    'workspace:update': false,
+    'workspace:delete': false,
+    'member:read': false,
+    'member:invite': false,
+    'member:update_role': false,
+    'member:remove': false,
+    'audit:read': false,
+    'file:view': true,
+    'file:upload': false,
+    'file:download': true,
+    'file:update': false,
+    'file:delete': false,
+    'quota:read': true,
+    'quota:update': false,
   },
 };
 
-export function hasWorkspacePermission(role: WorkspaceRole, permission: WorkspacePermission): boolean {
+export function hasWorkspacePermission(
+  role: WorkspaceRole,
+  permission: WorkspacePermission,
+): boolean {
   return WORKSPACE_ROLE_PERMISSIONS[role]?.[permission] === true;
 }
 ```
@@ -604,16 +703,17 @@ git add server/src/workspaces/types.ts server/src/workspaces/permissions.ts serv
 git commit -m "feat(workspace): add role permission matrix"
 ```
 
-
 ---
 
 ### Task 3: Workspace RBAC Database Models
 
 **Files:**
+
 - Modify: `server/prisma/schema.prisma`
 - Create: generated migration under `server/prisma/migrations/<timestamp>_workspace_rbac/migration.sql`
 
 **Interfaces:**
+
 - Consumes: existing `User` model.
 - Produces Prisma models `Workspace`, `WorkspaceMember`, `WorkspaceInvitation`, `AuditLog`, and enums `WorkspaceRole`, `WorkspaceMemberStatus`, `WorkspaceStatus`, `InvitationStatus`.
 
@@ -818,6 +918,7 @@ git commit -m "feat(workspace): add rbac schema and personal workspace migration
 ### Task 4: Workspace CRUD and Membership Context
 
 **Files:**
+
 - Create: `server/src/workspaces/dto/create-workspace.dto.ts`
 - Create: `server/src/workspaces/workspaces.service.ts`
 - Create: `server/src/workspaces/workspaces.controller.ts`
@@ -826,6 +927,7 @@ git commit -m "feat(workspace): add rbac schema and personal workspace migration
 - Test: `server/test/workspaces/workspaces.service.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `PrismaService`.
 - Produces:
 
@@ -853,7 +955,14 @@ import { PrismaService } from '../../src/prisma/prisma.service';
 describe('WorkspacesService', () => {
   let service: WorkspacesService;
   const prisma = {
-    workspace: { create: jest.fn(), findMany: jest.fn(), findFirst: jest.fn(), update: jest.fn(), delete: jest.fn(), findUnique: jest.fn() },
+    workspace: {
+      create: jest.fn(),
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      findUnique: jest.fn(),
+    },
     workspaceMember: { findUnique: jest.fn() },
     $transaction: jest.fn(),
   };
@@ -868,30 +977,47 @@ describe('WorkspacesService', () => {
 
   it('requires an active membership', async () => {
     prisma.workspaceMember.findUnique.mockResolvedValue(null);
-    await expect(service.requireMembership('workspace-1', 'user-1'))
-      .rejects.toThrow(NotFoundException);
+    await expect(service.requireMembership('workspace-1', 'user-1')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 
   it('rejects disabled members', async () => {
     prisma.workspaceMember.findUnique.mockResolvedValue({
-      id: 'member-1', workspaceId: 'workspace-1', userId: 'user-1', role: 'EDITOR', status: 'disabled',
+      id: 'member-1',
+      workspaceId: 'workspace-1',
+      userId: 'user-1',
+      role: 'EDITOR',
+      status: 'disabled',
     });
-    await expect(service.requireMembership('workspace-1', 'user-1'))
-      .rejects.toThrow(ForbiddenException);
+    await expect(service.requireMembership('workspace-1', 'user-1')).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 
   it('returns an actor context for active members', async () => {
     prisma.workspaceMember.findUnique.mockResolvedValue({
-      id: 'member-1', workspaceId: 'workspace-1', userId: 'user-1', role: 'EDITOR', status: 'active',
+      id: 'member-1',
+      workspaceId: 'workspace-1',
+      userId: 'user-1',
+      role: 'EDITOR',
+      status: 'active',
     });
-    await expect(service.requireMembership('workspace-1', 'user-1'))
-      .resolves.toMatchObject({ memberId: 'member-1', role: 'EDITOR' });
+    await expect(service.requireMembership('workspace-1', 'user-1')).resolves.toMatchObject({
+      memberId: 'member-1',
+      role: 'EDITOR',
+    });
   });
 
   it('rejects workspace deletion by non-owner', async () => {
-    await expect(service.deleteWorkspace({
-      userId: 'user-1', workspaceId: 'workspace-1', memberId: 'member-1', role: 'ADMIN',
-    })).rejects.toThrow(ForbiddenException);
+    await expect(
+      service.deleteWorkspace({
+        userId: 'user-1',
+        workspaceId: 'workspace-1',
+        memberId: 'member-1',
+        role: 'ADMIN',
+      }),
+    ).rejects.toThrow(ForbiddenException);
   });
 });
 ```
@@ -914,12 +1040,18 @@ Create `server/src/workspaces/dto/create-workspace.dto.ts`:
 import { IsNotEmpty, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CreateWorkspaceDto {
-  @IsString() @IsNotEmpty() @MinLength(2) @MaxLength(128)
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  @MaxLength(128)
   name!: string;
 }
 
 export class UpdateWorkspaceDto {
-  @IsString() @IsNotEmpty() @MinLength(2) @MaxLength(128)
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2)
+  @MaxLength(128)
   name!: string;
 }
 ```
@@ -927,7 +1059,13 @@ export class UpdateWorkspaceDto {
 Create `server/src/workspaces/workspaces.service.ts`:
 
 ```ts
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WorkspaceActorContext } from './types';
 import { CreateWorkspaceDto, UpdateWorkspaceDto } from './dto/create-workspace.dto';
@@ -953,7 +1091,12 @@ export class WorkspacesService {
   }
 
   private slugify(value: string): string {
-    return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
+    return value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 48);
   }
 
   async createWorkspace(userId: string, dto: CreateWorkspaceDto) {
@@ -964,7 +1107,7 @@ export class WorkspacesService {
       const slug = index === 0 ? baseSlug : `${baseSlug}-${index + 1}`;
       if (await this.prisma.workspace.findUnique({ where: { slug } })) continue;
 
-      return this.prisma.$transaction(async tx => {
+      return this.prisma.$transaction(async (tx) => {
         const workspace = await tx.workspace.create({
           data: { name: dto.name, slug, ownerId: userId, storageDriver: 'qiniu' },
         });
@@ -1101,12 +1244,12 @@ git add server/src/workspaces server/src/app.module.ts server/test/workspaces
 git commit -m "feat(workspace): add workspace crud and membership context"
 ```
 
-
 ---
 
 ### Task 5: Workspace and Permission Guards
 
 **Files:**
+
 - Create: `server/src/workspaces/decorators/require-permission.decorator.ts`
 - Create: `server/src/workspaces/decorators/workspace-actor.decorator.ts`
 - Create: `server/src/workspaces/guards/workspace.guard.ts`
@@ -1114,6 +1257,7 @@ git commit -m "feat(workspace): add workspace crud and membership context"
 - Test: `server/test/workspaces/permission.guard.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `WorkspacesService.requireMembership`, `hasWorkspacePermission`.
 - Produces:
 
@@ -1138,7 +1282,9 @@ function createContext(role: string): ExecutionContext {
     getHandler: () => jest.fn(),
     getClass: () => jest.fn(),
     switchToHttp: () => ({
-      getRequest: () => ({ workspaceActor: { userId: 'u', workspaceId: 'w', memberId: 'm', role } }),
+      getRequest: () => ({
+        workspaceActor: { userId: 'u', workspaceId: 'w', memberId: 'm', role },
+      }),
     }),
   } as unknown as ExecutionContext;
 }
@@ -1238,8 +1384,12 @@ export class PermissionGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const required = this.reflector.get<WorkspacePermission>(WORKSPACE_PERMISSION_KEY, context.getHandler());
-    const actor = context.switchToHttp().getRequest().workspaceActor as WorkspaceActorContext | undefined;
+    const required = this.reflector.get<WorkspacePermission>(
+      WORKSPACE_PERMISSION_KEY,
+      context.getHandler(),
+    );
+    const actor = context.switchToHttp().getRequest().workspaceActor as
+      WorkspaceActorContext | undefined;
 
     if (!actor || !required || !hasWorkspacePermission(actor.role, required)) {
       throw new ForbiddenException('WORKSPACE_PERMISSION_DENIED');
@@ -1289,6 +1439,7 @@ git commit -m "feat(workspace): enforce workspace rbac guards"
 ### Task 6: Audit Service and Audit Query API
 
 **Files:**
+
 - Create: `server/src/audit/audit.service.ts`
 - Create: `server/src/audit/audit.controller.ts`
 - Create: `server/src/audit/audit.module.ts`
@@ -1297,6 +1448,7 @@ git commit -m "feat(workspace): enforce workspace rbac guards"
 - Test: `server/test/audit/audit.service.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `PrismaService`, `audit:read` permission.
 - Produces:
 
@@ -1334,13 +1486,15 @@ describe('AuditService', () => {
       after: { role: 'ADMIN' },
     });
 
-    expect(create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({
-        workspaceId: 'workspace-1',
-        action: 'member.role_changed',
-        resourceType: 'member',
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          workspaceId: 'workspace-1',
+          action: 'member.role_changed',
+          resourceType: 'member',
+        }),
       }),
-    }));
+    );
   });
 });
 ```
@@ -1395,8 +1549,10 @@ export class AuditService {
           ip: input.ip ?? null,
           userAgent: input.userAgent ?? null,
           requestId: input.requestId ?? null,
-          before: input.before === undefined ? Prisma.JsonNull : input.before as Prisma.InputJsonValue,
-          after: input.after === undefined ? Prisma.JsonNull : input.after as Prisma.InputJsonValue,
+          before:
+            input.before === undefined ? Prisma.JsonNull : (input.before as Prisma.InputJsonValue),
+          after:
+            input.after === undefined ? Prisma.JsonNull : (input.after as Prisma.InputJsonValue),
         },
       });
     } catch (error) {
@@ -1404,7 +1560,16 @@ export class AuditService {
     }
   }
 
-  async list(workspaceId: string, query: { page: number; limit: number; action?: string; actorId?: string; resourceType?: string }) {
+  async list(
+    workspaceId: string,
+    query: {
+      page: number;
+      limit: number;
+      action?: string;
+      actorId?: string;
+      resourceType?: string;
+    },
+  ) {
     const where = {
       workspaceId,
       action: query.action,
@@ -1442,19 +1607,27 @@ import { IsIn, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class QueryAuditLogDto {
-  @Type(() => Number) @IsInt() @Min(1)
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   page: number = 1;
 
-  @Type(() => Number) @IsInt() @Min(1) @Max(100)
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
   limit: number = 20;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   action?: string;
 
-  @IsOptional() @IsUUID()
+  @IsOptional()
+  @IsUUID()
   actorId?: string;
 
-  @IsOptional() @IsIn(['workspace', 'member', 'file', 'upload', 'invitation'])
+  @IsOptional()
+  @IsIn(['workspace', 'member', 'file', 'upload', 'invitation'])
   resourceType?: string;
 }
 ```
@@ -1520,12 +1693,12 @@ git add server/src/audit server/src/app.module.ts server/test/audit
 git commit -m "feat(audit): add workspace audit trail and query api"
 ```
 
-
 ---
 
 ### Task 7: Invitations and Member Management
 
 **Files:**
+
 - Create: `server/src/workspaces/dto/member.dto.ts`
 - Create: `server/src/workspaces/member.service.ts`
 - Create: `server/src/workspaces/member.controller.ts`
@@ -1533,15 +1706,29 @@ git commit -m "feat(audit): add workspace audit trail and query api"
 - Test: `server/test/workspaces/member.service.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `AuditService`, workspace Prisma models.
 - Produces:
 
 ```ts
 class MemberService {
   listMembers(actor: WorkspaceActorContext): Promise<WorkspaceMember[]>;
-  inviteMember(actor: WorkspaceActorContext, dto: InviteMemberDto, context: RequestContext): Promise<InvitationResponse>;
-  updateMemberRole(actor: WorkspaceActorContext, memberId: string, dto: UpdateMemberRoleDto, context: RequestContext): Promise<WorkspaceMember>;
-  removeMember(actor: WorkspaceActorContext, memberId: string, context: RequestContext): Promise<{ id: string }>;
+  inviteMember(
+    actor: WorkspaceActorContext,
+    dto: InviteMemberDto,
+    context: RequestContext,
+  ): Promise<InvitationResponse>;
+  updateMemberRole(
+    actor: WorkspaceActorContext,
+    memberId: string,
+    dto: UpdateMemberRoleDto,
+    context: RequestContext,
+  ): Promise<WorkspaceMember>;
+  removeMember(
+    actor: WorkspaceActorContext,
+    memberId: string,
+    context: RequestContext,
+  ): Promise<{ id: string }>;
   acceptInvitation(userId: string, token: string): Promise<WorkspaceMember>;
 }
 ```
@@ -1555,7 +1742,13 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { MemberService } from '../../src/workspaces/member.service';
 
 const prisma: any = {
-  workspaceMember: { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn(), delete: jest.fn(), create: jest.fn() },
+  workspaceMember: {
+    findUnique: jest.fn(),
+    findMany: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    create: jest.fn(),
+  },
   workspaceInvitation: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
   user: { findUnique: jest.fn() },
   $transaction: jest.fn(),
@@ -1572,33 +1765,49 @@ describe('MemberService authorization', () => {
 
   it('rejects ADMIN attempts to change OWNER role', async () => {
     prisma.workspaceMember.findUnique.mockResolvedValue({
-      id: 'owner-member', workspaceId: 'w1', userId: 'owner', role: 'OWNER', status: 'active',
+      id: 'owner-member',
+      workspaceId: 'w1',
+      userId: 'owner',
+      role: 'OWNER',
+      status: 'active',
     });
 
-    await expect(service.updateMemberRole(
-      { userId: 'admin', workspaceId: 'w1', memberId: 'admin-member', role: 'ADMIN' },
-      'owner-member',
-      { role: 'EDITOR' },
-      { ip: '127.0.0.1', userAgent: 'jest', requestId: 'r1' },
-    )).rejects.toThrow(ForbiddenException);
+    await expect(
+      service.updateMemberRole(
+        { userId: 'admin', workspaceId: 'w1', memberId: 'admin-member', role: 'ADMIN' },
+        'owner-member',
+        { role: 'EDITOR' },
+        { ip: '127.0.0.1', userAgent: 'jest', requestId: 'r1' },
+      ),
+    ).rejects.toThrow(ForbiddenException);
   });
 
   it('rejects removal of an OWNER', async () => {
     prisma.workspaceMember.findUnique.mockResolvedValue({
-      id: 'owner-member', workspaceId: 'w1', userId: 'owner', role: 'OWNER', status: 'active',
+      id: 'owner-member',
+      workspaceId: 'w1',
+      userId: 'owner',
+      role: 'OWNER',
+      status: 'active',
     });
 
-    await expect(service.removeMember(
-      { userId: 'owner', workspaceId: 'w1', memberId: 'owner-member', role: 'OWNER' },
-      'owner-member',
-      { ip: '127.0.0.1', userAgent: 'jest', requestId: 'r1' },
-    )).rejects.toThrow(ForbiddenException);
+    await expect(
+      service.removeMember(
+        { userId: 'owner', workspaceId: 'w1', memberId: 'owner-member', role: 'OWNER' },
+        'owner-member',
+        { ip: '127.0.0.1', userAgent: 'jest', requestId: 'r1' },
+      ),
+    ).rejects.toThrow(ForbiddenException);
   });
 
   it('rejects expired invitations', async () => {
     prisma.workspaceInvitation.findUnique.mockResolvedValue({
-      id: 'invite-1', tokenHash: 'hash', status: 'pending', expiresAt: new Date(Date.now() - 1000),
-      workspaceId: 'w1', role: 'EDITOR',
+      id: 'invite-1',
+      tokenHash: 'hash',
+      status: 'pending',
+      expiresAt: new Date(Date.now() - 1000),
+      workspaceId: 'w1',
+      role: 'EDITOR',
     });
 
     await expect(service.acceptInvitation('user-1', 'token')).rejects.toThrow(NotFoundException);
@@ -1654,7 +1863,12 @@ export interface RequestContext {
 Create `server/src/workspaces/member.service.ts`:
 
 ```ts
-import { ForbiddenException, Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -1663,7 +1877,10 @@ import { InviteMemberDto, RequestContext, UpdateMemberRoleDto } from './dto/memb
 
 @Injectable()
 export class MemberService {
-  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   async listMembers(actor: WorkspaceActorContext) {
     return this.prisma.workspaceMember.findMany({
@@ -1681,7 +1898,12 @@ export class MemberService {
     return member;
   }
 
-  async updateMemberRole(actor: WorkspaceActorContext, memberId: string, dto: UpdateMemberRoleDto, context: RequestContext) {
+  async updateMemberRole(
+    actor: WorkspaceActorContext,
+    memberId: string,
+    dto: UpdateMemberRoleDto,
+    context: RequestContext,
+  ) {
     const target = await this.requireTargetMember(actor.workspaceId, memberId);
     if (target.role === 'OWNER') {
       throw new ForbiddenException('WORKSPACE_PERMISSION_DENIED');
@@ -1774,7 +1996,7 @@ export class MemberService {
     });
     if (exists) throw new ConflictException('WORKSPACE_MEMBER_ALREADY_EXISTS');
 
-    return this.prisma.$transaction(async tx => {
+    return this.prisma.$transaction(async (tx) => {
       await tx.workspaceInvitation.update({
         where: { id: invitation.id },
         data: { status: 'accepted', acceptedAt: new Date() },
@@ -1827,7 +2049,11 @@ export class MemberController {
   @Post('workspaces/:workspaceId/invitations')
   @UseGuards(WorkspaceGuard, PermissionGuard)
   @RequirePermission('member:invite')
-  invite(@WorkspaceActor() actor: WorkspaceActorContext, @Body() dto: InviteMemberDto, @Req() req: Request) {
+  invite(
+    @WorkspaceActor() actor: WorkspaceActorContext,
+    @Body() dto: InviteMemberDto,
+    @Req() req: Request,
+  ) {
     return this.memberService.inviteMember(actor, dto, requestContext(req));
   }
 
@@ -1893,10 +2119,12 @@ git commit -m "feat(workspace): add invitations and member management"
 ### Task 8: Workspace Data Isolation Integration Test
 
 **Files:**
+
 - Create: `server/test/workspaces/workspace-isolation.e2e-spec.ts`
 - Create: `server/test/jest-e2e.json`
 
 **Interfaces:**
+
 - Consumes: Phase 2 backend APIs.
 - Produces: repeatable proof that a non-member cannot read or mutate another workspace.
 
@@ -1940,10 +2168,13 @@ describe('Workspace data isolation', () => {
     const suffix = Date.now();
     const register = async (email: string) => {
       await request(app.getHttpServer()).post('/api/auth/register').send({
-        email, password: 'Password123!', nickname: 'Isolation Test',
+        email,
+        password: 'Password123!',
+        nickname: 'Isolation Test',
       });
       const login = await request(app.getHttpServer()).post('/api/auth/login').send({
-        email, password: 'Password123!',
+        email,
+        password: 'Password123!',
       });
       return login.body.data.access_token as string;
     };
@@ -1999,12 +2230,12 @@ git add server/test
 git commit -m "test(workspace): prove cross workspace isolation"
 ```
 
-
 ---
 
 ### Task 9: Frontend Workspace Context and Member UI
 
 **Files:**
+
 - Create: `client/src/features/workspace/api.ts`
 - Create: `client/src/features/workspace/store.ts`
 - Create: `client/src/features/workspace/types.ts`
@@ -2014,6 +2245,7 @@ git commit -m "test(workspace): prove cross workspace isolation"
 - Modify: `client/package.json`
 
 **Interfaces:**
+
 - Consumes: `/api/workspaces`, workspace member and invitation endpoints.
 - Produces `useWorkspaces()`, `useWorkspaceMembers()`, `useWorkspaceStore()`, and `UI_PERMISSIONS`.
 
@@ -2047,11 +2279,14 @@ export interface WorkspaceMember {
   user: { id: string; email: string; nickname?: string | null; avatarUrl?: string | null };
 }
 
-export const UI_PERMISSIONS: Record<WorkspaceRole, {
-  upload: boolean;
-  manageMembers: boolean;
-  viewAudit: boolean;
-}> = {
+export const UI_PERMISSIONS: Record<
+  WorkspaceRole,
+  {
+    upload: boolean;
+    manageMembers: boolean;
+    viewAudit: boolean;
+  }
+> = {
   OWNER: { upload: true, manageMembers: true, viewAudit: true },
   ADMIN: { upload: true, manageMembers: true, viewAudit: true },
   EDITOR: { upload: true, manageMembers: false, viewAudit: false },
@@ -2088,7 +2323,9 @@ export function useWorkspaceMembers(workspaceId: string) {
   return useQuery({
     queryKey: workspaceKeys.members(workspaceId),
     queryFn: async () => {
-      const response = await api.get<{ data: WorkspaceMember[] }>(`/workspaces/${workspaceId}/members`);
+      const response = await api.get<{ data: WorkspaceMember[] }>(
+        `/workspaces/${workspaceId}/members`,
+      );
       return response.data;
     },
     enabled: Boolean(workspaceId),
@@ -2121,9 +2358,9 @@ interface WorkspaceState {
 
 export const useWorkspaceStore = create<WorkspaceState>()(
   persist(
-    set => ({
+    (set) => ({
       currentWorkspaceId: null,
-      setCurrentWorkspace: workspace => set({ currentWorkspaceId: workspace?.id ?? null }),
+      setCurrentWorkspace: (workspace) => set({ currentWorkspaceId: workspace?.id ?? null }),
     }),
     { name: 'clouddrive.current-workspace' },
   ),
@@ -2150,7 +2387,11 @@ type FormValues = z.infer<typeof schema>;
 export default function NewWorkspacePage() {
   const router = useRouter();
   const client = useQueryClient();
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { name: '' },
   });
@@ -2160,7 +2401,7 @@ export default function NewWorkspacePage() {
       const response = await api.post('/workspaces', values);
       return response.data as { id: string };
     },
-    onSuccess: workspace => {
+    onSuccess: (workspace) => {
       client.invalidateQueries({ queryKey: ['workspaces'] });
       router.push('/dashboard');
     },
@@ -2169,12 +2410,17 @@ export default function NewWorkspacePage() {
   return (
     <main className="mx-auto max-w-md p-6">
       <h1 className="mb-6 text-2xl font-semibold">Create workspace</h1>
-      <form className="space-y-4" onSubmit={handleSubmit(values => mutation.mutate(values))}>
+      <form className="space-y-4" onSubmit={handleSubmit((values) => mutation.mutate(values))}>
         <label className="block text-sm font-medium">Name</label>
-        <input {...register('name')} className="w-full rounded-md border px-3 py-2 dark:bg-neutral-900" />
+        <input
+          {...register('name')}
+          className="w-full rounded-md border px-3 py-2 dark:bg-neutral-900"
+        />
         {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
-        <button disabled={isSubmitting || mutation.isPending}
-          className="w-full rounded-md bg-blue-600 px-4 py-2 text-white disabled:opacity-50">
+        <button
+          disabled={isSubmitting || mutation.isPending}
+          className="w-full rounded-md bg-blue-600 px-4 py-2 text-white disabled:opacity-50"
+        >
           Create
         </button>
       </form>
@@ -2188,6 +2434,7 @@ export default function NewWorkspacePage() {
 Create `client/src/app/(dashboard)/workspaces/[workspaceId]/members/page.tsx`.
 
 Required behavior:
+
 - read `workspaceId` from route params;
 - load members with `useWorkspaceMembers`;
 - show email, nickname, role, and join date;
@@ -2222,6 +2469,7 @@ export function useUpdateMemberRole(workspaceId: string) {
 - [ ] **Step 6: Add workspace switcher to dashboard layout**
 
 Modify `client/src/app/(dashboard)/layout.tsx`:
+
 - call `useWorkspaces()`;
 - render a `<select>` of workspaces;
 - persist selection with `useWorkspaceStore`;
@@ -2240,6 +2488,7 @@ npm run build
 Expected: both PASS.
 
 Manual checks:
+
 1. User A creates Workspace A.
 2. User B cannot open Workspace A members route data.
 3. A invites B as `EDITOR`.
@@ -2258,6 +2507,7 @@ git commit -m "feat(client): add workspace switching and member management"
 ### Task 10: Legacy Compatibility and Phase 2 Regression
 
 **Files:**
+
 - Modify: `server/src/files/files.service.ts`
 - Modify: `server/src/files/files.controller.ts`
 - Modify: `server/src/public/public.service.ts`
@@ -2267,27 +2517,31 @@ git commit -m "feat(client): add workspace switching and member management"
 - Test: `server/test/workspaces/workspace-isolation.e2e-spec.ts`
 
 **Interfaces:**
+
 - Consumes: migrated `files.workspace_id`.
 - Produces workspace-scoped file APIs while preserving `GET /api/public/files/:urlKey`.
 
 - [ ] **Step 1: Make file APIs workspace-aware**
 
 In `server/src/files/files.service.ts`:
+
 - replace every `where: { userId }` file query with `where: { workspaceId, deletedAt: null }`;
 - accept `WorkspaceActorContext` instead of a raw `userId` for workspace file methods;
 - retain the existing method names `getFiles`, `getFile`, and `deleteFile`.
 
 In `server/src/files/files.controller.ts`:
+
 - add `WorkspaceGuard`, `PermissionGuard`, and `WorkspaceActor` to workspace file routes;
 - use permission mapping:
 
-| Route | Permission |
-| --- | --- |
-| `GET /workspaces/:workspaceId/files` | `file:view` |
-| `GET /workspaces/:workspaceId/files/:fileId` | `file:view` |
+| Route                                           | Permission    |
+| ----------------------------------------------- | ------------- |
+| `GET /workspaces/:workspaceId/files`            | `file:view`   |
+| `GET /workspaces/:workspaceId/files/:fileId`    | `file:view`   |
 | `DELETE /workspaces/:workspaceId/files/:fileId` | `file:delete` |
 
 In `server/src/public/public.service.ts`:
+
 - continue lookup by `urlKey`;
 - require `deletedAt: null` and `workspace.status === 'active'`;
 - do not require workspace membership for files explicitly marked public.
@@ -2312,6 +2566,7 @@ Expected: both counts are `0`.
 - [ ] **Step 3: Update docs**
 
 Update:
+
 - `docs/ARCHITECTURE.md`: add JWT -> `WorkspaceGuard` -> `PermissionGuard` -> Service flow.
 - `docs/DATABASE.md`: add Workspace, WorkspaceMember, Invitation, and AuditLog ER relationships.
 - `docs/API.md`: add workspace, member, invitation, audit endpoints, permissions, and error codes:

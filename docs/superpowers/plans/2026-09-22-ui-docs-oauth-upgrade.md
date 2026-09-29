@@ -24,6 +24,7 @@
 ### Task 1: Documentation baseline
 
 **Files:**
+
 - Create: `README.md`
 - Create: `docs/ARCHITECTURE.md`
 - Create: `docs/DATABASE.md`
@@ -32,6 +33,7 @@
 - Modify: `.env.example`
 
 **Interfaces:**
+
 - Produces: public project entrypoint and operations docs referenced by README.
 
 - [x] Write README with overview, feature list, architecture diagram reference, tech stack, local quickstart, environment variables, test accounts, OAuth setup, API summary, deployment summary, and project structure.
@@ -44,6 +46,7 @@
 ### Task 2: Public homepage and auth pages
 
 **Files:**
+
 - Modify: `client/src/app/page.tsx`
 - Modify: `client/src/app/(auth)/layout.tsx`
 - Modify: `client/src/app/(auth)/login/page.tsx`
@@ -51,6 +54,7 @@
 - Create: `client/src/components/AuthProviderButtons.tsx`
 
 **Interfaces:**
+
 - Consumes: `GET /api/auth/providers` returning `{ providers: Array<'github'|'google'|'wechat'> }`.
 - Produces: reusable third-party login button UI for login and register pages.
 
@@ -63,6 +67,7 @@
 ### Task 3: Dashboard responsive shell and files UI
 
 **Files:**
+
 - Modify: `client/src/app/(dashboard)/layout.tsx`
 - Modify: `client/src/components/Navbar.tsx`
 - Modify: `client/src/components/Sidebar.tsx`
@@ -71,6 +76,7 @@
 - Create: `client/src/components/FileCard.tsx`
 
 **Interfaces:**
+
 - Consumes: existing files API response shape.
 - Produces: reusable mobile file-card presentation.
 
@@ -83,6 +89,7 @@
 ### Task 4: OAuth backend and WeChat provider
 
 **Files:**
+
 - Modify: `server/prisma/schema.prisma`
 - Create: `server/prisma/migrations/<timestamp>_wechat_oauth/migration.sql`
 - Modify: `server/src/common/config/configuration.ts`
@@ -91,6 +98,7 @@
 - Modify: `server/prisma/seed.ts`
 
 **Interfaces:**
+
 - Consumes: existing `OAuthAccount`, JWT issuance, and Redis refresh-token storage.
 - Produces:
   - `GET /api/auth/providers`
@@ -111,12 +119,14 @@
 ### Task 5: Frontend OAuth integration
 
 **Files:**
+
 - Modify: `client/src/app/(auth)/login/page.tsx`
 - Modify: `client/src/app/(auth)/register/page.tsx`
 - Modify: `client/src/app/(auth)/auth/callback/page.tsx`
 - Modify: `client/src/contexts/AuthContext.tsx`
 
 **Interfaces:**
+
 - Consumes: provider endpoint and OAuth callback token query parameters.
 - Produces: configured-provider buttons and error-aware callback handling.
 
@@ -129,6 +139,7 @@
 ### Task 6: Final verification
 
 **Files:**
+
 - No product file changes unless a verification defect is found.
 
 - [x] Run `npm run build` in `client`.

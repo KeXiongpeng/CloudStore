@@ -1,0 +1,52 @@
+﻿name: quality
+
+on:
+  push:
+    branches: [main, ui-docs-oauth-upgrade, feat/workspace-upload-pipeline]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: csp_user
+          POSTGRES_PASSWORD: csp_password_2024
+          POSTGRES_DB: cloud_storage
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U csp_user -d cloud_storage"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6380:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://csp_user:csp_password_2024@localhost:5433/cloud_storage?schema=public
+      REDIS_HOST: localhost
+      REDIS_PORT: '6380'
+      JWT_SECRET: ci-jwt-secret
+      JWT_REFRESH_SECRET: ci-refresh-secret
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm --prefix server ci
+      - run: npm --prefix client ci
+      - run: npm run format:check
+      - run: npm run deps:graph
+      - run: npm --prefix server run typecheck --if-present
+      - run: npm --prefix client run lint
+      - run: npm --prefix server test --if-present -- --runInBand
+      - run: npm --prefix client test --if-present -- --run
+      - run: npm --prefix server run build
+      - run: npm --prefix client run build

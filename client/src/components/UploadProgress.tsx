@@ -32,9 +32,7 @@ export default function UploadProgress({ item, onRemove }: UploadProgressProps) 
     error: '失败',
   };
 
-  const fileUrl = item.result
-    ? `${window.location.origin}/f/${item.result.urlKey}`
-    : '';
+  const fileUrl = item.result ? `${window.location.origin}/f/${item.result.urlKey}` : '';
 
   const handleCopy = async () => {
     if (!fileUrl) return;
@@ -89,9 +87,7 @@ export default function UploadProgress({ item, onRemove }: UploadProgressProps) 
           </div>
         )}
 
-        {item.status === 'error' && (
-          <p className="mt-1 text-xs text-red-500">{item.error}</p>
-        )}
+        {item.status === 'error' && <p className="mt-1 text-xs text-red-500">{item.error}</p>}
       </div>
     </div>
   );

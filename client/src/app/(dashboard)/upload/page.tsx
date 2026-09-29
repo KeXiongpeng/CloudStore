@@ -1,57 +1,29 @@
 'use client';
 
-import FileDropzone from '@/components/FileDropzone';
-import UploadProgress from '@/components/UploadProgress';
-import { useUpload } from '@/hooks/useUpload';
+import { useWorkspaceStore } from '@/features/workspace/store';
+import { UI_PERMISSIONS } from '@/features/workspace/types';
+import { UploadDropzone } from '@/features/upload/UploadDropzone';
+import { UploadQueuePanel } from '@/features/upload/UploadQueuePanel';
 
 export default function UploadPage() {
-  const { uploads, uploadFiles, removeUpload, clearCompleted, isUploading, notifications } = useUpload();
+  const workspace = useWorkspaceStore((state) => state.currentWorkspace);
+  const canUpload = workspace ? UI_PERMISSIONS[workspace.role].upload : false;
 
   return (
-    <div>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">上传文件</h1>
-        {uploads.some((u) => u.status === 'success') && (
-          <button
-            onClick={clearCompleted}
-            className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-          >
-            清除已完成
-          </button>
-        )}
+    <div className="mx-auto w-full max-w-5xl">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">上传文件</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {workspace ? `当前工作区：${workspace.name}` : '请先选择工作区'}
+          </p>
+        </div>
       </div>
 
-      <div className="mt-6">
-        <FileDropzone onFilesSelected={uploadFiles} disabled={isUploading} />
+      <div className="mt-6 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+        <UploadDropzone disabled={!canUpload} />
+        <UploadQueuePanel />
       </div>
-
-      {uploads.length > 0 && (
-        <div className="mt-6 space-y-2">
-          <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            上传列表 ({uploads.length})
-          </h2>
-          {uploads.map((item) => (
-            <UploadProgress key={item.id} item={item} onRemove={removeUpload} />
-          ))}
-        </div>
-      )}
-
-      {notifications.length > 0 && (
-        <div className="fixed top-4 right-4 z-50 space-y-2">
-          {notifications.map((n) => (
-            <div
-              key={n.id}
-              className={`rounded-lg px-4 py-3 text-sm font-medium shadow-lg transition-all animate-[slideIn_0.3s_ease-out] ${
-                n.type === 'success'
-                  ? 'bg-green-500 text-white'
-                  : 'bg-red-500 text-white'
-              }`}
-            >
-              {n.message}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

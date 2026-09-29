@@ -3,8 +3,11 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 FROM base AS deps
+ARG NPM_REGISTRY=https://registry.npmmirror.com
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm config set registry "${NPM_REGISTRY}" && \
+    npm ci --prefer-offline --no-audit --no-fund
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
@@ -21,6 +24,7 @@ RUN adduser --system --uid 1001 nestjs
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/package.json ./package.json
 
 USER nestjs

@@ -1,12 +1,17 @@
 import { Module } from '@nestjs/common';
 import { FilesService } from './files.service';
-import { FilesController } from './files.controller';
+import { WorkspaceFilesService, WorkspaceFileAccessService } from './workspace-files.service';
+import { FilesController, WorkspaceFoldersController } from './files.controller';
+import { FolderService } from './folder.service';
+import { WorkspaceFilesController } from './workspace-files.controller';
+import { WorkspaceCoreModule } from '../workspaces/workspace-core.module';
 import { S3Module } from '../s3/s3.module';
+import { QueueModule } from '../queue/queue.module';
 
 @Module({
-  imports: [S3Module],
-  controllers: [FilesController],
-  providers: [FilesService],
-  exports: [FilesService],
+  imports: [WorkspaceCoreModule, S3Module, QueueModule],
+  controllers: [FilesController, WorkspaceFilesController, WorkspaceFoldersController],
+  providers: [FilesService, WorkspaceFilesService, FolderService, WorkspaceFileAccessService],
+  exports: [FilesService, FolderService, WorkspaceFileAccessService],
 })
 export class FilesModule {}

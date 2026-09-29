@@ -6,17 +6,25 @@ import api from '@/lib/api';
 import QuotaBar from '@/components/QuotaBar';
 
 export default function DashboardPage() {
-  const [quota, setQuota] = useState<{ storageLimit: number; storageUsed: number; tier: string } | null>(null);
-  const [stats, setStats] = useState<{ totalFiles: number; totalViews: number; totalDownloads: number; totalSize: number } | null>(null);
+  const [quota, setQuota] = useState<{
+    storageLimit: number;
+    storageUsed: number;
+    tier: string;
+  } | null>(null);
+  const [stats, setStats] = useState<{
+    totalFiles: number;
+    totalViews: number;
+    totalDownloads: number;
+    totalSize: number;
+  } | null>(null);
 
   useEffect(() => {
-    Promise.all([
-      api.get('/users/me/quota'),
-      api.get('/files/stats'),
-    ]).then(([quotaRes, statsRes]) => {
-      setQuota(quotaRes.data);
-      setStats(statsRes.data);
-    }).catch(console.error);
+    Promise.all([api.get('/users/me/quota'), api.get('/files/stats')])
+      .then(([quotaRes, statsRes]) => {
+        setQuota(quotaRes.data);
+        setStats(statsRes.data);
+      })
+      .catch(console.error);
   }, []);
 
   return (

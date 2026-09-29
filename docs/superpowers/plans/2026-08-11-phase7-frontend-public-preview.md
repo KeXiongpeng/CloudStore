@@ -52,6 +52,7 @@ client/src/
 ### Task 1: 预览组件 — ImageViewer, VideoPlayer, AudioPlayer, PdfViewer, CodeViewer, FileInfoCard
 
 **Files:**
+
 - Create: `client/src/components/preview/ImageViewer.tsx`
 - Create: `client/src/components/preview/VideoPlayer.tsx`
 - Create: `client/src/components/preview/AudioPlayer.tsx`
@@ -60,6 +61,7 @@ client/src/
 - Create: `client/src/components/preview/FileInfoCard.tsx`
 
 **Interfaces:**
+
 - Consumes: `fileUrl` (七牛云文件直链)、`fileName`、`mimeType`
 - Produces: 各组件根据 MIME 类型渲染对应的内容查看器
 
@@ -106,12 +108,7 @@ interface VideoPlayerProps {
 export default function VideoPlayer({ fileUrl, fileName }: VideoPlayerProps) {
   return (
     <div className="flex items-center justify-center bg-black">
-      <video
-        controls
-        autoPlay
-        className="max-h-[75vh] w-full"
-        preload="metadata"
-      >
+      <video controls autoPlay className="max-h-[75vh] w-full" preload="metadata">
         <source src={fileUrl} />
         你的浏览器不支持视频播放
       </video>
@@ -133,9 +130,18 @@ interface AudioPlayerProps {
 export default function AudioPlayer({ fileUrl, fileName }: AudioPlayerProps) {
   return (
     <div className="flex flex-col items-center justify-center py-16">
-      <svg className="mb-6 h-24 w-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-          d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+      <svg
+        className="mb-6 h-24 w-24 text-gray-400"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
+        />
       </svg>
       <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">{fileName}</p>
       <audio controls autoPlay className="w-full max-w-md">
@@ -160,11 +166,7 @@ interface PdfViewerProps {
 export default function PdfViewer({ fileUrl, fileName }: PdfViewerProps) {
   return (
     <div className="h-[75vh] w-full">
-      <iframe
-        src={fileUrl}
-        title={fileName}
-        className="h-full w-full border-0"
-      />
+      <iframe src={fileUrl} title={fileName} className="h-full w-full border-0" />
     </div>
   );
 }
@@ -222,7 +224,13 @@ function getFileIcon(mimeType: string): string {
   if (mimeType.startsWith('video/')) return '🎬';
   if (mimeType.startsWith('audio/')) return '🎵';
   if (mimeType === 'application/pdf') return '📄';
-  if (mimeType.includes('zip') || mimeType.includes('tar') || mimeType.includes('7z') || mimeType.includes('rar')) return '📦';
+  if (
+    mimeType.includes('zip') ||
+    mimeType.includes('tar') ||
+    mimeType.includes('7z') ||
+    mimeType.includes('rar')
+  )
+    return '📦';
   if (mimeType.includes('word') || mimeType.includes('document')) return '📝';
   if (mimeType.includes('sheet') || mimeType.includes('excel')) return '📊';
   if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) return '📑';
@@ -244,7 +252,9 @@ export default function FileInfoCard({
       <span className="text-6xl">{getFileIcon(mimeType)}</span>
       <p className="mt-4 text-lg font-medium text-gray-900 dark:text-white">{fileName}</p>
       <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-        <p>{mimeType} · {formatSize(fileSize)}</p>
+        <p>
+          {mimeType} · {formatSize(fileSize)}
+        </p>
       </div>
       <div className="mt-6">
         <a
@@ -252,7 +262,12 @@ export default function FileInfoCard({
           className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+            />
           </svg>
           下载文件
         </a>
@@ -280,10 +295,12 @@ git commit -m "feat: add preview components for image, video, audio, PDF, code, 
 ### Task 2: 预览操作栏 + 二维码弹窗
 
 **Files:**
+
 - Create: `client/src/components/PreviewToolbar.tsx`
 - Create: `client/src/components/QrCodeDialog.tsx`
 
 **Interfaces:**
+
 - Produces: `PreviewToolbar` — 预览页顶部/底部操作栏（下载、复制链接、二维码、文件信息）
 - Produces: `QrCodeDialog` — 二维码弹窗组件
 
@@ -323,11 +340,7 @@ export default function QrCodeDialog({ url, isOpen, onClose }: QrCodeDialogProps
     >
       <div className="rounded-lg bg-white p-6 text-center shadow-lg dark:bg-gray-900">
         <h3 className="text-lg font-medium text-gray-900 dark:text-white">分享二维码</h3>
-        <img
-          src={qrCodeUrl}
-          alt="QR Code"
-          className="mx-auto mt-4 h-48 w-48"
-        />
+        <img src={qrCodeUrl} alt="QR Code" className="mx-auto mt-4 h-48 w-48" />
         <p className="mt-2 break-all text-xs text-gray-500 dark:text-gray-400">{url}</p>
         <button
           onClick={onClose}
@@ -390,7 +403,10 @@ export default function PreviewToolbar({
     <>
       <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2 dark:border-gray-700 dark:bg-gray-900">
         <div className="flex items-center gap-3">
-          <p className="truncate text-sm font-medium text-gray-900 dark:text-white" title={fileName}>
+          <p
+            className="truncate text-sm font-medium text-gray-900 dark:text-white"
+            title={fileName}
+          >
             {fileName}
           </p>
           <span className="text-xs text-gray-400">
@@ -440,11 +456,7 @@ export default function PreviewToolbar({
         </div>
       )}
 
-      <QrCodeDialog
-        url={fileUrl}
-        isOpen={showQr}
-        onClose={() => setShowQr(false)}
-      />
+      <QrCodeDialog url={fileUrl} isOpen={showQr} onClose={() => setShowQr(false)} />
     </>
   );
 }
@@ -462,11 +474,13 @@ git commit -m "feat: add preview toolbar and QR code dialog"
 ### Task 3: 文件预览页 + 嵌入模式 + 直接下载页
 
 **Files:**
+
 - Create: `client/src/app/f/[urlKey]/page.tsx`（文件预览页）
 - Create: `client/src/app/f/[urlKey]/embed/page.tsx`（嵌入模式）
 - Create: `client/src/app/d/[urlKey]/page.tsx`（直接下载跳转）
 
 **Interfaces:**
+
 - Consumes: `GET /api/public/files/:urlKey`（获取文件元数据）
 - Consumes: 所有预览组件（Task 1）
 - Consumes: `PreviewToolbar`（Task 2）
@@ -647,9 +661,7 @@ export default function PreviewPageClient({ file }: Props) {
         viewCount={file.viewCount}
         downloadCount={file.downloadCount}
       />
-      <div className="flex-1">
-        {renderPreview()}
-      </div>
+      <div className="flex-1">{renderPreview()}</div>
     </div>
   );
 }
@@ -675,7 +687,8 @@ export default function EmbedPage() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    api.get(`/public/files/${urlKey}`)
+    api
+      .get(`/public/files/${urlKey}`)
       .then((res) => setFile(res.data))
       .catch(() => setError(true));
   }, [urlKey]);
@@ -723,7 +736,8 @@ export default function DownloadPage() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    api.get(`/public/files/${urlKey}/download`)
+    api
+      .get(`/public/files/${urlKey}/download`)
       .then((res) => {
         const downloadUrl = res.data.downloadUrl;
         if (downloadUrl) {

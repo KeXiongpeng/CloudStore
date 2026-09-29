@@ -1,4 +1,5 @@
-﻿'use client';
+'use client';
+import { getApiErrorMessage } from '@/lib/errors';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -37,8 +38,8 @@ export default function RegisterPage() {
     try {
       await register(email, password);
       router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.message || '注册失败，请稍后重试');
+    } catch (error: unknown) {
+      setError(getApiErrorMessage(error, '注册失败，请稍后重试'));
     } finally {
       setLoading(false);
     }
@@ -90,7 +91,10 @@ export default function RegisterPage() {
         </div>
 
         <div>
-          <label htmlFor="confirmPassword" className="mb-2 block text-sm font-medium text-slate-700">
+          <label
+            htmlFor="confirmPassword"
+            className="mb-2 block text-sm font-medium text-slate-700"
+          >
             确认密码
           </label>
           <input

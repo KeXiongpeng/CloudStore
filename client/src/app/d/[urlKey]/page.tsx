@@ -10,7 +10,8 @@ export default function DownloadPage() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    api.get(`/public/files/${urlKey}/download`)
+    api
+      .get(`/public/files/${urlKey}/download`)
       .then((res) => {
         const downloadUrl = res.data.downloadUrl;
         if (downloadUrl) {

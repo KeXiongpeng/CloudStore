@@ -54,12 +54,14 @@ server/src/
 ### Task 1: 公共接口 — 文件预览元数据 + 浏览/下载统计
 
 **Files:**
+
 - Create: `server/src/public/public.module.ts`
 - Create: `server/src/public/public.service.ts`
 - Create: `server/src/public/public.controller.ts`
 - Modify: `server/src/app.module.ts`（导入 PublicModule）
 
 **Interfaces:**
+
 - Consumes: `PrismaService`（Phase 2）
 - Consumes: `S3Service`（Phase 3）
 - Consumes: `RedisService`（Phase 2）
@@ -189,10 +191,7 @@ export class PublicService {
     });
 
     // 生成预签名下载 URL（1小时有效）
-    const downloadUrl = await this.s3Service.generatePresignedGetUrl(
-      file.storageKey,
-      3600,
-    );
+    const downloadUrl = await this.s3Service.generatePresignedGetUrl(file.storageKey, 3600);
 
     return { downloadUrl };
   }
@@ -217,13 +216,13 @@ export class PublicController {
 
   @Post('files/:urlKey/view')
   async recordView(@Param('urlKey') urlKey: string, @Req() req: Request) {
-    const ip = req.ip || req.headers['x-forwarded-for'] as string || 'unknown';
+    const ip = req.ip || (req.headers['x-forwarded-for'] as string) || 'unknown';
     return this.publicService.recordView(urlKey, ip);
   }
 
   @Get('files/:urlKey/download')
   async download(@Param('urlKey') urlKey: string, @Req() req: Request) {
-    const ip = req.ip || req.headers['x-forwarded-for'] as string || 'unknown';
+    const ip = req.ip || (req.headers['x-forwarded-for'] as string) || 'unknown';
     return this.publicService.getDownloadUrl(urlKey, ip);
   }
 }
@@ -269,6 +268,7 @@ git commit -m "feat: add PublicModule for file preview meta, view/download track
 ### Task 2: API 密钥管理 + ApiKeyAuthGuard
 
 **Files:**
+
 - Create: `server/src/common/guards/api-key.guard.ts`
 - Create: `server/src/api-keys/api-keys.service.ts`
 - Create: `server/src/api-keys/api-keys.controller.ts`
@@ -276,6 +276,7 @@ git commit -m "feat: add PublicModule for file preview meta, view/download track
 - Modify: `server/src/app.module.ts`（导入 ApiKeysModule）
 
 **Interfaces:**
+
 - Consumes: `PrismaService`（Phase 2）
 - Consumes: `FilesService`（Phase 3）
 - Produces: `POST /api/keys` — 创建 API Key，返回明文（仅一次）
@@ -417,10 +418,7 @@ export class ApiKeysController {
   constructor(private readonly apiKeysService: ApiKeysService) {}
 
   @Post()
-  async create(
-    @CurrentUser('id') userId: string,
-    @Body() dto: CreateApiKeyDto,
-  ) {
+  async create(@CurrentUser('id') userId: string, @Body() dto: CreateApiKeyDto) {
     return this.apiKeysService.createApiKey(userId, dto.name);
   }
 
@@ -430,10 +428,7 @@ export class ApiKeysController {
   }
 
   @Delete(':id')
-  async delete(
-    @CurrentUser('id') userId: string,
-    @Param('id') keyId: string,
-  ) {
+  async delete(@CurrentUser('id') userId: string, @Param('id') keyId: string) {
     return this.apiKeysService.deleteApiKey(userId, keyId);
   }
 }
@@ -501,12 +496,14 @@ git commit -m "feat: add ApiKeysModule with CRUD and ApiKeyGuard for ShareX uplo
 ### Task 3: 管理员后台接口
 
 **Files:**
+
 - Create: `server/src/admin/admin.module.ts`
 - Create: `server/src/admin/admin.service.ts`
 - Create: `server/src/admin/admin.controller.ts`
 - Modify: `server/src/app.module.ts`（导入 AdminModule）
 
 **Interfaces:**
+
 - Consumes: `PrismaService`（Phase 2）
 - Consumes: `AdminRoleGuard` + `@Roles('admin')`（Phase 2）
 - Produces: `GET /api/admin/users` — 用户列表（分页）
@@ -563,10 +560,12 @@ export class AdminService {
     return {
       items: users.map((u) => ({
         ...u,
-        quota: u.quota ? {
-          storageLimit: Number(u.quota.storageLimit),
-          storageUsed: Number(u.quota.storageUsed),
-        } : null,
+        quota: u.quota
+          ? {
+              storageLimit: Number(u.quota.storageLimit),
+              storageUsed: Number(u.quota.storageUsed),
+            }
+          : null,
       })),
       total,
       page,
@@ -787,29 +786,37 @@ git commit -m "feat: add AdminModule with user management and global stats"
 完成所有 Task 后，执行以下验证：
 
 1. **启动服务：**
+
    ```bash
    cd server && npm run start:dev
    ```
 
 2. **验证公共文件元数据（无需登录）：**
+
    ```bash
    curl http://localhost:3000/api/public/files/test.jpg
    ```
+
    预期：返回文件元数据 `{ id, originalName, urlKey, fileSize, mimeType, viewCount, downloadCount, createdAt, user: { nickname } }` 或 404
 
 3. **验证记录浏览：**
+
    ```bash
    curl -X POST http://localhost:3000/api/public/files/test.jpg/view
    ```
+
    预期：返回 `{ message: "ok" }`
 
 4. **验证下载 URL 生成：**
+
    ```bash
    curl http://localhost:3000/api/public/files/test.jpg/download
    ```
+
    预期：返回 `{ downloadUrl: "https://..." }`
 
 5. **验证 API Key 创建（需登录）：**
+
    ```bash
    TOKEN=<access_token>
    curl -X POST http://localhost:3000/api/keys \
@@ -817,9 +824,11 @@ git commit -m "feat: add AdminModule with user management and global stats"
      -H "Content-Type: application/json" \
      -d '{"name":"ShareX"}'
    ```
+
    预期：返回 `{ id, name, key: "csp_...", createdAt }`（key 明文仅返回一次）
 
 6. **验证通过 API Key 上传文件：**
+
    ```bash
    API_KEY=<从上一步获取的 key>
    curl -X POST http://localhost:3000/api/files/presign/api-key \
@@ -827,21 +836,26 @@ git commit -m "feat: add AdminModule with user management and global stats"
      -H "Content-Type: application/json" \
      -d '{"filename":"sharex-test.png","contentType":"image/png","fileSize":51200}'
    ```
+
    预期：返回 `{ uploadUrl, storageKey }`
 
 7. **验证管理员统计（需 admin token）：**
+
    ```bash
    ADMIN_TOKEN=<admin_access_token>
    curl http://localhost:3000/api/admin/stats \
      -H "Authorization: Bearer $ADMIN_TOKEN"
    ```
+
    预期：返回 `{ totalUsers, totalFiles, totalStorage, totalViews, totalDownloads }`
 
 8. **验证管理员用户列表：**
+
    ```bash
    curl http://localhost:3000/api/admin/users?page=1&limit=10 \
      -H "Authorization: Bearer $ADMIN_TOKEN"
    ```
+
    预期：返回 `{ items: [...], total, page, limit, totalPages }`
 
 9. **验证管理员修改用户等级：**

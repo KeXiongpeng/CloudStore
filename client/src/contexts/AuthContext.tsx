@@ -3,6 +3,7 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import { setTokens, clearTokens, getAccessToken } from '@/lib/auth';
+import { useWorkspaceStore } from '@/features/workspace/store';
 
 interface User {
   id: string;
@@ -65,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await api.post('/auth/logout');
     } finally {
       clearTokens();
+      useWorkspaceStore.getState().resetWorkspace();
       setUser(null);
       window.location.href = '/login';
     }

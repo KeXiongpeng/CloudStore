@@ -4,14 +4,14 @@
 
 ## 技术栈
 
-| 层次 | 技术选型 | 说明 |
-|------|----------|------|
-| 前端 | Next.js 14 + React 18 + Tailwind CSS | App Router、Standalone 输出模式 |
-| 后端 | NestJS 10 + Prisma 5 + Passport | 全局 `/api` 前缀、JWT + OAuth 认证 |
-| 数据库 | PostgreSQL 16 | 用户、文件、配额、OAuth、访问日志 |
-| 缓存 | Redis 7 (ioredis) | 分片上传会话、Refresh Token、PV 计数 |
-| 对象存储 | 七牛云 S3 兼容接口 | AWS SDK v3、预签名上传/下载 |
-| 部署 | Docker Compose + Nginx + Let's Encrypt | 阿里云 ECS、多容器编排、自动 HTTPS |
+| 层次     | 技术选型                               | 说明                                 |
+| -------- | -------------------------------------- | ------------------------------------ |
+| 前端     | Next.js 14 + React 18 + Tailwind CSS   | App Router、Standalone 输出模式      |
+| 后端     | NestJS 10 + Prisma 5 + Passport        | 全局 `/api` 前缀、JWT + OAuth 认证   |
+| 数据库   | PostgreSQL 16                          | 用户、文件、配额、OAuth、访问日志    |
+| 缓存     | Redis 7 (ioredis)                      | 分片上传会话、Refresh Token、PV 计数 |
+| 对象存储 | 七牛云 S3 兼容接口                     | AWS SDK v3、预签名上传/下载          |
+| 部署     | Docker Compose + Nginx + Let's Encrypt | 阿里云 ECS、多容器编排、自动 HTTPS   |
 
 ## 核心功能
 
@@ -43,14 +43,14 @@
 
 支持 6 种文件类型的页内预览，无需下载：
 
-| 类型 | 预览方式 | 组件 |
-|------|----------|------|
-| 图片 | 页内大图查看器（支持缩放） | ImageViewer |
-| 视频 | HTML5 Video Player | VideoPlayer |
-| 音频 | HTML5 Audio Player | AudioPlayer |
-| PDF | iframe 嵌入 | PdfViewer |
-| 代码 | 语法高亮 + 行号显示 | CodeViewer |
-| 其他 | 文件信息卡片 | FileInfoCard |
+| 类型 | 预览方式                   | 组件         |
+| ---- | -------------------------- | ------------ |
+| 图片 | 页内大图查看器（支持缩放） | ImageViewer  |
+| 视频 | HTML5 Video Player         | VideoPlayer  |
+| 音频 | HTML5 Audio Player         | AudioPlayer  |
+| PDF  | iframe 嵌入                | PdfViewer    |
+| 代码 | 语法高亮 + 行号显示        | CodeViewer   |
+| 其他 | 文件信息卡片               | FileInfoCard |
 
 预览弹窗顶部工具栏提供"新窗口打开"和"下载"功能，点击下载直接 302 重定向到 S3 预签名下载链接。
 
@@ -58,10 +58,10 @@
 
 **JWT 双 Token 机制**
 
-| Token | 有效期 | 用途 |
-|-------|--------|------|
-| Access Token | 15 分钟 | API 请求鉴权，Header 携带 |
-| Refresh Token | 7 天 | 刷新 Access Token，存储在 Redis |
+| Token         | 有效期  | 用途                            |
+| ------------- | ------- | ------------------------------- |
+| Access Token  | 15 分钟 | API 请求鉴权，Header 携带       |
+| Refresh Token | 7 天    | 刷新 Access Token，存储在 Redis |
 
 前端 Axios 拦截器自动处理 Token 刷新：401 触发 → 用 Refresh Token 换新 → 重放失败队列中的请求，整个过程对用户无感知。
 
@@ -79,17 +79,17 @@ OAuth 用户与邮箱用户自动关联：同一邮箱下不同登录方式共�
 
 **用户角色**
 
-| 角色 | 权限 |
-|------|------|
-| user | 上传、管理自己的文件、查看配额 |
+| 角色  | 权限                                          |
+| ----- | --------------------------------------------- |
+| user  | 上传、管理自己的文件、查看配额                |
 | admin | 所有 user 权限 + 用户管理、平台统计、禁用用户 |
 
 **存储配额**
 
 | 等级 | 存储上限 |
-|------|----------|
-| Free | 500 MB |
-| VIP | 10 GB |
+| ---- | -------- |
+| Free | 500 MB   |
+| VIP  | 10 GB    |
 
 上传前校验配额，删除文件后自动回退已用空间，配额状态通过进度条可视化展示。
 
@@ -104,6 +104,7 @@ OAuth 用户与邮箱用户自动关联：同一邮箱下不同登录方式共�
 ### 6. 管理后台
 
 Admin 角色专属，提供：
+
 - 用户列表（分页、角色/等级变更、禁用）
 - 平台统计（用户数、文件数、存储用量）
 
@@ -193,10 +194,10 @@ access_logs     -- 访问日志（IP、action、时间）
 
 ### 多环境配置
 
-| 文件 | 用途 |
-|------|------|
-| `docker-compose.dev.yml` | 开发环境（仅 PostgreSQL + Redis） |
-| `docker-compose.yml` | 完整本地部署（5 个容器 + Nginx） |
+| 文件                      | 用途                                    |
+| ------------------------- | --------------------------------------- |
+| `docker-compose.dev.yml`  | 开发环境（仅 PostgreSQL + Redis）       |
+| `docker-compose.yml`      | 完整本地部署（5 个容器 + Nginx）        |
 | `docker-compose.prod.yml` | 生产环境（ACR 镜像 + 共享 nginx-proxy） |
 
 ## 项目结构

@@ -1,4 +1,5 @@
-﻿'use client';
+'use client';
+import { getApiErrorMessage } from '@/lib/errors';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -25,8 +26,8 @@ export default function LoginPage() {
     try {
       await login(email, password);
       router.push('/dashboard');
-    } catch (err: any) {
-      setError(err.response?.data?.message || '登录失败，请检查邮箱和密码');
+    } catch (error: unknown) {
+      setError(getApiErrorMessage(error, '登录失败，请检查邮箱和密码'));
     } finally {
       setLoading(false);
     }

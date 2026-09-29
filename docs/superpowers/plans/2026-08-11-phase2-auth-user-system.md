@@ -74,6 +74,7 @@ server/src/
 ### Task 1: 基础设施 — PrismaModule + RedisModule + Guards + Decorators
 
 **Files:**
+
 - Create: `server/src/prisma/prisma.module.ts`
 - Create: `server/src/prisma/prisma.service.ts`
 - Create: `server/src/redis/redis.module.ts`
@@ -87,6 +88,7 @@ server/src/
 - Modify: `server/package.json`（新增依赖）
 
 **Interfaces:**
+
 - Consumes: Prisma Schema（Phase 1 Task 3）
 - Produces: `PrismaService` — 所有后续 Task 通过此服务访问数据库
 - Produces: `RedisService` — 后续 Task 通过此服务操作 Redis（存储 Refresh Token）
@@ -149,7 +151,7 @@ ADMIN_PASSWORD: Joi.string().default('admin123456'),
 
 ```typescript
 export interface JwtPayload {
-  sub: string;  // user id
+  sub: string; // user id
   email: string;
   role: string;
 }
@@ -361,6 +363,7 @@ git commit -m "feat: add PrismaModule, RedisModule, JWT guard, and admin guard"
 ### Task 2: AuthModule — 注册、登录、JWT 策略、Token 刷新
 
 **Files:**
+
 - Create: `server/src/auth/auth.module.ts`
 - Create: `server/src/auth/auth.service.ts`
 - Create: `server/src/auth/auth.controller.ts`
@@ -372,6 +375,7 @@ git commit -m "feat: add PrismaModule, RedisModule, JWT guard, and admin guard"
 - Modify: `server/prisma/seed.ts`（使用 bcrypt 哈希密码）
 
 **Interfaces:**
+
 - Consumes: `PrismaService`（Task 1）
 - Consumes: `RedisService`（Task 1）
 - Consumes: `JwtAuthGuard`（Task 1）
@@ -780,6 +784,7 @@ git commit -m "feat: add AuthModule with register, login, JWT strategy, and toke
 ### Task 3: OAuth2 第三方登录（GitHub + Google）
 
 **Files:**
+
 - Modify: `server/package.json`（新增依赖）
 - Modify: `server/src/common/config/configuration.ts`（已在 Task 1 中添加，此处无需修改）
 - Modify: `server/src/auth/auth.module.ts`（注册 OAuth 控制器）
@@ -787,6 +792,7 @@ git commit -m "feat: add AuthModule with register, login, JWT strategy, and toke
 - Create: `server/src/auth/auth.controller.ts`（新增 OAuth 路由）
 
 **Interfaces:**
+
 - Consumes: `PrismaService`（Task 1）
 - Consumes: `RedisService`（Task 1）
 - Produces: `GET /api/auth/github` — GitHub OAuth2 授权入口
@@ -1041,6 +1047,7 @@ git commit -m "feat: add GitHub and Google OAuth2 login"
 ### Task 4: UsersModule — 用户信息管理 + 配额查询
 
 **Files:**
+
 - Create: `server/src/users/users.module.ts`
 - Create: `server/src/users/users.service.ts`
 - Create: `server/src/users/users.controller.ts`
@@ -1049,6 +1056,7 @@ git commit -m "feat: add GitHub and Google OAuth2 login"
 - Modify: `server/src/app.module.ts`（导入 UsersModule）
 
 **Interfaces:**
+
 - Consumes: `PrismaService`（Task 1）
 - Consumes: `JwtAuthGuard` + `@CurrentUser()`（Task 1）
 - Produces: `GET /api/users/me` — 获取当前用户信息
@@ -1169,7 +1177,7 @@ export class UsersService {
       storageLimit: Number(quota.storageLimit),
       storageUsed: Number(quota.storageUsed),
       tier: quota.tier,
-      usagePercent: Number(quota.storageUsed) / Number(quota.storageLimit) * 100,
+      usagePercent: (Number(quota.storageUsed) / Number(quota.storageLimit)) * 100,
     };
   }
 }
@@ -1255,56 +1263,69 @@ git commit -m "feat: add UsersModule with profile, password, and quota endpoints
 完成所有 Task 后，执行以下验证：
 
 1. **安装新增依赖：**
+
    ```bash
    cd server && npm install
    ```
 
 2. **运行数据库迁移和种子：**
+
    ```bash
    cd server && npx prisma migrate dev --name init && npx prisma db seed
    ```
 
 3. **启动 NestJS 开发服务器：**
+
    ```bash
    cd server && npm run start:dev
    ```
 
 4. **验证注册：**
+
    ```bash
    curl -X POST http://localhost:3000/api/auth/register \
      -H "Content-Type: application/json" \
      -d '{"email":"test@example.com","password":"test123456"}'
    ```
+
    预期：返回 `{ access_token, refresh_token, user: { id, email, nickname, role, tier } }`
 
 5. **验证登录：**
+
    ```bash
    curl -X POST http://localhost:3000/api/auth/login \
      -H "Content-Type: application/json" \
      -d '{"email":"test@example.com","password":"test123456"}'
    ```
+
    预期：返回 `{ access_token, refresh_token, user }`
 
 6. **验证 JWT 鉴权 — 获取用户信息：**
+
    ```bash
    curl http://localhost:3000/api/users/me \
      -H "Authorization: Bearer <access_token>"
    ```
+
    预期：返回当前用户信息
 
 7. **验证刷新 Token：**
+
    ```bash
    curl -X POST http://localhost:3000/api/auth/refresh \
      -H "Content-Type: application/json" \
      -d '{"refresh_token":"<refresh_token>"}'
    ```
+
    预期：返回新的 `{ access_token, refresh_token }`
 
 8. **验证配额查询：**
+
    ```bash
    curl http://localhost:3000/api/users/me/quota \
      -H "Authorization: Bearer <access_token>"
    ```
+
    预期：返回 `{ storageLimit: 524288000, storageUsed: 0, tier: "free", usagePercent: 0 }`
 
 9. **验证修改密码：**

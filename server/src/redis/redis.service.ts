@@ -49,6 +49,22 @@ export class RedisService implements OnModuleDestroy {
     return this.client.incr(key);
   }
 
+  async acquireLock(key: string, value: string, ttlSeconds: number): Promise<boolean> {
+    const result = await this.client.set(key, value, 'EX', ttlSeconds, 'NX');
+    return result === 'OK';
+  }
+
+  async releaseLock(key: string, value: string): Promise<void> {
+    const current = await this.client.get(key);
+    if (current === value) {
+      await this.client.del(key);
+    }
+  }
+
+  async releaseLockIfValue(key: string, value: string): Promise<void> {
+    await this.releaseLock(key, value);
+  }
+
   async onModuleDestroy() {
     await this.client.quit();
   }

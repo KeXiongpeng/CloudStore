@@ -52,10 +52,12 @@ client/src/
 ### Task 1: 上传工具函数 + useUpload Hook
 
 **Files:**
+
 - Create: `client/src/lib/upload.ts`
 - Create: `client/src/hooks/useUpload.ts`
 
 **Interfaces:**
+
 - Produces: `uploadSmallFile(file)` — 小文件直传（获取 Presigned URL → PUT 七牛云 → 回调后端）
 - Produces: `uploadLargeFile(file, onProgress)` — 大文件分片中转
 - Produces: `uploadFile(file, onProgress)` — 自动判断大小，选择上传方式
@@ -207,19 +209,11 @@ export function useUpload() {
     setUploads((prev) => [...prev, ...newItems]);
 
     for (const item of newItems) {
-      setUploads((prev) =>
-        prev.map((u) =>
-          u.id === item.id ? { ...u, status: 'uploading' } : u,
-        ),
-      );
+      setUploads((prev) => prev.map((u) => (u.id === item.id ? { ...u, status: 'uploading' } : u)));
 
       try {
         const result = await uploadFile(item.file, (progress) => {
-          setUploads((prev) =>
-            prev.map((u) =>
-              u.id === item.id ? { ...u, progress } : u,
-            ),
-          );
+          setUploads((prev) => prev.map((u) => (u.id === item.id ? { ...u, progress } : u)));
         });
 
         setUploads((prev) =>
@@ -230,9 +224,7 @@ export function useUpload() {
       } catch (error: any) {
         const message = error.response?.data?.message || error.message || '上传失败';
         setUploads((prev) =>
-          prev.map((u) =>
-            u.id === item.id ? { ...u, status: 'error', error: message } : u,
-          ),
+          prev.map((u) => (u.id === item.id ? { ...u, status: 'error', error: message } : u)),
         );
       }
     }
@@ -270,11 +262,13 @@ git commit -m "feat: add upload utility functions and useUpload hook"
 ### Task 2: 上传页面 — 拖拽区域 + 上传列表
 
 **Files:**
+
 - Create: `client/src/components/FileDropzone.tsx`
 - Create: `client/src/components/UploadProgress.tsx`
 - Modify: `client/src/app/(dashboard)/upload/page.tsx`
 
 **Interfaces:**
+
 - Consumes: `useUpload()` hook（Task 1）
 - Produces: `/upload` — 完整上传页面，包含拖拽区域、文件列表、上传进度、完成后的链接复制
 
@@ -452,9 +446,7 @@ export default function UploadProgress({ item, onRemove }: UploadProgressProps) 
           </p>
         )}
 
-        {item.status === 'error' && (
-          <p className="mt-1 text-xs text-red-500">{item.error}</p>
-        )}
+        {item.status === 'error' && <p className="mt-1 text-xs text-red-500">{item.error}</p>}
       </div>
     </div>
   );
@@ -519,12 +511,14 @@ git commit -m "feat: add upload page with drag-and-drop, progress tracking, and 
 ### Task 3: 文件管理页面 + Dashboard 配额概览
 
 **Files:**
+
 - Create: `client/src/components/FileRow.tsx`
 - Create: `client/src/components/QuotaBar.tsx`
 - Modify: `client/src/app/(dashboard)/files/page.tsx`
 - Modify: `client/src/app/(dashboard)/dashboard/page.tsx`
 
 **Interfaces:**
+
 - Produces: `/files` — 文件管理页面（列表视图 + 搜索 + 删除 + 复制链接 + 分页）
 - Produces: `/dashboard` — 控制面板（配额使用进度条 + 统计数据 + 快速上传入口）
 
@@ -547,12 +541,7 @@ export default function QuotaBar({ used, limit }: QuotaBarProps) {
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
   };
 
-  const barColor =
-    percent >= 90
-      ? 'bg-red-500'
-      : percent >= 70
-      ? 'bg-yellow-500'
-      : 'bg-blue-500';
+  const barColor = percent >= 90 ? 'bg-red-500' : percent >= 70 ? 'bg-yellow-500' : 'bg-blue-500';
 
   return (
     <div>
@@ -560,9 +549,7 @@ export default function QuotaBar({ used, limit }: QuotaBarProps) {
         <span className="text-gray-600 dark:text-gray-400">
           {formatSize(used)} / {formatSize(limit)}
         </span>
-        <span className="font-medium text-gray-900 dark:text-white">
-          {percent.toFixed(1)}%
-        </span>
+        <span className="font-medium text-gray-900 dark:text-white">{percent.toFixed(1)}%</span>
       </div>
       <div className="mt-2 h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
         <div
@@ -642,12 +629,8 @@ export default function FileRow({ file, onDelete }: FileRowProps) {
         <div className="flex items-center gap-3">
           <span className="text-lg">{getFileIcon(file.mimeType)}</span>
           <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">
-              {file.originalName}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {file.mimeType}
-            </p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">{file.originalName}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{file.mimeType}</p>
           </div>
         </div>
       </td>
@@ -748,15 +731,11 @@ export default function FilesPage() {
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">文件管理</h1>
-        <span className="text-sm text-gray-500 dark:text-gray-400">
-          共 {total} 个文件
-        </span>
+        <span className="text-sm text-gray-500 dark:text-gray-400">共 {total} 个文件</span>
       </div>
 
       {loading ? (
-        <div className="mt-6 text-center text-gray-500 dark:text-gray-400">
-          加载中...
-        </div>
+        <div className="mt-6 text-center text-gray-500 dark:text-gray-400">加载中...</div>
       ) : files.length === 0 ? (
         <div className="mt-12 text-center">
           <p className="text-gray-500 dark:text-gray-400">还没有上传过文件</p>
@@ -837,17 +816,25 @@ import api from '@/lib/api';
 import QuotaBar from '@/components/QuotaBar';
 
 export default function DashboardPage() {
-  const [quota, setQuota] = useState<{ storageLimit: number; storageUsed: number; tier: string } | null>(null);
-  const [stats, setStats] = useState<{ totalFiles: number; totalViews: number; totalDownloads: number; totalSize: number } | null>(null);
+  const [quota, setQuota] = useState<{
+    storageLimit: number;
+    storageUsed: number;
+    tier: string;
+  } | null>(null);
+  const [stats, setStats] = useState<{
+    totalFiles: number;
+    totalViews: number;
+    totalDownloads: number;
+    totalSize: number;
+  } | null>(null);
 
   useEffect(() => {
-    Promise.all([
-      api.get('/users/me/quota'),
-      api.get('/files/stats'),
-    ]).then(([quotaRes, statsRes]) => {
-      setQuota(quotaRes.data);
-      setStats(statsRes.data);
-    }).catch(console.error);
+    Promise.all([api.get('/users/me/quota'), api.get('/files/stats')])
+      .then(([quotaRes, statsRes]) => {
+        setQuota(quotaRes.data);
+        setStats(statsRes.data);
+      })
+      .catch(console.error);
   }, []);
 
   return (
@@ -860,7 +847,10 @@ export default function DashboardPage() {
             <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300">
               存储空间 ({quota.tier.toUpperCase()})
             </h2>
-            <a href="/api-keys" className="text-xs text-blue-600 hover:text-blue-500 dark:text-blue-400">
+            <a
+              href="/api-keys"
+              className="text-xs text-blue-600 hover:text-blue-500 dark:text-blue-400"
+            >
               管理员切换等级
             </a>
           </div>
@@ -924,10 +914,12 @@ git commit -m "feat: add file management page, dashboard with quota/stats, and f
 ### Task 4: API 密钥管理页面 + 个人设置页面
 
 **Files:**
+
 - Modify: `client/src/app/(dashboard)/api-keys/page.tsx`
 - Modify: `client/src/app/(dashboard)/settings/page.tsx`
 
 **Interfaces:**
+
 - Produces: `/api-keys` — API 密钥管理（创建、查看列表、删除、显示 ShareX 配置）
 - Produces: `/settings` — 个人设置（修改昵称、修改密码）
 
@@ -985,24 +977,28 @@ export default function ApiKeysPage() {
   };
 
   const sharexConfig = createdKey
-    ? JSON.stringify({
-        Name: 'CloudStore',
-        RequestType: 'PUT',
-        RequestURL: `${window.location.origin}/api/files/presign/api-key`,
-        Headers: {
-          'x-api-key': createdKey,
+    ? JSON.stringify(
+        {
+          Name: 'CloudStore',
+          RequestType: 'PUT',
+          RequestURL: `${window.location.origin}/api/files/presign/api-key`,
+          Headers: {
+            'x-api-key': createdKey,
+          },
+          Body: '{{r:response.data.uploadUrl}}',
+          FileFormName: 'file',
+          URL: `${window.location.origin}/api/files/callback`,
+          Arguments: {
+            filename: '{filename}',
+            contentType: '{filetype}',
+            fileSize: '{filesize}',
+            storageKey: '{response.data.storageKey}',
+          },
+          RequestMethod: 'POST',
         },
-        Body: '{{r:response.data.uploadUrl}}',
-        FileFormName: 'file',
-        URL: `${window.location.origin}/api/files/callback`,
-        Arguments: {
-          filename: '{filename}',
-          contentType: '{filetype}',
-          fileSize: '{filesize}',
-          storageKey: '{response.data.storageKey}',
-        },
-        RequestMethod: 'POST',
-      }, null, 2)
+        null,
+        2,
+      )
     : null;
 
   return (
@@ -1051,7 +1047,9 @@ export default function ApiKeysPage() {
 
           {sharexConfig && (
             <div className="mt-4">
-              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">ShareX 配置</p>
+              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                ShareX 配置
+              </p>
               <button
                 onClick={() => navigator.clipboard.writeText(sharexConfig)}
                 className="mt-1 rounded bg-gray-100 px-3 py-1 text-sm dark:bg-gray-800 dark:text-gray-300"
@@ -1078,7 +1076,8 @@ export default function ApiKeysPage() {
                   <p className="text-sm font-medium text-gray-900 dark:text-white">{key.name}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     创建于 {new Date(key.createdAt).toLocaleDateString('zh-CN')}
-                    {key.lastUsed && ` · 最后使用 ${new Date(key.lastUsed).toLocaleDateString('zh-CN')}`}
+                    {key.lastUsed &&
+                      ` · 最后使用 ${new Date(key.lastUsed).toLocaleDateString('zh-CN')}`}
                   </p>
                 </div>
                 <button

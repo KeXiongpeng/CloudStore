@@ -3,32 +3,32 @@ import { Type } from 'class-transformer';
 
 class MultipartPartDto {
   @IsNumber()
-  partNumber: number;
+  partNumber!: number;
 
   @IsString()
-  etag: string;
+  etag!: string;
 }
 
 export class CompleteMultipartDto {
   @IsNotEmpty()
   @IsString()
-  uploadId: string;
+  uploadId!: string;
 
   @IsNotEmpty()
   @IsString()
-  filename: string;
+  filename!: string;
 
   @IsNotEmpty()
   @IsString()
-  contentType: string;
+  contentType!: string;
 
   @IsNotEmpty()
   @IsNumber()
-  totalSize: number;
+  totalSize!: number;
 
   @IsNotEmpty()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => MultipartPartDto)
-  parts: MultipartPartDto[];
+  parts!: MultipartPartDto[];
 }

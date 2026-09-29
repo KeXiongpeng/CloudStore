@@ -67,7 +67,12 @@ function AuthCallbackContent() {
         <>
           <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-red-50 text-red-600">
             <svg className="size-6" viewBox="0 0 24 24" fill="none">
-              <path d="M12 8v5m0 3h.01M12 3l9 16H3l9-16Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+              <path
+                d="M12 8v5m0 3h.01M12 3l9 16H3l9-16Z"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinejoin="round"
+              />
             </svg>
           </div>
           <h2 className="mt-4 text-lg font-bold text-slate-900">登录失败</h2>

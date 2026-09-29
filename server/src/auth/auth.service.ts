@@ -1,9 +1,10 @@
-﻿import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
+import { WorkspacesService } from '../workspaces/workspaces.service';
 import { RedisService } from '../redis/redis.service';
 import * as bcrypt from 'bcryptjs';
 import { RegisterDto } from './dto/register.dto';
@@ -32,7 +33,10 @@ export class AuthService {
     private configService: ConfigService,
     private redisService: RedisService,
     private httpService: HttpService,
+    private readonly workspacesService: WorkspacesService,
   ) {}
+
+  private readonly logger = new Logger(AuthService.name);
 
   async register(dto: RegisterDto) {
     const existingUser = await this.prisma.user.findUnique({
@@ -58,6 +62,8 @@ export class AuthService {
         tier: 'free',
       },
     });
+
+    await this.bootstrapDefaultWorkspace(user.id);
 
     const tokens = await this.generateTokens(user.id, user.email, user.role);
     await this.storeRefreshToken(user.id, tokens.refresh_token);
@@ -93,9 +99,17 @@ export class AuthService {
   }
 
   async refreshTokens(refreshToken: string) {
-    const decoded = this.jwtService.verify(refreshToken, {
-      secret: this.configService.get<string>('jwt.refreshSecret'),
-    });
+    let decoded: { sub: string };
+    try {
+      decoded = this.jwtService.verify(refreshToken, {
+        secret: this.configService.get<string>('jwt.refreshSecret'),
+      });
+    } catch (error) {
+      if ((error as { name?: string }).name === 'TokenExpiredError') {
+        throw new UnauthorizedException('登录已过期，请重新登录');
+      }
+      throw new UnauthorizedException('无效的 refresh token');
+    }
 
     const redisKey = `user:${decoded.sub}:refresh`;
     const storedToken = await this.redisService.get(redisKey);
@@ -238,13 +252,7 @@ export class AuthService {
     const avatarUrl = userResponse.data.headimgurl;
     const email = buildWechatIdentityEmail(openid, unionid);
 
-    return this.findOrCreateOAuthUser(
-      'wechat',
-      unionid || openid,
-      email,
-      nickname,
-      avatarUrl,
-    );
+    return this.findOrCreateOAuthUser('wechat', unionid || openid, email, nickname, avatarUrl);
   }
 
   async generateTokens(userId: string, email: string, role: string) {
@@ -269,6 +277,16 @@ export class AuthService {
     ]);
 
     return { access_token, refresh_token };
+  }
+
+  private async bootstrapDefaultWorkspace(userId: string) {
+    try {
+      await this.workspacesService.ensureDefaultWorkspace(userId);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to create default workspace for user ${userId}: ${(error as Error).message}`,
+      );
+    }
   }
 
   private async storeRefreshToken(userId: string, refreshToken: string) {
@@ -358,6 +376,8 @@ export class AuthService {
           tier: 'free',
         },
       });
+
+      await this.bootstrapDefaultWorkspace(newUser.id);
 
       userId = newUser.id;
     }

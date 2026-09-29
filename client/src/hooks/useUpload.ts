@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { uploadFile } from '@/lib/upload';
+import { uploadFile, UploadedFile } from '@/lib/upload';
+import { getApiErrorMessage } from '@/lib/errors';
 
 export interface UploadItem {
   id: string;
   file: File;
   progress: number;
   status: 'pending' | 'uploading' | 'success' | 'error';
-  result?: any;
+  result?: UploadedFile;
   error?: string;
 }
 
@@ -41,19 +42,11 @@ export function useUpload() {
     setUploads((prev) => [...prev, ...newItems]);
 
     for (const item of newItems) {
-      setUploads((prev) =>
-        prev.map((u) =>
-          u.id === item.id ? { ...u, status: 'uploading' } : u,
-        ),
-      );
+      setUploads((prev) => prev.map((u) => (u.id === item.id ? { ...u, status: 'uploading' } : u)));
 
       try {
         const result = await uploadFile(item.file, (progress) => {
-          setUploads((prev) =>
-            prev.map((u) =>
-              u.id === item.id ? { ...u, progress } : u,
-            ),
-          );
+          setUploads((prev) => prev.map((u) => (u.id === item.id ? { ...u, progress } : u)));
         });
 
         setUploads((prev) =>
@@ -63,12 +56,10 @@ export function useUpload() {
         );
 
         addNotification(`${item.file.name} 上传成功`, 'success');
-      } catch (error: any) {
-        const message = error.response?.data?.message || error.message || '上传失败';
+      } catch (error: unknown) {
+        const message = getApiErrorMessage(error, '上传失败');
         setUploads((prev) =>
-          prev.map((u) =>
-            u.id === item.id ? { ...u, status: 'error', error: message } : u,
-          ),
+          prev.map((u) => (u.id === item.id ? { ...u, status: 'error', error: message } : u)),
         );
 
         addNotification(`${item.file.name} 上传失败`, 'error');

@@ -63,10 +63,7 @@ export class S3Service {
     return `${endpoint}/${this.bucket}/${key}`;
   }
 
-  async generatePresignedGetUrl(
-    key: string,
-    ttlSeconds: number = 3600,
-  ): Promise<string> {
+  async generatePresignedGetUrl(key: string, ttlSeconds: number = 3600): Promise<string> {
     const command = new GetObjectCommand({
       Bucket: this.bucket,
       Key: key,
@@ -85,12 +82,7 @@ export class S3Service {
     return this.client.send(command);
   }
 
-  async uploadPart(
-    key: string,
-    uploadId: string,
-    partNumber: number,
-    body: Buffer,
-  ) {
+  async uploadPart(key: string, uploadId: string, partNumber: number, body: Buffer) {
     const command = new UploadPartCommand({
       Bucket: this.bucket,
       Key: key,

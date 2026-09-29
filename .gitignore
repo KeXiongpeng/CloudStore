@@ -1,4 +1,4 @@
-# Dependencies
+﻿# Dependencies
 node_modules/
 .pnp
 .pnp.js
@@ -46,3 +46,11 @@ uploads/
 
 # Coverage
 coverage/
+
+*.tsbuildinfo
+
+#学习档案，不提交
+embedding-pgvector-学习/
+
+#个人 Codex skill，不属于产品源码
+/tech-stack-tutor/

@@ -1,4 +1,4 @@
-﻿# 数据库模型
+# 数据库模型
 
 Prisma Schema：[`server/prisma/schema.prisma`](../server/prisma/schema.prisma)
 
@@ -77,16 +77,16 @@ erDiagram
 
 ## 关键约束
 
-| 表 / 字段 | 说明 |
-| --- | --- |
-| `users.email` | 唯一；本地邮箱登录依赖此字段 |
-| `users.password_hash` | OAuth 创建的用户初始为空 |
+| 表 / 字段                               | 说明                                 |
+| --------------------------------------- | ------------------------------------ |
+| `users.email`                           | 唯一；本地邮箱登录依赖此字段         |
+| `users.password_hash`                   | OAuth 创建的用户初始为空             |
 | `oauth_accounts(provider, provider_id)` | 联合唯一，防止同一第三方身份重复绑定 |
-| `files.storage_key` | 对象存储 Key，唯一 |
-| `files.url_key` | 分享路径标识，唯一 |
-| `files.deleted_at` | 软删除标记 |
-| `user_quotas.user_id` | 唯一，一对一 |
-| `access_logs.file_id` | 删除用户时会级联删除访问日志 |
+| `files.storage_key`                     | 对象存储 Key，唯一                   |
+| `files.url_key`                         | 分享路径标识，唯一                   |
+| `files.deleted_at`                      | 软删除标记                           |
+| `user_quotas.user_id`                   | 唯一，一对一                         |
+| `access_logs.file_id`                   | 删除用户时会级联删除访问日志         |
 
 ## 枚举
 
@@ -114,6 +114,46 @@ erDiagram
 ## 默认配额
 
 | 套餐 | 存储上限 |
-| --- | --- |
-| Free | 500 MB |
-| VIP | 10 GB |
+| ---- | -------- |
+| Free | 500 MB   |
+| VIP  | 10 GB    |
+
+## 工作区 RBAC 表
+
+```mermaid
+erDiagram
+  User ||--o{ Workspace : owns
+  User ||--o{ WorkspaceMember : joins
+  Workspace ||--o{ WorkspaceMember : has
+  Workspace ||--o{ WorkspaceInvitation : has
+  Workspace ||--o{ File : contains
+  Workspace ||--o{ AuditLog : records
+
+  Workspace {
+    string id PK
+    string name
+    string slug UK
+    string owner_id FK
+    string status
+  }
+
+  WorkspaceMember {
+    string id PK
+    string workspace_id FK
+    string user_id FK
+    string role
+    string status
+  }
+}
+```
+
+约束：
+
+- `workspace_members(workspace_id, user_id)` 唯一。
+- 每个旧用户迁移一个 Personal Workspace。
+- 旧文件已回填 `workspace_id` 和 `created_by`。
+- 公开访问仍支持旧 `url_key`，但要求所属工作区 `active`。
+
+## Upload Pipeline Data Model
+
+Core entities: `WorkspaceQuota`, `Folder`, `UploadSession`, `UploadChunk`, `StorageObject`, `File`, and `FileVersion`. A session reserves quota before upload; completion moves reserved bytes to used bytes, while cancellation/expiry releases them. Chunks start at index 1 and retain ETag/status for resume. Files point to their current version; versions point to immutable storage keys. Deduplication is keyed by storage driver, algorithm, and lowercase SHA-256 hash. Session state flows through pending ? uploading ? merging ? completed/failed/canceled/expired.

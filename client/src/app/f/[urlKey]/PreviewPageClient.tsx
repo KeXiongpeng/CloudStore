@@ -33,6 +33,7 @@ interface Props {
 export default function PreviewPageClient({ file }: Props) {
   const pageUrl = `${window.location.origin}/f/${file.urlKey}`;
   const downloadUrl = `${window.location.origin}/d/${file.urlKey}`;
+  const contentUrl = `/api/public/files/${file.urlKey}/content`;
 
   useEffect(() => {
     api.post(`/public/files/${file.urlKey}/view`).catch(() => {});
@@ -42,19 +43,19 @@ export default function PreviewPageClient({ file }: Props) {
     const { mimeType } = file;
 
     if (mimeType.startsWith('image/')) {
-      return <ImageViewer fileUrl={file.fileUrl} fileName={file.originalName} />;
+      return <ImageViewer fileUrl={contentUrl} fileName={file.originalName} />;
     }
 
     if (mimeType.startsWith('video/')) {
-      return <VideoPlayer fileUrl={file.fileUrl} fileName={file.originalName} />;
+      return <VideoPlayer fileUrl={contentUrl} fileName={file.originalName} />;
     }
 
     if (mimeType.startsWith('audio/')) {
-      return <AudioPlayer fileUrl={file.fileUrl} fileName={file.originalName} />;
+      return <AudioPlayer fileUrl={contentUrl} fileName={file.originalName} />;
     }
 
     if (mimeType === 'application/pdf') {
-      return <PdfViewer fileUrl={file.fileUrl} fileName={file.originalName} />;
+      return <PdfViewer fileUrl={contentUrl} fileName={file.originalName} />;
     }
 
     if (
@@ -63,7 +64,7 @@ export default function PreviewPageClient({ file }: Props) {
       mimeType === 'application/xml' ||
       mimeType.includes('javascript')
     ) {
-      return <CodeViewer fileUrl={file.fileUrl} fileName={file.originalName} mimeType={mimeType} />;
+      return <CodeViewer fileUrl={contentUrl} fileName={file.originalName} mimeType={mimeType} />;
     }
 
     return (
@@ -92,9 +93,7 @@ export default function PreviewPageClient({ file }: Props) {
         viewCount={file.viewCount}
         downloadCount={file.downloadCount}
       />
-      <div className="flex-1">
-        {renderPreview()}
-      </div>
+      <div className="flex-1">{renderPreview()}</div>
     </div>
   );
 }
