@@ -1,16 +1,29 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { FileItem, formatFileDate, formatFileSize, getFileIcon } from '@/components/FileCard';
+import {
+  FileItem,
+  formatFileDate,
+  formatFileSize,
+  getFileIcon,
+  KNOWLEDGE_INDEX_LABEL,
+} from '@/components/FileCard';
 
 interface FileRowProps {
   file: FileItem;
   onDelete: (id: string) => void;
   onPreview: (file: FileItem) => void;
   onDownload: (file: FileItem) => void;
+  onReindex?: (file: FileItem) => void;
 }
 
-export default function FileRow({ file, onDelete, onPreview, onDownload }: FileRowProps) {
+export default function FileRow({
+  file,
+  onDelete,
+  onPreview,
+  onDownload,
+  onReindex,
+}: FileRowProps) {
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState('');
 
@@ -40,6 +53,27 @@ export default function FileRow({ file, onDelete, onPreview, onDownload }: FileR
               {file.originalName}
             </p>
             <p className="mt-1 truncate text-xs text-slate-500">{file.mimeType}</p>
+            <div className="mt-1 flex items-center gap-2">
+              {file.knowledgeIndex && file.knowledgeIndex.status !== 'not_applicable' && (
+                <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700">
+                  {KNOWLEDGE_INDEX_LABEL[file.knowledgeIndex.status] ?? file.knowledgeIndex.status}
+                </span>
+              )}
+              {file.knowledgeIndex?.status === 'failed' && file.knowledgeIndex.error && (
+                <span className="truncate text-red-500">{file.knowledgeIndex.error}</span>
+              )}
+              {onReindex &&
+                ['failed', 'unsupported'].includes(file.knowledgeIndex?.status ?? '') &&
+                /\.(md|txt|pdf)$/i.test(file.originalName) && (
+                  <button
+                    type="button"
+                    onClick={() => onReindex(file)}
+                    className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700 hover:bg-slate-200"
+                  >
+                    重新索引
+                  </button>
+                )}
+            </div>
           </div>
         </div>
       </td>

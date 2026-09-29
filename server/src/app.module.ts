@@ -14,6 +14,9 @@ import { WorkspacesModule } from './workspaces/workspaces.module';
 import { AuditModule } from './audit/audit.module';
 import { QuotaModule } from './quota/quota.module';
 import { UploadModule } from './upload/upload.module';
+import { EmbeddingModule } from './embedding/embedding.module';
+import { DocumentsModule } from './documents/documents.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -35,6 +38,9 @@ import { UploadModule } from './upload/upload.module';
     AuditModule,
     QuotaModule,
     UploadModule,
+    EmbeddingModule,
+    DocumentsModule,
+    ChatModule,
   ],
 })
 export class AppModule {}

@@ -1,4 +1,4 @@
-﻿import * as Joi from 'joi';
+import * as Joi from 'joi';
 
 export const configuration = () => ({
   database: {
@@ -71,6 +71,20 @@ export const configuration = () => ({
     email: process.env.DEMO_EMAIL || 'demo@example.com',
     password: process.env.DEMO_PASSWORD || 'demo123456',
   },
+  embedding: {
+    apiKey: process.env.SILICONFLOW_API_KEY,
+    apiUrl: process.env.SILICONFLOW_API_URL || 'https://api.siliconflow.cn/v1/embeddings',
+    model: process.env.SILICONFLOW_EMBEDDING_MODEL || 'BAAI/bge-m3',
+    dimensions: Number(process.env.EMBEDDING_DIMENSIONS || 1024),
+  },
+  llm: {
+    // DeepSeek 官方 key 只用于生成；SiliconFlow key 继续用于 Embedding 检索。
+    apiKey: process.env.DEEPSEEK_API_KEY,
+    apiUrl: process.env.LLM_API_URL || 'https://api.siliconflow.cn/v1/chat/completions',
+    model: process.env.LLM_MODEL || 'deepseek-ai/DeepSeek-V3',
+    maxTokens: Number(process.env.LLM_MAX_TOKENS || 1024),
+    temperature: Number(process.env.LLM_TEMPERATURE || 0.2),
+  },
 });
 
 export const configValidationSchema = Joi.object({
@@ -122,4 +136,13 @@ export const configValidationSchema = Joi.object({
   ADMIN_PASSWORD: Joi.string().default('admin123456'),
   DEMO_EMAIL: Joi.string().default('demo@example.com'),
   DEMO_PASSWORD: Joi.string().default('demo123456'),
+  SILICONFLOW_API_KEY: Joi.string().optional(),
+  SILICONFLOW_API_URL: Joi.string().uri().optional(),
+  SILICONFLOW_EMBEDDING_MODEL: Joi.string().optional(),
+  EMBEDDING_DIMENSIONS: Joi.number().integer().positive().optional(),
+  DEEPSEEK_API_KEY: Joi.string().optional().allow(''),
+  LLM_API_URL: Joi.string().uri().optional(),
+  LLM_MODEL: Joi.string().optional(),
+  LLM_MAX_TOKENS: Joi.number().integer().positive().optional(),
+  LLM_TEMPERATURE: Joi.number().min(0).max(2).optional(),
 });

@@ -1,6 +1,9 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
+
+export type KnowledgeIndexStatus =
+  'pending' | 'processing' | 'indexed' | 'failed' | 'not_applicable' | 'unsupported';
 
 export interface FileItem {
   id: string;
@@ -13,6 +16,11 @@ export interface FileItem {
   viewCount: number;
   downloadCount: number;
   createdAt: string;
+  knowledgeIndex?: {
+    status: KnowledgeIndexStatus;
+    indexedAt: string | null;
+    error: string | null;
+  };
 }
 
 interface FileCardProps {
@@ -20,8 +28,36 @@ interface FileCardProps {
   onDelete: (id: string) => void;
   onPreview: (file: FileItem) => void;
   onDownload: (file: FileItem) => void;
+  onReindex?: (file: FileItem) => void;
 }
 
+export const KNOWLEDGE_INDEX_LABEL: Record<
+  NonNullable<FileItem['knowledgeIndex']>['status'],
+  string
+> = {
+  pending: '知识库：排队中',
+  processing: '知识库：处理中',
+  indexed: '知识库：已索引',
+  failed: '知识库：失败',
+  unsupported: '知识库：不支持',
+  not_applicable: '知识库：不适用',
+};
+
+function KnowledgeIndexBadge({ status }: { status?: FileItem['knowledgeIndex'] }) {
+  if (!status || status.status === 'not_applicable') return null;
+  const label = KNOWLEDGE_INDEX_LABEL[status.status] ?? status.status;
+  const className =
+    status.status === 'indexed'
+      ? 'bg-emerald-50 text-emerald-700'
+      : status.status === 'failed'
+        ? 'bg-red-50 text-red-700'
+        : 'bg-blue-50 text-blue-700';
+  return (
+    <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${className}`}>
+      {label}
+    </span>
+  );
+}
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -48,7 +84,13 @@ export function getFileIcon(mimeType: string): string {
   return '📎';
 }
 
-export default function FileCard({ file, onDelete, onPreview, onDownload }: FileCardProps) {
+export default function FileCard({
+  file,
+  onDelete,
+  onPreview,
+  onDownload,
+  onReindex,
+}: FileCardProps) {
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState('');
 
@@ -77,6 +119,9 @@ export default function FileCard({ file, onDelete, onPreview, onDownload }: File
             {file.originalName}
           </h3>
           <p className="mt-1 truncate text-xs text-slate-500">{file.mimeType}</p>
+          <div className="mt-2">
+            <KnowledgeIndexBadge status={file.knowledgeIndex} />
+          </div>
         </div>
       </div>
 
@@ -97,7 +142,7 @@ export default function FileCard({ file, onDelete, onPreview, onDownload }: File
         </div>
       </dl>
 
-      <div className="mt-4 grid grid-cols-4 gap-2">
+      <div className="mt-4 grid grid-cols-5 gap-2">
         <button
           type="button"
           onClick={() => onPreview(file)}
@@ -118,6 +163,13 @@ export default function FileCard({ file, onDelete, onPreview, onDownload }: File
           className="h-9 rounded-xl bg-emerald-50 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100"
         >
           &#19979;&#36733;
+        </button>
+        <button
+          type="button"
+          onClick={() => onReindex?.(file)}
+          className="h-9 rounded-xl bg-indigo-50 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100"
+        >
+          重新索引
         </button>
         <button
           type="button"

@@ -15,16 +15,29 @@ interface UploadState {
 }
 
 function toItem(file: File, workspaceId: string, folderId?: string): UploadItem {
-  return {
+  const base = {
     id: crypto.randomUUID(),
     file,
     relativePath: (file as File & { webkitRelativePath?: string }).webkitRelativePath || undefined,
     workspaceId,
     folderId,
-    status: 'hashing',
     progress: 0,
     uploadedBytes: 0,
     attempt: 0,
+  };
+
+  // 空文件后端必定返回 400；这里直接进入失败状态，让用户看到明确原因。
+  if (file.size === 0) {
+    return {
+      ...base,
+      status: 'failed',
+      error: '不能上传空文件',
+    };
+  }
+
+  return {
+    ...base,
+    status: 'hashing',
   };
 }
 

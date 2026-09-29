@@ -2,6 +2,7 @@ import {
   Controller,
   Delete,
   Get,
+  Post,
   Param,
   Query,
   Req,
@@ -75,6 +76,13 @@ export class WorkspaceFilesController {
       res,
       req.headers.range as string | undefined,
     );
+  }
+
+  @Post(':fileId/reindex')
+  @UseGuards(PermissionGuard)
+  @RequirePermission('file:upload')
+  reindex(@WorkspaceActor() actor: WorkspaceActorContext, @Param('fileId') fileId: string) {
+    return this.filesService.reindex(actor, fileId);
   }
 
   @Get(':fileId')

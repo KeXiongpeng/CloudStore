@@ -4,6 +4,7 @@ import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { ensureFolderDirectory } from '../folder/api';
 import { useWorkspaceStore } from '../workspace/store';
+import { logUploadEvent } from './logging';
 import { runQueuedUploads } from './runner';
 import { useUploadQueue } from './store';
 
@@ -21,6 +22,23 @@ export function UploadDropzone({
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
       if (!workspace) return;
+
+      logUploadEvent(
+        'drop.accepted',
+        {
+          workspaceId: workspace.id,
+          folderId,
+          fileCount: acceptedFiles.length,
+          files: acceptedFiles.slice(0, 30).map((file) => ({
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            relativePath:
+              (file as File & { webkitRelativePath?: string }).webkitRelativePath || undefined,
+          })),
+        },
+        'info',
+      );
       const byDirectory = new Map<string, File[]>();
 
       for (const file of acceptedFiles) {
@@ -34,6 +52,20 @@ export function UploadDropzone({
         const resolvedFolderId = await ensureFolderDirectory(workspace.id, directory);
         enqueueFiles(directoryFiles, workspace.id, folderId ?? resolvedFolderId);
       }
+
+      const queuedState = useUploadQueue.getState();
+      logUploadEvent(
+        'queue.enqueued',
+        {
+          workspaceId: workspace.id,
+          itemCount: queuedState.items.length,
+          statusCounts: queuedState.items.reduce<Record<string, number>>((counts, item) => {
+            counts[item.status] = (counts[item.status] ?? 0) + 1;
+            return counts;
+          }, {}),
+        },
+        'info',
+      );
 
       await runQueuedUploads();
     },

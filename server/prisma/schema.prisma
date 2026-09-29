@@ -102,6 +102,13 @@ enum StorageObjectStatus {
   deleted
 }
 
+enum DocumentIndexStatus {
+  pending
+  processing
+  indexed
+  failed
+}
+
 model Folder {
   id          String   @id @default(uuid())
   workspaceId String   @map("workspace_id")
@@ -148,6 +155,7 @@ model File {
   versions       FileVersion[]
   currentVersion FileVersion?   @relation("CurrentFileVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
   uploadSession  UploadSession? @relation(fields: [uploadSessionId], references: [id], onDelete: SetNull)
+  documents      Document[]
   accessLogs     AccessLog[]
 
   @@index([workspaceId, deletedAt, createdAt])
@@ -170,8 +178,9 @@ model FileVersion {
   createdBy       String          @map("created_by")
   createdAt       DateTime        @default(now()) @map("created_at")
 
-  file          File  @relation(fields: [fileId], references: [id], onDelete: Cascade)
-  currentOfFile File? @relation("CurrentFileVersion")
+  file          File      @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  document      Document?
+  currentOfFile File?     @relation("CurrentFileVersion")
 
   @@unique([fileId, versionNo])
   @@index([hash])
@@ -344,6 +353,7 @@ model Workspace {
   files          File[]
   folders        Folder[]
   uploadSessions UploadSession[]
+  documents      Document[]
   quota          WorkspaceQuota?
 
   @@index([ownerId])
@@ -386,6 +396,16 @@ model WorkspaceInvitation {
   @@map("workspace_invitations")
 }
 
+model TextEmbedding {
+  id        String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  content   String                       @db.Text
+  metadata  Json?
+  embedding Unsupported("vector(1024)")?
+  createdAt DateTime                     @default(now()) @map("created_at")
+
+  @@map("text_embeddings")
+}
+
 model AuditLog {
   id           String   @id @default(uuid())
   workspaceId  String?  @map("workspace_id")
@@ -406,4 +426,48 @@ model AuditLog {
   @@index([workspaceId, actorId, createdAt])
   @@index([workspaceId, resourceType, resourceId])
   @@map("audit_logs")
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  title       String
+  sourcePath  String   @unique @map("source_path")
+  contentHash String   @map("content_hash")
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspaceId   String?             @map("workspace_id")
+  fileId        String?             @unique @map("file_id")
+  fileVersionId String?             @unique @map("file_version_id")
+  indexStatus   DocumentIndexStatus @default(pending) @map("index_status")
+  indexedAt     DateTime?           @map("indexed_at")
+  indexError    String?             @map("index_error")
+
+  workspace   Workspace?   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  file        File?        @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  fileVersion FileVersion? @relation(fields: [fileVersionId], references: [id], onDelete: Cascade)
+
+  chunks DocumentChunk[]
+
+  @@index([workspaceId, indexStatus])
+  @@index([fileId])
+  @@map("documents")
+}
+
+model DocumentChunk {
+  id          String                       @id @default(uuid())
+  documentId  String                       @map("document_id")
+  chunkIndex  Int                          @map("chunk_index")
+  content     String                       @db.Text
+  headingPath Json?                        @map("heading_path")
+  embedding   Unsupported("vector(1024)")?
+  metadata    Json?
+  createdAt   DateTime                     @default(now()) @map("created_at")
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex])
+  @@index([documentId])
+  @@map("document_chunks")
 }

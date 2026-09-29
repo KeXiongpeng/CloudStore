@@ -16,6 +16,15 @@ describe('upload queue store', () => {
     expect(item.status).toBe('hashing');
   });
 
+  it('空文件直接进入失败状态，不发送后端请求', () => {
+    useUploadQueue
+      .getState()
+      .enqueueFiles([new File([], 'empty.txt', { type: 'text/plain' })], 'workspace-1');
+
+    const item = useUploadQueue.getState().items[0];
+    expect(item.status).toBe('failed');
+    expect(item.error).toBe('不能上传空文件');
+  });
   it('clears only completed and canceled items', () => {
     useUploadQueue.setState({
       items: [

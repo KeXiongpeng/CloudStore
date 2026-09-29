@@ -4,7 +4,7 @@ name: cloud-storage
 services:
   # 闁冲厜鍋撻柍鍏夊亾 PostgreSQL 闁冲厜鍋撻柍鍏夊亾
   postgres:
-    image: docker.1ms.run/library/postgres:16
+    image: docker.1ms.run/pgvector/pgvector:pg16
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-cloud_storage}

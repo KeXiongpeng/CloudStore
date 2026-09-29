@@ -1,4 +1,4 @@
-﻿import { ConflictException, NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { UploadService } from '../../src/upload/upload.service';
 
 const prisma: any = {
@@ -18,7 +18,10 @@ const prisma: any = {
   ),
 };
 const quota = { confirm: jest.fn(), release: jest.fn() };
-const storage = { headObject: jest.fn(), completeMultipart: jest.fn(), abortMultipart: jest.fn() };
+const storage = {
+  createMultipart: jest.fn(),
+  headObject: jest.fn().mockResolvedValue({ key: 'objects/a', size: 8 }),
+};
 const audit = { record: jest.fn() };
 const workspaces = { requireMembership: jest.fn() };
 
@@ -117,7 +120,10 @@ describe('UploadService instant file storage key', () => {
       $transaction: jest.fn(),
     };
     const quota = { confirm: jest.fn() };
-    const storage = { driverName: 'minio' };
+    const storage = {
+      createMultipart: jest.fn(),
+      headObject: jest.fn().mockResolvedValue({ key: 'objects/a', size: 8 }),
+    };
     const audit = { record: jest.fn() };
     prisma.uploadSession.findFirst.mockResolvedValue({
       id: 'instant-session',
@@ -128,7 +134,7 @@ describe('UploadService instant file storage key', () => {
       folderId: null,
       filename: 'same.png',
       mimeType: 'image/png',
-      size: BigInt(68),
+      size: BigInt(8),
       hash: 'a'.repeat(64),
       hashAlgorithm: 'sha256',
       storageKey: 'sessions/new-wrong-key.png',
@@ -138,7 +144,7 @@ describe('UploadService instant file storage key', () => {
     prisma.storageObject.findUnique.mockResolvedValue({
       id: 'object-1',
       status: 'available',
-      size: BigInt(68),
+      size: BigInt(8),
       storageKey: 'objects/existing-key.png',
     });
     const service = new UploadService(

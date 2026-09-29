@@ -1,4 +1,4 @@
-﻿import {
+import {
   BadRequestException,
   Logger,
   ConflictException,
@@ -45,6 +45,15 @@ export class UploadService {
       : '';
   }
 
+  private redactUploadUrl(uploadUrl: string): string {
+    try {
+      const parsed = new URL(uploadUrl);
+      return `${parsed.origin}${parsed.pathname}?redacted`;
+    } catch {
+      return '<invalid-upload-url>';
+    }
+  }
+
   private storageKey(workspaceId: string, filename: string) {
     const now = new Date();
     const key = `${workspaceId}/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${randomUUID()}`;
@@ -80,22 +89,30 @@ export class UploadService {
     const clientUploadId = dto.clientUploadId ?? randomUUID();
     const hashAlgorithm = dto.hashAlgorithm || 'sha256';
     let sessionId: string | undefined;
-    const strategy: 'normal' | 'instant' =
-      dto.hash && hashAlgorithm === 'sha256'
-        ? (
-            await this.prisma.storageObject.findUnique({
-              where: {
-                storageDriver_hashAlgorithm_hash: {
-                  storageDriver: this.storageService.driverName,
-                  hashAlgorithm,
-                  hash: dto.hash.toLowerCase(),
-                },
-              },
-            })
-          )?.status === 'available'
-          ? 'instant'
-          : 'normal'
-        : 'normal';
+    let strategy: 'normal' | 'instant' = 'normal';
+    if (dto.hash && hashAlgorithm === 'sha256') {
+      const object = await this.prisma.storageObject.findUnique({
+        where: {
+          storageDriver_hashAlgorithm_hash: {
+            storageDriver: this.storageService.driverName,
+            hashAlgorithm,
+            hash: dto.hash.toLowerCase(),
+          },
+        },
+      });
+
+      // 秒传不能只信数据库记录；物理对象可能已被删除，否则索引/下载会 NoSuchKey。
+      if (object?.status === 'available') {
+        const head = await this.storageService.headObject(object.storageKey).catch(() => null);
+        strategy = head && head.size === Number(size) ? 'instant' : 'normal';
+        if (!head) {
+          await this.prisma.storageObject.update({
+            where: { id: object.id },
+            data: { status: 'deleted' },
+          });
+        }
+      }
+    }
 
     try {
       await this.quotaService.reserve({ workspaceId: actor.workspaceId, size });
@@ -122,6 +139,18 @@ export class UploadService {
         },
       });
       sessionId = session.id;
+
+      this.logger.log(
+        `[upload] session created: ${JSON.stringify({
+          uploadSessionId: session.id,
+          workspaceId: actor.workspaceId,
+          extension: this.extension(dto.filename),
+          mimeType: dto.mimeType,
+          size: Number(size),
+          mode: session.mode,
+          strategy,
+        })}`,
+      );
 
       if (session.mode === 'multipart' && strategy === 'normal') {
         const multipart = await this.storageService.createMultipart({
@@ -221,6 +250,13 @@ export class UploadService {
       contentType: session.mimeType,
       expiresInSeconds: 900,
     });
+
+    this.logger.log(
+      `[upload] direct URL created: ${JSON.stringify({
+        uploadSessionId: session.id,
+        url: this.redactUploadUrl(uploadUrl),
+      })}`,
+    );
 
     await this.prisma.uploadSession.update({
       where: { id: session.id },
@@ -392,6 +428,73 @@ export class UploadService {
     return { file, version };
   }
 
+  private isIndexableUpload(filename: string, mimeType: string): boolean {
+    const extension = this.extension(filename);
+    if (['md', 'txt', 'pdf'].includes(extension)) return true;
+    if (mimeType === 'text/markdown' || mimeType === 'application/pdf') return true;
+    return mimeType.startsWith('text/');
+  }
+
+  private async queueKnowledgeIndex(
+    version: { id: string; hash: string | null },
+    file: { id: string; workspaceId: string; name: string },
+    session: { mimeType: string },
+  ) {
+    if (!this.isIndexableUpload(file.name, session.mimeType)) return;
+
+    const document = await this.prisma.document.upsert({
+      where: { fileId: file.id },
+      create: {
+        title: file.name,
+        sourcePath: `workspace-file:${file.id}`,
+        contentHash: version.hash ?? `unhashed:${version.id}`,
+        workspaceId: file.workspaceId,
+        fileId: file.id,
+        fileVersionId: version.id,
+        indexStatus: 'pending',
+        metadata: {
+          originalName: file.name,
+          mimeType: session.mimeType,
+          source: 'workspace_upload',
+        },
+      },
+      update: {
+        title: file.name,
+        contentHash: version.hash ?? `unhashed:${version.id}`,
+        workspaceId: file.workspaceId,
+        fileVersionId: version.id,
+        indexStatus: 'pending',
+        indexedAt: null,
+        indexError: null,
+      },
+    });
+
+    if (!this.queueService) {
+      await this.prisma.document.update({
+        where: { id: document.id },
+        data: { indexStatus: 'failed', indexError: 'Queue service is unavailable' },
+      });
+      return;
+    }
+
+    try {
+      await this.queueService.addDocumentIndexJob({
+        fileId: file.id,
+        fileVersionId: version.id,
+        workspaceId: file.workspaceId,
+      });
+    } catch (error) {
+      this.logger.error(
+        `[upload] failed to enqueue document index: ${JSON.stringify({ fileId: file.id })}`,
+        error as Error,
+      );
+      await this.prisma.document.update({
+        where: { id: document.id },
+        data: { indexStatus: 'failed', indexError: 'Failed to enqueue indexing job' },
+      });
+    }
+  }
+
   private async enqueueThumbnail(
     fileVersionId: string,
     session: {
@@ -554,6 +657,19 @@ export class UploadService {
       });
 
       await this.enqueueThumbnail(created.version.id, session);
+      await this.queueKnowledgeIndex(
+        created.version,
+        { ...created.file, name: session.filename },
+        session,
+      );
+      this.logger.log(
+        `[upload] file completed: ${JSON.stringify({
+          uploadSessionId: session.id,
+          fileId: created.file.id,
+          strategy: session.strategy,
+          size: Number(session.size),
+        })}`,
+      );
 
       return {
         fileId: created.file.id,
@@ -613,6 +729,15 @@ export class UploadService {
       throw new ConflictException('UPLOAD_INSTANT_NOT_AVAILABLE');
     }
 
+    const head = await this.storageService.headObject(object.storageKey).catch(() => null);
+    if (!head || head.size !== Number(session.size)) {
+      await this.prisma.storageObject.update({
+        where: { id: object.id },
+        data: { status: 'deleted' },
+      });
+      throw new ConflictException('UPLOAD_INSTANT_OBJECT_MISSING');
+    }
+
     await this.prisma.storageObject.update({
       where: { id: object.id },
       data: { referenceCount: { increment: 1 } },
@@ -645,6 +770,11 @@ export class UploadService {
     });
 
     await this.enqueueThumbnail(created.version.id, session);
+    await this.queueKnowledgeIndex(
+      created.version,
+      { ...created.file, name: session.filename },
+      session,
+    );
 
     return {
       fileId: created.file.id,

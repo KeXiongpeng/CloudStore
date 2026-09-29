@@ -108,6 +108,18 @@ export default function FilesPage() {
   useEffect(() => {
     fetchFiles();
   }, [fetchFiles]);
+  const handleReindex = useCallback(
+    async (file: FileItem) => {
+      if (!workspace) return;
+      try {
+        await api.post(`/workspaces/${workspace.id}/files/${file.id}/reindex`);
+        await fetchFiles();
+      } catch (error) {
+        console.error('重建知识库索引失败:', error);
+      }
+    },
+    [fetchFiles, workspace],
+  );
 
   useEffect(() => {
     let previousCompleted = 0;
@@ -193,6 +205,7 @@ export default function FilesPage() {
                     onDelete={handleDelete}
                     onPreview={openPreview}
                     onDownload={handleDownload}
+                    onReindex={handleReindex}
                   />
                 </div>
               );
@@ -229,6 +242,7 @@ export default function FilesPage() {
                   onDelete={handleDelete}
                   onPreview={openPreview}
                   onDownload={handleDownload}
+                  onReindex={handleReindex}
                 />
               ))}
             </tbody>

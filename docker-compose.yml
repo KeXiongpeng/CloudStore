@@ -68,7 +68,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:16-alpine
+    image: docker.1ms.run/pgvector/pgvector:pg16
     container_name: csp-postgres
     environment:
       - POSTGRES_USER=${POSTGRES_USER}

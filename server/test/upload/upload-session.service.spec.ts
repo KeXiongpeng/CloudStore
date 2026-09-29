@@ -1,4 +1,4 @@
-﻿import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { UploadService } from '../../src/upload/upload.service';
 
 const prisma: any = {
@@ -10,7 +10,10 @@ const prisma: any = {
   $transaction: jest.fn(),
 };
 const quota = { reserve: jest.fn(), confirm: jest.fn(), release: jest.fn() };
-const storage = { createMultipart: jest.fn() };
+const storage = {
+  createMultipart: jest.fn(),
+  headObject: jest.fn().mockResolvedValue({ key: 'objects/a', size: 8 }),
+};
 const audit = { record: jest.fn() };
 const workspaces = { requireMembership: jest.fn() };
 
