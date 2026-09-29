@@ -1,4 +1,4 @@
-name: cloud-storage
+﻿name: cloud-storage
 
 # 濞存粍鍨甸悺銊╁磼閵婏附鐎ù鐘烘硾閸ㄥ孩绂嶉銏ゆ尙闁?- 闁汇垻鍠嶆鍥偝椤栨凹鏆旈梺顔哄妿鐠?# 濞?portfolio 濡炪倕婀卞ú浼村礂鏉堚晜鏆?nginx-proxy闁挎稑鐭傞埀顒佷亢缁诲啴宕洪悢閿嬪€抽柛鎺戞缁?
 services:
@@ -38,7 +38,7 @@ services:
 
   # 闁冲厜鍋撻柍鍏夊亾 NestJS 闁告艾娴烽?API 闁冲厜鍋撻柍鍏夊亾
   nestjs:
-    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v9
+    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v10
     restart: unless-stopped
     expose:
       - '3000'
@@ -60,7 +60,7 @@ services:
 
   # 闁冲厜鍋撻柍鍏夊亾 Next.js 闁告挸绉堕?闁冲厜鍋撻柍鍏夊亾
   server-worker:
-    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v9
+    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/server:v10
     restart: unless-stopped
     command: ['node', 'dist/worker.js']
     env_file:
@@ -80,7 +80,7 @@ services:
       - app-net
 
   nextjs:
-    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/client:v6
+    image: crpi-7znqdwo2lmmjl5kg.cn-shenzhen.personal.cr.aliyuncs.com/cloud-storage/client:v7
     restart: unless-stopped
     expose:
       - '3001'
